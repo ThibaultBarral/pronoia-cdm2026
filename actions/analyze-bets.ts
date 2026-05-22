@@ -1,6 +1,8 @@
 "use server";
 
 import Anthropic from "@anthropic-ai/sdk";
+import { requireAuthAndCredit } from "@/lib/ai-guard";
+import { validateImages } from "@/lib/validate-images";
 
 export interface ParsedBet {
   bookmaker: string;
@@ -41,8 +43,17 @@ Règles:
 export async function analyzeBetImages(
   images: Array<{ base64: string; mediaType: string }>
 ): Promise<{ ok: true; bets: ParsedBet[] } | { ok: false; error: string }> {
+  // ── Auth + rate limit ─────────────────────────────────────────────
+  const guard = await requireAuthAndCredit();
+  if ("error" in guard) return { ok: false, error: guard.error };
+
+  // ── Input validation ──────────────────────────────────────────────
+  const validationError = validateImages(images);
+  if (validationError) return { ok: false, error: validationError };
+
+  // ── API Key check ─────────────────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return { ok: false, error: "Clé ANTHROPIC_API_KEY manquante dans .env.local" };
+  if (!apiKey) return { ok: false, error: "Clé API Anthropic manquante." };
 
   const client = new Anthropic({ apiKey });
 
@@ -80,9 +91,6 @@ export async function analyzeBetImages(
     if (r.status === "fulfilled") bets.push(r.value);
   }
 
-  if (bets.length === 0) {
-    return { ok: false, error: "Aucun pari détecté dans les images" };
-  }
-
+  if (bets.length === 0) return { ok: false, error: "Aucun pari détecté dans les images." };
   return { ok: true, bets };
 }

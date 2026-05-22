@@ -2,6 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { Match } from "@/lib/types";
+import { requireAuthAndCredit } from "@/lib/ai-guard";
 
 type AnalyzeResult =
   | { ok: true; stream: ReadableStream<Uint8Array> }
@@ -142,6 +143,10 @@ ${oddsStr}`;
 // ─── Server Action ────────────────────────────────────────────────────────────
 
 export async function analyzeMatch(match: Match): Promise<AnalyzeResult> {
+  // Auth + rate limit
+  const guard = await requireAuthAndCredit();
+  if ("error" in guard) return { ok: false, error: guard.error };
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { ok: false, error: "Clé API Anthropic manquante — ajoutez ANTHROPIC_API_KEY dans .env.local" };
