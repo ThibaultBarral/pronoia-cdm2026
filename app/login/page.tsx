@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TrendingUp, Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const router = useRouter();
   const supabase = createClient();
 
   async function handleGoogle() {
@@ -47,7 +49,9 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setSuccess("Vérifie ta boîte mail pour confirmer ton compte !");
+        // autoconfirm ON → directly logged in
+        router.push("/dashboard");
+        router.refresh();
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -57,8 +61,10 @@ export default function LoginPage() {
             ? "Email ou mot de passe incorrect"
             : error.message
         );
+      } else {
+        router.push("/dashboard");
+        router.refresh();
       }
-      // redirect handled by middleware
     }
     setLoading(false);
   }
