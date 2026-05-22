@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrendingUp, Target, CreditCard, BarChart2, Plus, X, Settings, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { BankrollData, Bet, computeStats } from "@/lib/bankroll";
 import {
-  BankrollData, Bet, loadBankroll, saveBankroll, computeStats,
-} from "@/lib/bankroll";
+  loadUserBankroll, saveUserBankroll, deleteUserBankroll,
+} from "@/lib/supabase/bankroll-db";
 import BetForm from "@/components/bankroll/bet-form";
 
 const inputCls =
@@ -180,10 +181,11 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const d = loadBankroll();
-    setData(d);
-    if (!d) setShowSetup(true);
-    setMounted(true);
+    loadUserBankroll().then((d) => {
+      setData(d);
+      if (!d) setShowSetup(true);
+      setMounted(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -197,9 +199,10 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalShowForm]);
 
-  const persist = useCallback((next: BankrollData) => {
+  const persist = useCallback(async (next: BankrollData) => {
     setData(next);
-    saveBankroll(next);
+    const id = await saveUserBankroll(next);
+    if (id && !next.id) setData({ ...next, id });
   }, []);
 
   function handleSetup(name: string, amount: number, startDate: string) {
@@ -214,8 +217,8 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
     setShowEdit(false);
   }
 
-  function handleDelete() {
-    localStorage.removeItem("pronoia_bankroll_v1");
+  async function handleDelete() {
+    if (data?.id) await deleteUserBankroll(data.id);
     setData(null);
     setShowEdit(false);
     setShowSetup(true);

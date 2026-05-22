@@ -22,6 +22,7 @@ export const SPORTS = [
 ];
 
 export interface BankrollData {
+  id?: string;       // Supabase row id
   name?: string;
   startDate?: string;
   initialAmount: number;

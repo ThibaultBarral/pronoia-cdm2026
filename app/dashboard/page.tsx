@@ -8,6 +8,7 @@ import {
 import Sidebar from "@/components/dashboard/sidebar";
 import MatchRow from "@/components/dashboard/match-row";
 import BankrollWidget from "@/components/dashboard/bankroll-widget";
+import UserMenu from "@/components/auth/user-menu";
 import { Match } from "@/lib/types";
 import { useEffect } from "react";
 import { getMatches } from "@/lib/data-service";
@@ -151,6 +152,7 @@ export default function DashboardPage() {
               <Plus size={12} />
               Pari
             </button>
+            <UserMenu />
           </div>
         </header>
 

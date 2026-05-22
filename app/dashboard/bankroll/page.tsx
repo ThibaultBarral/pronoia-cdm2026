@@ -10,9 +10,9 @@ import EquityChart from "@/components/bankroll/equity-chart";
 import BetForm from "@/components/bankroll/bet-form";
 import BetTable from "@/components/bankroll/bet-table";
 import {
-  BankrollData, Bet, BetResult, loadBankroll,
-  saveBankroll, computeStats, calcProfit,
+  BankrollData, Bet, BetResult, computeStats, calcProfit,
 } from "@/lib/bankroll";
+import { loadUserBankroll, saveUserBankroll, deleteUserBankroll } from "@/lib/supabase/bankroll-db";
 
 // ─── Setup screen ─────────────────────────────────────────────────────────────
 
@@ -126,13 +126,13 @@ export default function BankrollPage() {
   const [tab, setTab] = useState<"overview" | "history">("overview");
 
   useEffect(() => {
-    setData(loadBankroll());
-    setMounted(true);
+    loadUserBankroll().then((d) => { setData(d); setMounted(true); });
   }, []);
 
-  const persist = useCallback((next: BankrollData) => {
+  const persist = useCallback(async (next: BankrollData) => {
     setData(next);
-    saveBankroll(next);
+    const id = await saveUserBankroll(next);
+    if (id && !next.id) setData({ ...next, id });
   }, []);
 
   function handleSetup(amount: number) {
@@ -166,9 +166,10 @@ export default function BankrollPage() {
     persist({ ...data, bets });
   }
 
-  function handleReset() {
+  async function handleReset() {
     if (!confirm("Réinitialiser toute la bankroll ? Cette action est irréversible.")) return;
-    persist({ initialAmount: data?.initialAmount ?? 200, bets: [] });
+    if (data?.id) await deleteUserBankroll(data.id);
+    setData(null);
   }
 
   function handleExportCSV() {
