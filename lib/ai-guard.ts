@@ -17,7 +17,6 @@ export async function requireAuthAndCredit(): Promise<
   if (!user) return { error: "Non authentifié — veuillez vous connecter." };
 
   const { data: allowed, error } = await supabase.rpc("use_ai_credit", {
-    p_user_id: user.id,
     p_limit: DAILY_LIMIT,
   });
 
