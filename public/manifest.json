@@ -1,0 +1,35 @@
+{
+  "name": "Pronoia — CDM 2026",
+  "short_name": "Pronoia",
+  "description": "Analyses IA des matchs CDM 2026 et suivi de bankroll",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr",
+  "categories": ["sports", "finance"],
+  "icons": [
+    {
+      "src": "/api/pwa-icon?size=192",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/pwa-icon?size=512",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Bankroll",
+      "url": "/dashboard/bankroll",
+      "description": "Accéder à ma bankroll"
+    }
+  ]
+}
