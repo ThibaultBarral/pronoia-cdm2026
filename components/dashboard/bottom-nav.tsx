@@ -14,8 +14,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-[#0a0a0a]/95 backdrop-blur-md border-t border-[#141414]"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="safe-bottom fixed bottom-0 inset-x-0 z-40 md:hidden bg-[#0a0a0a]/95 backdrop-blur-md border-t border-[#141414]"
     >
       <div className="flex">
         {TABS.map(({ href, icon: Icon, label }) => {

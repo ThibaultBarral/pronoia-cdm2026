@@ -110,7 +110,8 @@ export default function DashboardPage() {
       {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-14 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414] flex items-center gap-3 px-4">
+        <header className="safe-header sticky top-0 z-30 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
+          <div className="h-14 flex items-center gap-3 px-4">
           {/* Mobile menu toggle */}
           <button
             className="md:hidden p-1.5 rounded-lg text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
@@ -153,6 +154,7 @@ export default function DashboardPage() {
               Pari
             </button>
             <UserMenu />
+          </div>
           </div>
         </header>
 

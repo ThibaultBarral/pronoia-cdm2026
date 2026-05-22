@@ -177,3 +177,12 @@ body {
   color: #00ff88;
   animation: typewriter-cursor 0.8s step-end infinite;
 }
+
+/* ── Safe-area (Dynamic Island / notch support) ────────────── */
+.safe-header {
+  padding-top: env(safe-area-inset-top);
+}
+/* Push content below the bottom nav + home indicator */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

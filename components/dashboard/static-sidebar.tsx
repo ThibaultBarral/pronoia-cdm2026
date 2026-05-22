@@ -23,7 +23,7 @@ export default function StaticSidebar() {
   const usagePct = Math.min((MOCK_USER.analysesToday / MOCK_USER.analysesLimit) * 100, 100);
 
   return (
-    <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col bg-[#0a0a0a] border-r border-[#141414]">
+    <aside className="hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0 bg-[#0a0a0a] border-r border-[#141414]">
       {/* Logo */}
       <div className="px-5 py-4 border-b border-[#141414]">
         <Link href="/" className="flex items-center gap-2.5 group">

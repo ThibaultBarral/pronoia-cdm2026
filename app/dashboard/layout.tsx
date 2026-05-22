@@ -12,8 +12,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
       <PWARegister />
-      {/* Padding-bottom on mobile to clear the bottom nav */}
-      <div className="flex flex-1 min-w-0 pb-16 md:pb-0">
+      {/* Padding-bottom on mobile to clear the bottom nav + home indicator */}
+      <div className="flex flex-1 min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         {children}
       </div>
       <BottomNav />

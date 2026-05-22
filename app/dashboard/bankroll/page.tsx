@@ -188,12 +188,13 @@ export default function BankrollPage() {
   if (!mounted) return null;
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] w-full">
+    <>
       <StaticSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-10 h-14 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414] flex items-center gap-3 px-6">
+        <header className="safe-header sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
+        <div className="h-14 flex items-center gap-3 px-4">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-[#333]">Dashboard</span>
             <span className="text-[#222]">/</span>
@@ -224,6 +225,7 @@ export default function BankrollPage() {
               </button>
             </div>
           )}
+        </div>
         </header>
 
         {!data ? (
@@ -450,6 +452,6 @@ export default function BankrollPage() {
           currentBankroll={computeStats(data).currentAmount}
         />
       )}
-    </div>
+    </>
   );
 }
