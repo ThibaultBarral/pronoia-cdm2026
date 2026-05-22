@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Plus, Wallet, TrendingUp, TrendingDown, Target,
+  Plus, Wallet, TrendingUp, TrendingDown, Target, MoreHorizontal,
   Percent, BarChart2, Flame, Trophy, RefreshCw, Download,
 } from "lucide-react";
 import StaticSidebar from "@/components/dashboard/static-sidebar";
@@ -123,6 +123,7 @@ export default function BankrollPage() {
   const [data, setData] = useState<BankrollData | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [tab, setTab] = useState<"overview" | "history">("overview");
 
   useEffect(() => {
@@ -195,36 +196,65 @@ export default function BankrollPage() {
         {/* Top bar */}
         <header className="safe-header sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
         <div className="h-14 flex items-center gap-3 px-4">
-          <div className="flex items-center gap-2 text-sm">
+          {/* Title — hidden on mobile, shown on desktop */}
+          <div className="hidden md:flex items-center gap-2 text-sm">
             <span className="text-[#333]">Dashboard</span>
             <span className="text-[#222]">/</span>
             <span className="text-[#666] font-medium">Bankroll</span>
           </div>
-          {data && (
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                onClick={handleExportCSV}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1a1a1a] text-xs text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
-              >
-                <Download size={12} />
-                CSV
-              </button>
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1a1a1a] text-xs text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
-              >
-                <RefreshCw size={12} />
-                Reset
-              </button>
-              <button
-                onClick={() => setShowForm(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
-              >
-                <Plus size={13} />
-                Nouveau pari
-              </button>
-            </div>
-          )}
+          {/* Mobile title */}
+          <span className="md:hidden font-bold text-[#f0f0f0] text-sm">Bankroll</span>
+
+          <div className="ml-auto flex items-center gap-2">
+            {/* Desktop: CSV + Reset */}
+            {data && (
+              <>
+                <button
+                  onClick={handleExportCSV}
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1a1a1a] text-xs text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
+                >
+                  <Download size={12} />
+                  CSV
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1a1a1a] text-xs text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
+                >
+                  <RefreshCw size={12} />
+                  Reset
+                </button>
+                {/* Mobile: ⋮ menu for CSV/Reset */}
+                <div className="relative md:hidden">
+                  <button
+                    onClick={() => setShowMobileMenu((v) => !v)}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#1a1a1a] text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                  {showMobileMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-36 bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl shadow-2xl overflow-hidden z-50">
+                      <button onClick={() => { handleExportCSV(); setShowMobileMenu(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#888] hover:bg-[#111] transition-colors">
+                        <Download size={13} /> Exporter CSV
+                      </button>
+                      <button onClick={() => { handleReset(); setShowMobileMenu(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#ef4444] hover:bg-[#111] transition-colors border-t border-[#141414]">
+                        <RefreshCw size={13} /> Réinitialiser
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            {/* Add bet button — icon only on mobile, icon+text on desktop */}
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
+            >
+              <Plus size={15} />
+              <span className="hidden md:inline">Nouveau pari</span>
+            </button>
+          </div>
         </div>
         </header>
 
