@@ -21,6 +21,7 @@ import {
   WC_SEASON,
 } from "./api-football";
 import { getTeamMeta } from "./team-ids";
+import { getTeamProfile } from "./team-data";
 import type { Match, Team, FormResult, H2HMatch, Player, Lineup } from "./types";
 import { MATCHES as MOCK_MATCHES, getMatchById as getMockById } from "./mock-data";
 
@@ -197,6 +198,8 @@ async function buildTeam(
   const meta = getTeamMeta(name);
   const teamId = meta.apiId;
 
+  const profile = getTeamProfile(name);
+
   const emptyTeam: Team = {
     id: String(teamId || name),
     apiTeamId: teamId || undefined,
@@ -205,9 +208,9 @@ async function buildTeam(
     flag: meta.flag,
     group,
     fifaRanking: meta.fifaRanking,
-    coach: "",
-    recentForm: [],
-    stats: {
+    coach: profile?.coach ?? "",
+    recentForm: profile?.recentForm ?? [],
+    stats: profile?.stats ?? {
       possession: 50,
       goalsScored: 0,
       goalsConceded: 0,
@@ -216,10 +219,12 @@ async function buildTeam(
       qualificationPath: "CDM 2026",
       cleanSheets: 0,
     },
-    lineup: { formation: "4-3-3", players: [] },
-    keyPlayers: [],
+    lineup: { formation: profile?.formation ?? "4-3-3", players: [] },
+    keyPlayers: profile?.keyPlayers ?? [],
     injuries: [],
     suspensions: [],
+    strengths: profile?.strengths,
+    weaknesses: profile?.weaknesses,
   };
 
   if (!hasApiKey() || !teamId) return emptyTeam;
@@ -258,30 +263,35 @@ export async function getMatches(): Promise<Match[]> {
     const meta1 = getTeamMeta(f.team1);
     const meta2 = getTeamMeta(f.team2);
 
-    const makeShell = (name: string, meta: ReturnType<typeof getTeamMeta>): Team => ({
-      id: String(meta.apiId || name),
-      apiTeamId: meta.apiId || undefined,
-      name,
-      shortName: meta.shortName,
-      flag: meta.flag,
-      group,
-      fifaRanking: meta.fifaRanking,
-      coach: "",
-      recentForm: [],
-      stats: {
-        possession: 50,
-        goalsScored: 0,
-        goalsConceded: 0,
-        xGFor: 0,
-        xGAgainst: 0,
-        qualificationPath: "",
-        cleanSheets: 0,
-      },
-      lineup: { formation: "4-3-3", players: [] },
-      keyPlayers: [],
-      injuries: [],
-      suspensions: [],
-    });
+    const makeShell = (name: string, meta: ReturnType<typeof getTeamMeta>): Team => {
+      const p = getTeamProfile(name);
+      return {
+        id: String(meta.apiId || name),
+        apiTeamId: meta.apiId || undefined,
+        name,
+        shortName: meta.shortName,
+        flag: meta.flag,
+        group,
+        fifaRanking: meta.fifaRanking,
+        coach: p?.coach ?? "",
+        recentForm: p?.recentForm ?? [],
+        stats: p?.stats ?? {
+          possession: 50,
+          goalsScored: 0,
+          goalsConceded: 0,
+          xGFor: 0,
+          xGAgainst: 0,
+          qualificationPath: "",
+          cleanSheets: 0,
+        },
+        lineup: { formation: p?.formation ?? "4-3-3", players: [] },
+        keyPlayers: p?.keyPlayers ?? [],
+        injuries: [],
+        suspensions: [],
+        strengths: p?.strengths,
+        weaknesses: p?.weaknesses,
+      };
+    };
 
     return {
       id: matchSlug(f.team1, f.team2),

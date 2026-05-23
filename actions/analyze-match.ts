@@ -120,6 +120,13 @@ function buildPrompt(match: Match): string {
     return all.length ? all.join(", ") : "—";
   };
 
+  const scoutStr = (team: typeof h): string => {
+    const lines: string[] = [];
+    if (team.strengths?.length) lines.push(`Forces: ${team.strengths.join(" | ")}`);
+    if (team.weaknesses?.length) lines.push(`Faiblesses: ${team.weaknesses.join(" | ")}`);
+    return lines.join("\n") || "Données scout non disponibles";
+  };
+
   return `CDM 2026 | ${match.round} Gr.${match.group} | ${match.date} ${match.time} | ${match.stadium}, ${match.city}
 
 ${h.flag} ${h.name} (#${h.fifaRanking} FIFA) vs ${a.flag} ${a.name} (#${a.fifaRanking} FIFA)
@@ -131,6 +138,13 @@ ${a.flag} ${a.name}: ${formStr(a)}
 STATS QUALIFICATIONS
 ${h.name}: poss ${h.stats.possession}% | buts ${h.stats.goalsScored}/${h.stats.goalsConceded} | xG/match ${xGPerMatch(h.stats.xGFor)}/${xGPerMatch(h.stats.xGAgainst)} | CS ${h.stats.cleanSheets}
 ${a.name}: poss ${a.stats.possession}% | buts ${a.stats.goalsScored}/${a.stats.goalsConceded} | xG/match ${xGPerMatch(a.stats.xGFor)}/${xGPerMatch(a.stats.xGAgainst)} | CS ${a.stats.cleanSheets}
+
+SCOUTING
+${h.flag} ${h.name}:
+${scoutStr(h)}
+
+${a.flag} ${a.name}:
+${scoutStr(a)}
 
 H2H (5 derniers): ${h2hStr}
 
