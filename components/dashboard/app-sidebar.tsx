@@ -44,7 +44,7 @@ export default function AppSidebar() {
       {/* Logo */}
       <div className="px-5 py-4 border-b border-[#141414]">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#00ff88]/10 border border-[#00ff88]/15 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/15 flex items-center justify-center">
             <Trophy size={15} className="text-[#00ff88]" />
           </div>
           <div>
@@ -66,7 +66,7 @@ export default function AppSidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-all ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
                 active
                   ? "bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/15"
                   : "text-[#555] hover:text-[#888] hover:bg-[#111]"

@@ -99,7 +99,7 @@ export default function DashboardPage() {
               placeholder="Chercher une équipe…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-[#111] border border-[#1a1a1a] text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#111] border border-[#1a1a1a] text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors"
             />
           </div>
 
@@ -110,7 +110,7 @@ export default function DashboardPage() {
             </span>
             <button
               onClick={() => setShowBetForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
             >
               <Plus size={12} />
               Pari
@@ -123,7 +123,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-1.5 px-4 pb-3 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveGroup("ALL")}
-              className={`shrink-0 px-3 py-1 text-xs font-medium transition-all ${
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                 activeGroup === "ALL"
                   ? "bg-[#00ff88]/12 text-[#00ff88] border border-[#00ff88]/20"
                   : "text-[#444] border border-[#181818] hover:text-[#666] hover:bg-[#111]"
@@ -135,7 +135,7 @@ export default function DashboardPage() {
               <button
                 key={g}
                 onClick={() => setActiveGroup(g)}
-                className={`shrink-0 px-3 py-1 text-xs font-medium transition-all ${
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                   activeGroup === g
                     ? "bg-[#00ff88]/15 text-[#00ff88] border border-[#00ff88]/20"
                     : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"

@@ -312,7 +312,7 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
 
               {/* KPI 2x2 */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-[#141414] bg-[#0d0d0d] p-4 flex items-center justify-between">
+                <div className="glass rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-[#444] uppercase tracking-wide mb-1">ROI</p>
                     <p className={`text-xl font-black tabular-nums ${s.roiPercent >= 0 ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
@@ -324,7 +324,7 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#141414] bg-[#0d0d0d] p-4 flex items-center justify-between">
+                <div className="glass rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-[#444] uppercase tracking-wide mb-1">Taux réussite</p>
                     <p className="text-xl font-black tabular-nums text-[#f0f0f0]">{s.winRate.toFixed(0)}%</p>
@@ -334,7 +334,7 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#141414] bg-[#0d0d0d] p-4 flex items-center justify-between">
+                <div className="glass rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-[#444] uppercase tracking-wide mb-1">Total misé</p>
                     <p className="text-xl font-black tabular-nums text-[#f0f0f0]">{s.totalStaked.toFixed(0)}€</p>
@@ -344,7 +344,7 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#141414] bg-[#0d0d0d] p-4 flex items-center justify-between">
+                <div className="glass rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-[#444] uppercase tracking-wide mb-1">Nombre de paris</p>
                     <p className="text-xl font-black tabular-nums text-[#f0f0f0]">{data.bets.length}</p>
@@ -364,7 +364,7 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
                   </Link>
                 </div>
 
-                <div className="rounded-2xl border border-[#141414] bg-[#0d0d0d] overflow-hidden">
+                <div className="glass rounded-2xl overflow-hidden">
                   {recentBets.length === 0 ? (
                     <div className="flex flex-col items-center gap-3 py-10">
                       <div className="w-12 h-12 rounded-2xl bg-[#111] border border-[#141414] flex items-center justify-center">
