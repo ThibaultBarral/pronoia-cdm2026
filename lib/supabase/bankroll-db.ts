@@ -1,5 +1,5 @@
 import { createClient } from "./client";
-import type { BankrollData, Bet, BetResult } from "@/lib/bankroll";
+import type { BankrollData, Bet, BetResult, Playstyle } from "@/lib/bankroll";
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 
@@ -29,6 +29,7 @@ export async function loadUserBankroll(): Promise<BankrollData | null> {
     name: bankroll.name,
     startDate: bankroll.start_date,
     initialAmount: bankroll.initial_amount,
+    playstyle: (bankroll.playstyle as Playstyle) ?? undefined,
     bets: (bets ?? []).map(rowToBet),
   };
 }
@@ -48,6 +49,7 @@ export async function saveUserBankroll(data: BankrollData): Promise<string | nul
       name: data.name ?? "Ma bankroll",
       initial_amount: data.initialAmount,
       start_date: data.startDate ?? new Date().toISOString().split("T")[0],
+      playstyle: data.playstyle ?? null,
     })
     .select("id")
     .single();

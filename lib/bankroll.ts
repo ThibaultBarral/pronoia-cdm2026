@@ -1,5 +1,66 @@
 export type BetResult = "won" | "lost" | "void" | "pending";
 
+export type Playstyle = "safe" | "balanced" | "opportunist" | "aggressive";
+
+export interface PlaystyleConfig {
+  id: Playstyle;
+  label: string;
+  tagline: string;
+  description: string;
+  emoji: string;
+  stakePercent: number; // % de bankroll recommandé
+  stakeRange: string;
+  color: string;
+  accent: string;
+}
+
+export const PLAYSTYLES: PlaystyleConfig[] = [
+  {
+    id: "safe",
+    label: "Conservateur",
+    tagline: "Préserver avant tout",
+    description: "Mises de 1-2% · Cotes 1.40-2.00 · Double chance, BTTS. Priorité à la protection de la bankroll.",
+    emoji: "🛡️",
+    stakePercent: 1.5,
+    stakeRange: "1-2%",
+    color: "#22c55e",
+    accent: "#22c55e20",
+  },
+  {
+    id: "balanced",
+    label: "Équilibré",
+    tagline: "Value + sécurité",
+    description: "Mises de 2-3% · Cotes 1.80-2.50 · Mix value bets et paris sûrs. Approche pragmatique.",
+    emoji: "⚖️",
+    stakePercent: 2.5,
+    stakeRange: "2-3%",
+    color: "#00d4ff",
+    accent: "#00d4ff20",
+  },
+  {
+    id: "opportunist",
+    label: "Opportuniste",
+    tagline: "Chasse à la value",
+    description: "Mises de 3-5% · Cotes 2.00-3.50 · Value bets ciblés uniquement. Tolérance aux séries négatives.",
+    emoji: "🎯",
+    stakePercent: 3.5,
+    stakeRange: "3-5%",
+    color: "#ffd700",
+    accent: "#ffd70020",
+  },
+  {
+    id: "aggressive",
+    label: "Agressif",
+    tagline: "Risque élevé, gains élevés",
+    description: "Mises de 5-8% · Cotes 2.50+ · Paris à haute cote et combinés. Variance maximale.",
+    emoji: "🔥",
+    stakePercent: 6,
+    stakeRange: "5-8%",
+    color: "#ef4444",
+    accent: "#ef444420",
+  },
+];
+
 export interface Bet {
   id: string;
   date: string;
@@ -26,6 +87,7 @@ export interface BankrollData {
   name?: string;
   startDate?: string;
   initialAmount: number;
+  playstyle?: Playstyle;
   bets: Bet[];
 }
 

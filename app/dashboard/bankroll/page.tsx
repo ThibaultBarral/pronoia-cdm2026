@@ -3,76 +3,154 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Plus, Wallet, TrendingUp, TrendingDown, Target, MoreHorizontal,
-  Percent, BarChart2, Flame, Trophy, RefreshCw, Download,
+  Percent, BarChart2, Flame, Trophy, RefreshCw, Download, ChevronRight,
 } from "lucide-react";
 import StaticSidebar from "@/components/dashboard/static-sidebar";
 import EquityChart from "@/components/bankroll/equity-chart";
 import BetForm from "@/components/bankroll/bet-form";
 import BetTable from "@/components/bankroll/bet-table";
 import {
-  BankrollData, Bet, BetResult, computeStats, calcProfit,
+  BankrollData, Bet, BetResult, Playstyle, PLAYSTYLES, computeStats, calcProfit,
 } from "@/lib/bankroll";
 import { loadUserBankroll, saveUserBankroll, deleteUserBankroll } from "@/lib/supabase/bankroll-db";
 
 // ─── Setup screen ─────────────────────────────────────────────────────────────
 
-function SetupScreen({ onSetup }: { onSetup: (amount: number) => void }) {
+function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playstyle) => void }) {
+  const [step, setStep] = useState<1 | 2>(1);
   const [amount, setAmount] = useState("200");
+  const [playstyle, setPlaystyle] = useState<Playstyle>("balanced");
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-4 py-20">
+    <div className="flex flex-col items-center justify-center flex-1 px-4 py-16">
       <div className="w-full max-w-sm">
-        <div className="w-14 h-14 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center mx-auto mb-5">
-          <Wallet size={24} className="text-[#00ff88]" />
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          {[1, 2].map((s) => (
+            <div
+              key={s}
+              className={`h-1 rounded-full transition-all ${
+                s === step ? "w-8 bg-[#00ff88]" : s < step ? "w-4 bg-[#00ff88]/40" : "w-4 bg-[#1a1a1a]"
+              }`}
+            />
+          ))}
         </div>
-        <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
-          Configure ta bankroll
-        </h2>
-        <p className="text-sm text-[#555] text-center mb-8 leading-relaxed">
-          Entre le montant de ta bankroll de départ. Cette valeur servira de référence pour calculer ton ROI et tes mises en pourcentage.
-        </p>
 
-        <div className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] p-5 space-y-4">
-          <div>
-            <label className="block text-[11px] text-[#555] uppercase tracking-wide mb-1.5">
-              Bankroll initiale
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min="1"
-                step="10"
-                className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-2xl font-black text-[#f0f0f0] pr-10 focus:outline-none focus:border-[#00ff88]/30 tabular-nums"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] text-xl font-bold">€</span>
+        {step === 1 ? (
+          <>
+            <div className="w-14 h-14 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center mx-auto mb-5">
+              <Wallet size={24} className="text-[#00ff88]" />
             </div>
-          </div>
+            <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
+              Bankroll de départ
+            </h2>
+            <p className="text-sm text-[#555] text-center mb-8 leading-relaxed">
+              Ce montant sert de référence pour ton ROI et tes mises en pourcentage.
+            </p>
 
-          <div className="grid grid-cols-3 gap-2">
-            {[100, 200, 500, 1000, 2000, 5000].map((v) => (
+            <div className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] p-5 space-y-4">
+              <div>
+                <label className="block text-[11px] text-[#555] uppercase tracking-wide mb-1.5">
+                  Montant initial
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    min="1"
+                    step="10"
+                    className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-2xl font-black text-[#f0f0f0] pr-10 focus:outline-none focus:border-[#00ff88]/30 tabular-nums"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] text-xl font-bold">€</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {[100, 200, 500, 1000, 2000, 5000].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setAmount(String(v))}
+                    className={`py-2 rounded-lg border text-sm font-medium transition-all ${
+                      amount === String(v)
+                        ? "border-[#00ff88]/30 bg-[#00ff88]/10 text-[#00ff88]"
+                        : "border-[#141414] text-[#444] hover:text-[#666] hover:bg-[#111]"
+                    }`}
+                  >
+                    {v}€
+                  </button>
+                ))}
+              </div>
+
               <button
-                key={v}
-                onClick={() => setAmount(String(v))}
-                className={`py-2 rounded-lg border text-sm font-medium transition-all ${
-                  amount === String(v)
-                    ? "border-[#00ff88]/30 bg-[#00ff88]/10 text-[#00ff88]"
-                    : "border-[#141414] text-[#444] hover:text-[#666] hover:bg-[#111]"
-                }`}
+                onClick={() => setStep(2)}
+                disabled={!parseFloat(amount) || parseFloat(amount) <= 0}
+                className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {v}€
+                Suivant
+                <ChevronRight size={15} />
               </button>
-            ))}
-          </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-3xl text-center mb-3">🎮</div>
+            <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
+              Ton style de jeu
+            </h2>
+            <p className="text-sm text-[#555] text-center mb-6 leading-relaxed">
+              Pronoia adapte ses recommandations — types de paris et mises suggérées — à ton profil.
+            </p>
 
-          <button
-            onClick={() => onSetup(parseFloat(amount) || 200)}
-            className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all hover:scale-[1.01] glow-neon"
-          >
-            Démarrer le suivi
-          </button>
-        </div>
+            <div className="space-y-2 mb-5">
+              {PLAYSTYLES.map((ps) => (
+                <button
+                  key={ps.id}
+                  onClick={() => setPlaystyle(ps.id)}
+                  className={`w-full text-left rounded-xl border p-3.5 transition-all ${
+                    playstyle === ps.id
+                      ? "border-[#00ff88]/30 bg-[#00ff88]/5"
+                      : "border-[#141414] bg-[#0d0d0d] hover:bg-[#111] hover:border-[#222]"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl leading-none mt-0.5">{ps.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-bold text-[#f0f0f0]">{ps.label}</span>
+                        <span
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                          style={{ color: ps.color, background: ps.accent }}
+                        >
+                          {ps.stakeRange} bankroll
+                        </span>
+                        {playstyle === ps.id && (
+                          <span className="ml-auto text-[10px] text-[#00ff88] font-medium">✓</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#555] leading-relaxed">{ps.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep(1)}
+                className="px-4 py-3 rounded-xl border border-[#1a1a1a] text-[#555] text-sm hover:text-[#888] hover:bg-[#111] transition-all"
+              >
+                Retour
+              </button>
+              <button
+                onClick={() => onSetup(parseFloat(amount) || 200, playstyle)}
+                className="flex-1 py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all hover:scale-[1.01] glow-neon"
+              >
+                Démarrer le suivi
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -136,8 +214,8 @@ export default function BankrollPage() {
     if (id && !next.id) setData({ ...next, id });
   }, []);
 
-  function handleSetup(amount: number) {
-    persist({ initialAmount: amount, bets: [] });
+  function handleSetup(amount: number, playstyle: Playstyle) {
+    persist({ initialAmount: amount, playstyle, bets: [] });
   }
 
   function handleAddBet(bet: Bet) {
@@ -270,7 +348,21 @@ export default function BankrollPage() {
                   {/* Bankroll header */}
                   <div className="flex flex-col sm:flex-row sm:items-end gap-3">
                     <div>
-                      <p className="text-xs text-[#444] uppercase tracking-widest mb-1">Bankroll actuelle</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs text-[#444] uppercase tracking-widest">Bankroll actuelle</p>
+                        {data.playstyle && (() => {
+                          const ps = PLAYSTYLES.find((p) => p.id === data.playstyle);
+                          if (!ps) return null;
+                          return (
+                            <span
+                              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                              style={{ color: ps.color, background: ps.accent }}
+                            >
+                              {ps.emoji} {ps.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <div className="flex items-baseline gap-3">
                         <span className="text-4xl font-black text-[#f0f0f0] tabular-nums">
                           {s.currentAmount.toFixed(2)}€

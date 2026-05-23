@@ -3,6 +3,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Match } from "@/lib/types";
 import { requireAuthAndCredit } from "@/lib/ai-guard";
+import { createClient } from "@/lib/supabase/server";
+import { PLAYSTYLES } from "@/lib/bankroll";
 
 type AnalyzeResult =
   | { ok: true; stream: ReadableStream<Uint8Array> }
@@ -140,6 +142,32 @@ COTES (prob. implicite)
 ${oddsStr}`;
 }
 
+// ─── Playstyle context fetcher ────────────────────────────────────────────────
+
+async function getUserPlaystyleContext(userId: string): Promise<string> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("bankrolls")
+      .select("playstyle")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const playstyle = data?.playstyle as string | null;
+    if (!playstyle) return "";
+
+    const ps = PLAYSTYLES.find((p) => p.id === playstyle);
+    if (!ps) return "";
+
+    return `\n\nPROFIL PARIEUR
+Style: ${ps.label} ${ps.emoji} — ${ps.tagline}
+Mise recommandée: ${ps.stakeRange} de bankroll
+→ Adapte la section Recommandation à ce profil : propose un type de pari et une mise cohérents avec ce style.`;
+  } catch {
+    return "";
+  }
+}
+
 // ─── Server Action ────────────────────────────────────────────────────────────
 
 export async function analyzeMatch(match: Match): Promise<AnalyzeResult> {
@@ -153,6 +181,9 @@ export async function analyzeMatch(match: Match): Promise<AnalyzeResult> {
   }
 
   const client = new Anthropic({ apiKey });
+
+  // Fetch playstyle to personalise the recommendation (non-blocking on failure)
+  const playstyleCtx = await getUserPlaystyleContext(guard.userId);
 
   try {
     const stream = new ReadableStream<Uint8Array>({
@@ -173,7 +204,7 @@ export async function analyzeMatch(match: Match): Promise<AnalyzeResult> {
             messages: [
               {
                 role: "user",
-                content: buildPrompt(match),
+                content: buildPrompt(match) + playstyleCtx,
               },
             ],
           });
