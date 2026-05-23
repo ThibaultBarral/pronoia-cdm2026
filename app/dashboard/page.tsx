@@ -3,9 +3,9 @@
 import { useState } from "react";
 import {
   Search, Trophy, Calendar,
-  TrendingUp, Zap, Menu, X, Plus,
+  TrendingUp, Zap, Plus,
 } from "lucide-react";
-import Sidebar from "@/components/dashboard/sidebar";
+import AppSidebar from "@/components/dashboard/app-sidebar";
 import MatchRow from "@/components/dashboard/match-row";
 import BankrollWidget from "@/components/dashboard/bankroll-widget";
 import UserMenu from "@/components/auth/user-menu";
@@ -19,7 +19,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState("ALL");
   const [search, setSearch] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showBetForm, setShowBetForm] = useState(false);
 
   useEffect(() => {
@@ -81,56 +80,19 @@ export default function DashboardPage() {
     },
   ];
 
+  const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+
   return (
     <>
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar — hidden on mobile, slide-in on toggle */}
-      <div
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen transition-transform md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <Sidebar
-          matches={matches}
-          activeGroup={activeGroup}
-          onGroupChange={(g) => {
-            setActiveGroup(g);
-            setSidebarOpen(false);
-          }}
-        />
-      </div>
+      <AppSidebar />
 
       {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
         <header className="safe-header sticky top-0 z-30 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
           <div className="h-14 flex items-center gap-3 px-4">
-          {/* Mobile menu toggle */}
-          <button
-            className="md:hidden p-1.5 rounded-lg text-[#555] hover:text-[#888] hover:bg-[#111] transition-all"
-            onClick={() => setSidebarOpen((v) => !v)}
-          >
-            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-
-          {/* Breadcrumb */}
-          <div className="hidden md:flex items-center gap-2 text-sm">
-            <span className="text-[#333]">CDM 2026</span>
-            <span className="text-[#222]">/</span>
-            <span className="text-[#666] font-medium">
-              {activeGroup === "ALL" ? "Tous les matchs" : `Groupe ${activeGroup}`}
-            </span>
-          </div>
-
           {/* Search */}
-          <div className="flex-1 max-w-sm mx-auto md:mx-0 relative">
+          <div className="flex-1 max-w-sm relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333]" />
             <input
               type="text"
@@ -141,7 +103,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Right: count + add bet */}
+          {/* Right: count + add bet + user */}
           <div className="ml-auto flex items-center gap-2 shrink-0">
             <span className="text-[11px] text-[#444] tabular-nums hidden sm:block">
               {filtered.length} match{filtered.length > 1 ? "s" : ""}
@@ -155,6 +117,33 @@ export default function DashboardPage() {
             </button>
             <UserMenu />
           </div>
+          </div>
+
+          {/* Group filter chips — scrollable */}
+          <div className="flex items-center gap-1.5 px-4 pb-3 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setActiveGroup("ALL")}
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                activeGroup === "ALL"
+                  ? "bg-[#00ff88]/15 text-[#00ff88] border border-[#00ff88]/20"
+                  : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"
+              }`}
+            >
+              Tous
+            </button>
+            {GROUPS.map((g) => (
+              <button
+                key={g}
+                onClick={() => setActiveGroup(g)}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                  activeGroup === g
+                    ? "bg-[#00ff88]/15 text-[#00ff88] border border-[#00ff88]/20"
+                    : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"
+                }`}
+              >
+                Gr. {g}
+              </button>
+            ))}
           </div>
         </header>
 

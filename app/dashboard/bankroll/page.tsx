@@ -5,7 +5,7 @@ import {
   Plus, Wallet, TrendingUp, TrendingDown, Target, MoreHorizontal,
   Percent, BarChart2, Flame, Trophy, RefreshCw, Download, ChevronRight,
 } from "lucide-react";
-import StaticSidebar from "@/components/dashboard/static-sidebar";
+import AppSidebar from "@/components/dashboard/app-sidebar";
 import EquityChart from "@/components/bankroll/equity-chart";
 import BetForm from "@/components/bankroll/bet-form";
 import BetTable from "@/components/bankroll/bet-table";
@@ -273,7 +273,7 @@ export default function BankrollPage() {
 
   return (
     <>
-      <StaticSidebar />
+      <AppSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
