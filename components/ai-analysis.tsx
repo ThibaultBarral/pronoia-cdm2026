@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bot, Sparkles, RefreshCw, AlertCircle, Zap, Database } from "lucide-react";
+import { Bot, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
@@ -10,13 +10,6 @@ interface AIAnalysisProps {
   match: Match;
 }
 
-interface UsageMeta {
-  in: number;
-  out: number;
-  cacheRead: number;
-  cacheWrite: number;
-  cost: string;
-}
 
 // ─── Markdown renderer ─────────────────────────────────────────────────────
 
@@ -100,34 +93,11 @@ function RenderMarkdown({ text }: { text: string }) {
   return <>{elements}</>;
 }
 
-// ─── Usage badge ───────────────────────────────────────────────────────────
-
-function UsageBadge({ usage }: { usage: UsageMeta }) {
-  const cached = usage.cacheRead > 0;
-  return (
-    <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#1f1f1f] mt-4">
-      <div className="flex items-center gap-1.5 text-[10px] text-[#555]">
-        <Zap size={10} className="text-[#00ff88]" />
-        <span>{usage.in} tokens in · {usage.out} tokens out</span>
-      </div>
-      {cached && (
-        <div className="flex items-center gap-1 text-[10px] text-[#00ff88]/60 border border-[#00ff88]/10 bg-[#00ff88]/5 px-1.5 py-0.5 rounded">
-          <Database size={9} />
-          <span>Cache hit (-90% système)</span>
-        </div>
-      )}
-      <div className="ml-auto text-[10px] font-mono text-[#555]">
-        ${usage.cost}
-      </div>
-    </div>
-  );
-}
 
 // ─── Main component ────────────────────────────────────────────────────────
 
 export default function AIAnalysis({ match }: AIAnalysisProps) {
   const [content, setContent] = useState("");
-  const [usage, setUsage] = useState<UsageMeta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -137,7 +107,7 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
 
   function handleGenerate() {
     setContent("");
-    setUsage(null);
+
     setError(null);
     setDone(false);
 
@@ -159,14 +129,8 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
           buffer += decoder.decode(value, { stream: true });
         }
 
-        // Extract usage comment from end of stream
-        const usageMatch = buffer.match(/\n<!--PRONOIA_USAGE:(.+?)-->/);
-        if (usageMatch) {
-          try {
-            setUsage(JSON.parse(usageMatch[1]));
-          } catch {}
-          buffer = buffer.replace(/\n<!--PRONOIA_USAGE:.+?-->/, "");
-        }
+        // Strip internal usage comment before rendering
+        buffer = buffer.replace(/\n<!--PRONOIA_USAGE:.+?-->/, "");
 
         setContent(buffer);
         setDone(true);
@@ -185,7 +149,7 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
         </div>
         <div>
           <div className="font-semibold text-[#f0f0f0] text-sm">Analyse Pronoia IA</div>
-          <div className="text-[10px] text-[#555]">Claude claude-sonnet-4-5 · Format data-driven</div>
+          <div className="text-[10px] text-[#555]">Pronoia IA · Format data-driven</div>
         </div>
         {done && (
           <span className="ml-auto text-[10px] text-[#00ff88] border border-[#00ff88]/20 bg-[#00ff88]/5 px-2 py-0.5 rounded-full">
@@ -223,7 +187,7 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
         {isLoading && (
           <div className="flex flex-col items-center gap-3 py-8">
             <div className="w-7 h-7 rounded-full border-2 border-[#00ff88]/20 border-t-[#00ff88] animate-spin-custom" />
-            <p className="text-xs text-[#555]">Claude analyse les données…</p>
+            <p className="text-xs text-[#555]">Analyse des données en cours…</p>
           </div>
         )}
 
@@ -249,7 +213,6 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
                 <span className="text-xs text-[#555]">Analyse en cours…</span>
               </div>
             )}
-            {usage && <UsageBadge usage={usage} />}
           </div>
         )}
 

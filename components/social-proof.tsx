@@ -35,7 +35,7 @@ const TESTIMONIALS = [
     avatarBg: "#00d4ff",
     stars: 5,
     quote:
-      "Le streaming temps réel de l'analyse Claude, c'est satisfaisant. J'ai l'impression d'avoir un expert dans ma poche. J'utilise ça avant chaque match de la phase de groupes.",
+      "Le streaming temps réel de l'analyse IA, c'est satisfaisant. J'ai l'impression d'avoir un expert dans ma poche. J'utilise ça avant chaque match de la phase de groupes.",
     tag: "Abonné depuis le lancement",
   },
 ];
@@ -130,7 +130,7 @@ export default function SocialProof() {
               Exemple d&apos;analyse générée
             </span>
             <span className="ml-auto text-[10px] text-[#555] border border-[#1f1f1f] bg-[#111] px-2 py-0.5 rounded">
-              Claude claude-sonnet-4-5
+              Pronoia IA
             </span>
           </div>
           <div className="font-mono text-xs md:text-sm leading-relaxed whitespace-pre-wrap text-[#c0c0c0] ai-response">

@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Pronoia — Analyse IA Coupe du Monde 2026",
   description:
-    "Analyses IA des matchs de la Coupe du Monde 2026. Statistiques, cotes, compositions et recommandations de paris alimentées par Claude AI.",
+    "Analyses IA des matchs de la Coupe du Monde 2026. Statistiques, cotes, compositions et recommandations de paris.",
   keywords: ["Coupe du Monde 2026", "CDM 2026", "analyse football", "paris sportifs", "IA"],
   manifest: "/manifest.json",
   appleWebApp: {

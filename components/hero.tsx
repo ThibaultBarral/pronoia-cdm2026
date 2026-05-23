@@ -85,7 +85,7 @@ export default function Hero() {
 
         {/* Subhead */}
         <p className="text-[#888] text-base md:text-xl max-w-2xl mx-auto mb-3 animate-fade-in-up delay-100 leading-relaxed">
-          <span className="text-[#c0c0c0] font-medium">Claude AI</span> analyse chaque match de la CDM 2026 en profondeur —
+          <span className="text-[#c0c0c0] font-medium">Pronoia IA</span> analyse chaque match de la CDM 2026 en profondeur —
           forme, statistiques, cotes et value bets — et te livre une recommandation directe en quelques secondes.
         </p>
 

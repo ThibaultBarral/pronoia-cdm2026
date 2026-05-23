@@ -36,7 +36,7 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "Lancez l'analyse IA",
-    desc: "Un clic. Claude reçoit toutes les données du match et génère une analyse structurée en temps réel.",
+    desc: "Un clic. Pronoia IA reçoit toutes les données du match et génère une analyse structurée en temps réel.",
   },
   {
     step: "03",
@@ -104,7 +104,7 @@ export default function FeaturesSection() {
           {[
             { icon: Clock, text: "Analyse en < 15 secondes", color: "#00ff88" },
             { icon: Shield, text: "Données API-Football en temps réel", color: "#ffd700" },
-            { icon: BarChart2, text: "Modèle Claude claude-sonnet-4-5 — Anthropic", color: "#00d4ff" },
+            { icon: BarChart2, text: "Analyse IA data-driven en temps réel", color: "#00d4ff" },
           ].map(({ icon: Icon, text, color }) => (
             <div
               key={text}

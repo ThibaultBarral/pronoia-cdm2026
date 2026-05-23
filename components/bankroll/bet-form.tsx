@@ -348,7 +348,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                   <p className="text-sm text-[#888]">
                     Analyse de {multiFiles.length} ticket{multiFiles.length > 1 ? "s" : ""}…
                   </p>
-                  <p className="text-xs text-[#444]">Powered by Claude Vision</p>
+                  <p className="text-xs text-[#444]">Reconnaissance IA en cours…</p>
                 </div>
               )}
 
