@@ -3,20 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Trophy, LayoutGrid, CreditCard, TrendingUp, User, LogOut, Zap, ChevronRight,
+  Trophy, LayoutGrid, TrendingUp, User, LogOut, Zap,
 } from "lucide-react";
 
 const MOCK_USER = {
   name: "Thibault B.",
-  plan: "Free",
   analysesToday: 3,
-  analysesLimit: 5,
+  analysesLimit: 20,
 };
 
 const NAV = [
   { href: "/dashboard", icon: LayoutGrid, label: "Matchs CDM 2026" },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
-  { href: "/dashboard/pricing", icon: CreditCard, label: "Pricing" },
 ];
 
 export default function StaticSidebar() {
@@ -96,9 +94,6 @@ export default function StaticSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-semibold text-[#c0c0c0] truncate">{MOCK_USER.name}</div>
-            <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#ffd700]/20 bg-[#ffd700]/5 text-[#ffd700]">
-              {MOCK_USER.plan}
-            </span>
           </div>
         </div>
         <Link

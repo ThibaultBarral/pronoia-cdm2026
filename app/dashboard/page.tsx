@@ -74,9 +74,9 @@ export default function DashboardPage() {
     },
     {
       icon: Zap,
-      label: "Crédits restants",
-      value: "5 / 5",
-      color: "#ff6b35",
+      label: "Analyses / jour",
+      value: "20 gratuites",
+      color: "#00ff88",
     },
   ];
 

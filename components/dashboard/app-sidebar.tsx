@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
-  Trophy, LayoutGrid, TrendingUp, CreditCard,
+  Trophy, LayoutGrid, TrendingUp,
   User, LogOut, Zap,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -13,7 +13,6 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 const NAV = [
   { href: "/dashboard", icon: LayoutGrid, label: "Matchs CDM 2026", exact: true },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
-  { href: "/dashboard/pricing", icon: CreditCard, label: "Pricing", badge: "Pro" },
 ];
 
 const USAGE = { today: 3, limit: 20 };
@@ -59,7 +58,7 @@ export default function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({ href, icon: Icon, label, exact, badge }) => {
+        {NAV.map(({ href, icon: Icon, label, exact }) => {
           const active = exact
             ? pathname === href
             : pathname.startsWith(href);
@@ -75,11 +74,6 @@ export default function AppSidebar() {
             >
               <Icon size={15} />
               <span className="font-medium">{label}</span>
-              {badge && (
-                <span className="ml-auto text-[9px] px-1.5 py-0.5 border border-[#ffd700]/20 bg-[#ffd700]/5 text-[#ffd700]">
-                  {badge}
-                </span>
-              )}
             </Link>
           );
         })}
