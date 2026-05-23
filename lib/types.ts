@@ -64,6 +64,8 @@ export interface Team {
   keyPlayers: string[];
   injuries: string[];
   suspensions: string[];
+  strengths: string[];
+  weaknesses: string[];
 }
 
 export interface Match {
