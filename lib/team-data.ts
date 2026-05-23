@@ -981,6 +981,26 @@ export const TEAM_PROFILES: Record<string, TeamProfile> = {
     strengths: ["Bloc défensif compact, très difficile à briser", "Discipline et physique collectif"],
     weaknesses: ["Attaque très limitée", "Peu de joueurs de niveau international de haut rang"],
   },
+
+  "Saudi Arabia": {
+    coach: "Roberto Mancini",
+    formation: "4-2-3-1",
+    recentForm: [
+      { opponent: "Japan", result: "L", score: "0-2", competition: "AFC Qual." },
+      { opponent: "Australia", result: "L", score: "1-2", competition: "AFC Qual." },
+      { opponent: "Bahrain", result: "W", score: "2-0", competition: "AFC Qual." },
+      { opponent: "China", result: "W", score: "1-0", competition: "AFC Qual." },
+      { opponent: "Indonesia", result: "W", score: "2-0", competition: "AFC Qual." },
+    ],
+    stats: {
+      possession: 49, goalsScored: 15, goalsConceded: 12,
+      xGFor: 13.2, xGAgainst: 11.5, cleanSheets: 4,
+      qualificationPath: "AFC - Groupe C (3e, barrages)",
+    },
+    keyPlayers: ["Salem Al-Dawsari", "Saleh Al-Shehri", "Mohammed Kanno"],
+    strengths: ["Bloc défensif organisé difficile à briser", "Force collective et discipline tactique", "Al-Dawsari — joueur imprévisible capable de matches exceptionnels (Classico 2022 vs ARG)"],
+    weaknesses: ["Niveau individuel largement inférieur aux tops mondiaux", "Attaque peu prolifique face aux grandes défenses"],
+  },
 };
 
 export function getTeamProfile(name: string): TeamProfile | null {
