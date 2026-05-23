@@ -54,12 +54,12 @@ export default async function MatchPage({ params }: PageProps) {
           </span>
           <div className="ml-auto flex items-center gap-2">
             {hasRealData && (
-              <span className="hidden sm:flex items-center gap-1 text-[10px] text-[#00ff88]/70 border border-[#00ff88]/10 bg-[#00ff88]/5 px-2 py-0.5 rounded">
+              <span className="hidden sm:flex items-center gap-1 text-[10px] text-[#00ff88]/70 border border-[#00ff88]/10 bg-[#00ff88]/5 px-2 py-0.5">
                 <Wifi size={9} />
                 Live API
               </span>
             )}
-            <span className="text-[10px] text-[#00ff88] font-mono border border-[#00ff88]/20 bg-[#00ff88]/5 px-2 py-0.5 rounded">
+            <span className="text-[10px] text-[#00ff88] font-mono border border-[#00ff88]/20 bg-[#00ff88]/5 px-2 py-0.5">
               CDM 2026
             </span>
           </div>

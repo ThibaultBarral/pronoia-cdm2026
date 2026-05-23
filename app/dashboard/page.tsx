@@ -99,7 +99,7 @@ export default function DashboardPage() {
               placeholder="Chercher une équipe…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-[#111] border border-[#1a1a1a] rounded-lg text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors"
+              className="w-full pl-8 pr-3 py-1.5 bg-[#111] border border-[#1a1a1a] text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors"
             />
           </div>
 
@@ -110,7 +110,7 @@ export default function DashboardPage() {
             </span>
             <button
               onClick={() => setShowBetForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
             >
               <Plus size={12} />
               Pari
@@ -123,10 +123,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-1.5 px-4 pb-3 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveGroup("ALL")}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+              className={`shrink-0 px-3 py-1 text-xs font-medium transition-all ${
                 activeGroup === "ALL"
-                  ? "bg-[#00ff88]/15 text-[#00ff88] border border-[#00ff88]/20"
-                  : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"
+                  ? "bg-[#00ff88]/12 text-[#00ff88] border border-[#00ff88]/20"
+                  : "text-[#444] border border-[#181818] hover:text-[#666] hover:bg-[#111]"
               }`}
             >
               Tous
@@ -135,7 +135,7 @@ export default function DashboardPage() {
               <button
                 key={g}
                 onClick={() => setActiveGroup(g)}
-                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                className={`shrink-0 px-3 py-1 text-xs font-medium transition-all ${
                   activeGroup === g
                     ? "bg-[#00ff88]/15 text-[#00ff88] border border-[#00ff88]/20"
                     : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"
@@ -162,10 +162,10 @@ export default function DashboardPage() {
             {statsBar.map(({ icon: Icon, label, value, color }) => (
               <div
                 key={label}
-                className="rounded-xl border border-[#141414] bg-[#0d0d0d] px-4 py-3 flex items-center gap-3"
+                className="border border-[#141414] bg-[#0d0d0d] px-4 py-3 flex items-center gap-3"
               >
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  className="w-8 h-8 flex items-center justify-center shrink-0"
                   style={{ background: `${color}12`, border: `1px solid ${color}20` }}
                 >
                   <Icon size={14} style={{ color }} />
@@ -180,7 +180,7 @@ export default function DashboardPage() {
 
           {/* Match list */}
           {loading ? (
-            <div className="rounded-2xl border border-[#141414] bg-[#0d0d0d] divide-y divide-[#0f0f0f]">
+            <div className="border border-[#141414] bg-[#0d0d0d] divide-y divide-[#111]">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
                   <div className="h-4 w-32 bg-[#111] rounded" />
@@ -189,7 +189,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-[#141414] bg-[#0d0d0d] flex flex-col items-center gap-2 py-16 text-[#333]">
+            <div className="border border-[#141414] bg-[#0d0d0d] flex flex-col items-center gap-2 py-16 text-[#333]">
               <Search size={24} />
               <p className="text-sm">Aucun match trouvé</p>
               <button
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Match rows */}
-                    <div className="rounded-2xl border border-[#141414] bg-[#0d0d0d] overflow-hidden">
+                    <div className="border border-[#141414] bg-[#0d0d0d] overflow-hidden">
                       {dayMatches.map((m) => (
                         <MatchRow key={m.id} match={m} />
                       ))}

@@ -49,58 +49,60 @@ export default function FeaturesSection() {
   return (
     <>
       {/* Feature cards */}
-      <section id="how-it-works" className="max-w-5xl mx-auto px-4 pt-4 pb-12">
+      <section id="how-it-works" className="max-w-5xl mx-auto px-4 pt-4 pb-14">
         {/* Section label */}
-        <div className="text-center mb-10">
-          <p className="text-xs text-[#555] uppercase tracking-widest mb-2">Ce que l&apos;IA analyse</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#f0f0f0]">
+        <div className="text-center mb-12">
+          <p className="text-[10px] text-[#444] uppercase tracking-[0.2em] mb-3">Ce que l&apos;IA analyse</p>
+          <h2
+            className="font-bold text-[#f0f0f0]"
+            style={{ fontSize: "clamp(28px, 4vw, 48px)", letterSpacing: "-0.03em", lineHeight: "1.05" }}
+          >
             Une analyse complète,{" "}
             <span className="text-[#00ff88]">pas juste des stats</span>
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[#1a1a1a]">
           {FEATURES.map(({ icon: Icon, color, title, desc }) => (
             <div
               key={title}
-              className="rounded-2xl border border-[#1f1f1f] bg-[#111] p-5 flex flex-col gap-3 hover:border-[#2a2a2a] transition-colors group"
+              className="bg-[#0d0d0d] p-6 flex flex-col gap-4 hover:bg-[#111] transition-colors group"
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${color}15`, border: `1px solid ${color}25` }}
+                className="w-9 h-9 flex items-center justify-center shrink-0"
+                style={{ background: `${color}12`, border: `1px solid ${color}20` }}
               >
-                <Icon size={18} style={{ color }} />
+                <Icon size={16} style={{ color }} />
               </div>
               <div>
-                <h3 className="font-bold text-[#f0f0f0] text-sm mb-1">{title}</h3>
-                <p className="text-[#666] text-xs leading-relaxed">{desc}</p>
+                <h3 className="font-bold text-[#f0f0f0] text-sm mb-2 tracking-tight">{title}</h3>
+                <p className="text-[#555] text-xs leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* How it works */}
-        <div className="mt-14 relative">
-          {/* Connecting line */}
-          <div className="hidden md:block absolute top-7 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-[#00ff88]/20 via-[#ffd700]/20 to-[#00ff88]/20" />
+        <div className="mt-16 relative">
+          <div className="hidden md:block absolute top-5 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-[#1e1e1e]" />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
             {HOW_IT_WORKS.map(({ step, title, desc }) => (
-              <div key={step} className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-[#0a0a0a] border border-[#1f1f1f] flex items-center justify-center">
-                  <span className="text-xs font-black text-[#00ff88] tracking-wider">{step}</span>
+              <div key={step} className="flex flex-col items-center text-center gap-4">
+                <div className="w-10 h-10 bg-[#0a0a0a] border border-[#1e1e1e] flex items-center justify-center">
+                  <span className="text-[11px] font-black text-[#00ff88] tracking-wider">{step}</span>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#f0f0f0] text-sm mb-1">{title}</h4>
-                  <p className="text-[#666] text-xs leading-relaxed max-w-[220px] mx-auto">{desc}</p>
+                  <h4 className="font-bold text-[#f0f0f0] text-sm mb-1.5 tracking-tight">{title}</h4>
+                  <p className="text-[#555] text-xs leading-relaxed max-w-[220px] mx-auto">{desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Speed + precision badges */}
-        <div className="mt-10 flex flex-wrap justify-center gap-3">
+        {/* Badges */}
+        <div className="mt-12 flex flex-wrap justify-center gap-2">
           {[
             { icon: Clock, text: "Analyse en < 15 secondes", color: "#00ff88" },
             { icon: Shield, text: "Données API-Football en temps réel", color: "#ffd700" },
@@ -108,10 +110,10 @@ export default function FeaturesSection() {
           ].map(({ icon: Icon, text, color }) => (
             <div
               key={text}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#1f1f1f] bg-[#111] text-xs"
+              className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#1a1a1a] bg-[#0d0d0d] text-xs"
               style={{ color }}
             >
-              <Icon size={11} />
+              <Icon size={10} />
               <span>{text}</span>
             </div>
           ))}

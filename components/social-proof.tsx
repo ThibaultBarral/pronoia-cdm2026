@@ -65,17 +65,17 @@ export default function SocialProof() {
     <section className="border-t border-[#1f1f1f] bg-[#080808]">
       {/* Stats bar */}
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#1a1a1a]">
           {STATS.map(({ value, label, icon: Icon, color }) => (
-            <div key={label} className="text-center">
+            <div key={label} className="bg-[#080808] text-center py-8 px-4">
               <div
-                className="inline-flex items-center justify-center w-9 h-9 rounded-xl mb-2"
-                style={{ background: `${color}12`, border: `1px solid ${color}20` }}
+                className="inline-flex items-center justify-center w-8 h-8 mb-3"
+                style={{ background: `${color}10`, border: `1px solid ${color}18` }}
               >
-                <Icon size={16} style={{ color }} />
+                <Icon size={14} style={{ color }} />
               </div>
-              <div className="text-2xl font-black" style={{ color }}>{value}</div>
-              <div className="text-xs text-[#666] mt-0.5">{label}</div>
+              <div className="text-3xl font-black mb-1" style={{ color, letterSpacing: "-0.03em" }}>{value}</div>
+              <div className="text-xs text-[#555]">{label}</div>
             </div>
           ))}
         </div>
@@ -83,19 +83,22 @@ export default function SocialProof() {
 
       {/* Testimonials + AI demo */}
       <div className="max-w-5xl mx-auto px-4 pb-12">
-        <div className="text-center mb-8">
-          <p className="text-xs text-[#555] uppercase tracking-widest mb-2">Ils nous font confiance</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#f0f0f0]">
+        <div className="text-center mb-10">
+          <p className="text-[10px] text-[#444] uppercase tracking-[0.2em] mb-3">Ils nous font confiance</p>
+          <h2
+            className="font-bold text-[#f0f0f0]"
+            style={{ fontSize: "clamp(28px, 4vw, 48px)", letterSpacing: "-0.03em", lineHeight: "1.05" }}
+          >
             Ce qu&apos;en disent les{" "}
             <span className="text-[#ffd700]">parieurs</span>
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[#1a1a1a] mb-10">
           {TESTIMONIALS.map(({ name, location, avatar, avatarBg, stars, quote, tag }) => (
             <div
               key={name}
-              className="rounded-2xl border border-[#1f1f1f] bg-[#111] p-5 flex flex-col gap-4"
+              className="bg-[#0d0d0d] p-6 flex flex-col gap-4"
             >
               {/* Stars */}
               <StarRating count={stars} />
@@ -106,9 +109,9 @@ export default function SocialProof() {
               </p>
 
               {/* Author */}
-              <div className="flex items-center gap-3 pt-2 border-t border-[#1a1a1a]">
+              <div className="flex items-center gap-3 pt-3 border-t border-[#1a1a1a]">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-[#0a0a0a] shrink-0"
+                  className="w-8 h-8 flex items-center justify-center text-[10px] font-black text-[#0a0a0a] shrink-0"
                   style={{ background: avatarBg }}
                 >
                   {avatar}
@@ -123,13 +126,13 @@ export default function SocialProof() {
         </div>
 
         {/* AI demo snippet */}
-        <div className="rounded-2xl border border-[#00ff88]/15 bg-[#00ff88]/3 p-5 md:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse" />
-            <span className="text-xs text-[#00ff88] font-semibold uppercase tracking-wide">
+        <div className="border border-[#00ff88]/12 bg-[#00ff88]/3 p-6 md:p-8">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-1.5 h-1.5 bg-[#00ff88] animate-pulse" />
+            <span className="text-[10px] text-[#00ff88] font-semibold uppercase tracking-[0.15em]">
               Exemple d&apos;analyse générée
             </span>
-            <span className="ml-auto text-[10px] text-[#555] border border-[#1f1f1f] bg-[#111] px-2 py-0.5 rounded">
+            <span className="ml-auto text-[10px] text-[#555] border border-[#1e1e1e] bg-[#0d0d0d] px-2 py-0.5">
               Pronoia IA
             </span>
           </div>

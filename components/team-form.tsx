@@ -8,7 +8,7 @@ function ResultBadge({ result }: { result: MatchResult }) {
   };
   const { label, classes } = config[result];
   return (
-    <span className={`w-7 h-7 rounded-lg border text-xs font-bold flex items-center justify-center ${classes}`}>
+    <span className={`w-6 h-6 border text-[10px] font-black flex items-center justify-center shrink-0 ${classes}`}>
       {label}
     </span>
   );
@@ -16,7 +16,7 @@ function ResultBadge({ result }: { result: MatchResult }) {
 
 export default function TeamForm({ team }: { team: Team }) {
   return (
-    <div className="rounded-xl border border-[#1f1f1f] bg-[#111] p-4">
+    <div className="border border-[#1e1e1e] bg-[#0d0d0d] p-4">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xl">{team.flag}</span>
         <span className="font-semibold text-[#f0f0f0]">{team.name}</span>

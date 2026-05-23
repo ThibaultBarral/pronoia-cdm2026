@@ -45,7 +45,7 @@ export default function AppSidebar() {
       {/* Logo */}
       <div className="px-5 py-4 border-b border-[#141414]">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#00ff88]/10 border border-[#00ff88]/15 flex items-center justify-center">
             <Trophy size={15} className="text-[#00ff88]" />
           </div>
           <div>
@@ -67,7 +67,7 @@ export default function AppSidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
+              className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-all ${
                 active
                   ? "bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/15"
                   : "text-[#555] hover:text-[#888] hover:bg-[#111]"
@@ -76,7 +76,7 @@ export default function AppSidebar() {
               <Icon size={15} />
               <span className="font-medium">{label}</span>
               {badge && (
-                <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded border border-[#ffd700]/20 bg-[#ffd700]/5 text-[#ffd700]">
+                <span className="ml-auto text-[9px] px-1.5 py-0.5 border border-[#ffd700]/20 bg-[#ffd700]/5 text-[#ffd700]">
                   {badge}
                 </span>
               )}
@@ -123,7 +123,7 @@ export default function AppSidebar() {
         </div>
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-[#444] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-all"
+          className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs text-[#444] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-all"
         >
           <LogOut size={13} />
           <span>Se déconnecter</span>
