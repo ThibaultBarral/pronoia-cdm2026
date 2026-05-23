@@ -49,7 +49,7 @@ export async function saveUserBankroll(data: BankrollData): Promise<string | nul
       name: data.name ?? "Ma bankroll",
       initial_amount: data.initialAmount,
       start_date: data.startDate ?? new Date().toISOString().split("T")[0],
-      playstyle: data.playstyle ?? null,
+      ...(data.playstyle !== undefined ? { playstyle: data.playstyle } : {}),
     })
     .select("id")
     .single();

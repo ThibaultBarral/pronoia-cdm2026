@@ -218,6 +218,11 @@ export default function BankrollPage() {
     persist({ initialAmount: amount, playstyle, bets: [] });
   }
 
+  function handleSetPlaystyle(playstyle: Playstyle) {
+    if (!data) return;
+    persist({ ...data, playstyle });
+  }
+
   function handleAddBet(bet: Bet) {
     if (!data) return;
     persist({ ...data, bets: [...data.bets, bet] });
@@ -407,6 +412,35 @@ export default function BankrollPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Playstyle picker — shown if not set yet */}
+                  {!data.playstyle && (
+                    <div className="rounded-2xl border border-[#ffd700]/20 bg-[#ffd700]/5 p-4">
+                      <p className="text-xs font-semibold text-[#ffd700] mb-3">
+                        🎮 Choisis ton style de jeu — Pronoia adaptera ses recommandations
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {PLAYSTYLES.map((ps) => (
+                          <button
+                            key={ps.id}
+                            onClick={() => handleSetPlaystyle(ps.id)}
+                            className="text-left rounded-xl border border-[#141414] bg-[#0d0d0d] p-3 hover:bg-[#111] hover:border-[#222] transition-all"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-base">{ps.emoji}</span>
+                              <span className="text-xs font-bold text-[#f0f0f0]">{ps.label}</span>
+                            </div>
+                            <span
+                              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                              style={{ color: ps.color, background: ps.accent }}
+                            >
+                              {ps.stakeRange} bankroll
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {tab === "overview" ? (
                     <>
