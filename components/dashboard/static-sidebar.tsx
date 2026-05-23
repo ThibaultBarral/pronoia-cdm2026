@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Trophy, LayoutGrid, CreditCard, User, LogOut, Zap, ChevronRight,
+  Trophy, LayoutGrid, CreditCard, TrendingUp, User, LogOut, Zap, ChevronRight,
 } from "lucide-react";
 
 const MOCK_USER = {
@@ -15,6 +15,7 @@ const MOCK_USER = {
 
 const NAV = [
   { href: "/dashboard", icon: LayoutGrid, label: "Matchs CDM 2026" },
+  { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
   { href: "/dashboard/pricing", icon: CreditCard, label: "Pricing" },
 ];
 
@@ -42,7 +43,7 @@ export default function StaticSidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href;
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}
