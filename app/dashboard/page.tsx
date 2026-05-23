@@ -89,7 +89,7 @@ export default function DashboardPage() {
       {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className="safe-header sticky top-0 z-30 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
+        <header className="safe-header sticky top-0 z-30 bg-[#080b12]/90 backdrop-blur-xl border-b border-white/5">
           <div className="h-14 flex items-center gap-3 px-4">
           {/* Search */}
           <div className="flex-1 max-w-sm relative">
@@ -162,7 +162,7 @@ export default function DashboardPage() {
             {statsBar.map(({ icon: Icon, label, value, color }) => (
               <div
                 key={label}
-                className="border border-[#141414] bg-[#0d0d0d] px-4 py-3 flex items-center gap-3"
+                className="rounded-xl glass px-4 py-3 flex items-center gap-3"
               >
                 <div
                   className="w-8 h-8 flex items-center justify-center shrink-0"
@@ -180,7 +180,7 @@ export default function DashboardPage() {
 
           {/* Match list */}
           {loading ? (
-            <div className="border border-[#141414] bg-[#0d0d0d] divide-y divide-[#111]">
+            <div className="rounded-2xl glass divide-y divide-white/5">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
                   <div className="h-4 w-32 bg-[#111] rounded" />
@@ -189,7 +189,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="border border-[#141414] bg-[#0d0d0d] flex flex-col items-center gap-2 py-16 text-[#333]">
+            <div className="rounded-2xl glass flex flex-col items-center gap-2 py-16 text-[#3a4560]">
               <Search size={24} />
               <p className="text-sm">Aucun match trouvé</p>
               <button
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Match rows */}
-                    <div className="border border-[#141414] bg-[#0d0d0d] overflow-hidden">
+                    <div className="rounded-2xl glass overflow-hidden">
                       {dayMatches.map((m) => (
                         <MatchRow key={m.id} match={m} />
                       ))}

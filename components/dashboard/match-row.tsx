@@ -9,7 +9,7 @@ interface MatchRowProps {
 function OddPill({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div
-      className={`flex flex-col items-center px-2.5 py-1.5 border text-center min-w-[48px] transition-colors ${
+      className={`flex flex-col items-center px-2.5 py-1.5 rounded-lg border text-center min-w-[48px] transition-colors ${
         highlight
           ? "border-[#00ff88]/25 bg-[#00ff88]/5 text-[#00ff88]"
           : "border-[#181818] bg-[#0d0d0d] text-[#666]"

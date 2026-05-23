@@ -41,7 +41,7 @@ export default function AppSidebar() {
   }
 
   return (
-    <aside className="hidden md:flex md:flex-col w-56 shrink-0 h-screen sticky top-0 bg-[#0a0a0a] border-r border-[#141414]">
+    <aside className="hidden md:flex md:flex-col w-56 shrink-0 h-screen sticky top-0 bg-[#080b12] border-r border-white/5">
       {/* Logo */}
       <div className="px-5 py-4 border-b border-[#141414]">
         <Link href="/" className="flex items-center gap-2.5">

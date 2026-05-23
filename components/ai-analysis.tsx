@@ -141,10 +141,10 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
   }
 
   return (
-    <section className="border border-[#1e1e1e] bg-[#0d0d0d] overflow-hidden">
+    <section className="rounded-2xl glass overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e1e1e] bg-gradient-to-r from-[#00ff88]/4 to-transparent">
-        <div className="w-8 h-8 bg-[#00ff88]/10 border border-[#00ff88]/15 flex items-center justify-center">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 bg-gradient-to-r from-[#00ff88]/5 to-transparent">
+        <div className="w-9 h-9 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
           <Bot size={18} className="text-[#00ff88]" />
         </div>
         <div>
@@ -163,7 +163,7 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
         {/* Empty state */}
         {!content && !isLoading && !error && (
           <div className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="w-14 h-14 bg-[#00ff88]/5 border border-[#00ff88]/10 flex items-center justify-center animate-pulse-neon">
+            <div className="w-16 h-16 rounded-2xl bg-[#00ff88]/5 border border-[#00ff88]/10 flex items-center justify-center animate-pulse-neon">
               <Sparkles size={28} className="text-[#00ff88]" />
             </div>
             <div>
@@ -193,7 +193,7 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
 
         {/* Error */}
         {error && (
-          <div className="flex items-start gap-3 p-4 border border-[#ef4444]/20 bg-[#ef4444]/5 mb-4">
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 mb-4">
             <AlertCircle size={15} className="text-[#ef4444] shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-medium text-[#ef4444]">Erreur</p>

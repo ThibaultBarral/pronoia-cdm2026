@@ -12,7 +12,7 @@ export default function MatchHeader({ match }: { match: Match }) {
   });
 
   return (
-    <div className="relative overflow-hidden border border-[#1e1e1e] bg-[#0d0d0d] p-6 md:p-8">
+    <div className="relative overflow-hidden rounded-2xl glass p-6 md:p-8">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#00ff88]/5 rounded-full blur-3xl" />
@@ -52,7 +52,7 @@ export default function MatchHeader({ match }: { match: Match }) {
           </div>
 
           <div className="flex flex-col items-center gap-2">
-            <div className="w-14 h-14 border border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center">
               <span className="text-lg font-black text-[#888]">VS</span>
             </div>
             <span className="text-[#00ff88] text-sm font-bold">{match.time}</span>
