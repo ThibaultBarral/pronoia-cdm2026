@@ -91,20 +91,19 @@ export default function Hero() {
         {/* Headline */}
         <motion.h1
           variants={fadeUp} initial="hidden" animate="show" custom={1}
-          className="text-5xl sm:text-6xl md:text-[76px] font-black leading-[1.0] tracking-tight mb-6"
+          className="text-5xl sm:text-6xl md:text-[76px] font-black leading-[1.05] tracking-tight mb-6"
         >
-          <span className="text-[#f0f0f0]">Stop parier</span>
+          <span className="text-[#f0f0f0]">Trouvez le bon pari sur chaque match de la CDM,</span>
           <br />
-          <span className="text-[#f0f0f0]">à </span>
           <span
             className="text-glow-neon"
             style={{
-              background: "linear-gradient(135deg, #00ff88 0%, #00d4ff 50%, #7c3aed 100%)",
+              background: "linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
           >
-            l&apos;aveugle
+            en 15 secondes.
           </span>
         </motion.h1>
 
@@ -113,8 +112,7 @@ export default function Hero() {
           variants={fadeUp} initial="hidden" animate="show" custom={2}
           className="text-[#7a8599] text-base md:text-lg max-w-2xl mx-auto mb-3 leading-relaxed"
         >
-          <span className="text-[#c0c0c0] font-medium">Pronoia IA</span> analyse chaque match de la CDM 2026 en profondeur —
-          forme, statistiques, cotes et value bets — et te livre une recommandation directe en quelques secondes.
+          L&apos;IA analyse forme, stats, cotes et value bets pour te livrer une recommandation directe sur chaque match de la Coupe du Monde 2026.
         </motion.p>
 
         <motion.p
