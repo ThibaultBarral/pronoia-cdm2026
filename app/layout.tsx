@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
-import GoogleAnalytics from "@/components/google-analytics";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -74,19 +74,20 @@ export const metadata: Metadata = {
     icon: "/api/pwa-icon?size=192",
     apple: "/api/pwa-icon?size=180",
   },
-  // verification: { google: "TON_CODE_SEARCH_CONSOLE" }, // ← à activer une fois fourni
+  // Google Search Console: set NEXT_PUBLIC_GSC_VERIFICATION to the meta-tag token.
+  verification: { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0] antialiased" suppressHydrationWarning>
         {/* Vercel Web Analytics (à activer dans le dashboard du projet) */}
         <Analytics />
-        <GoogleAnalytics />
+        {gaId && <GoogleAnalytics gaId={gaId} />}
         <script
           type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   "@type": "Organization",
                   "@id": "https://copafever.com/#organization",
                   name: "Copafever",
+                  alternateName: "Copa Fever",
                   url: "https://copafever.com",
                   logo: "https://copafever.com/copafever-icon.svg",
                   description:
@@ -105,8 +107,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   "@id": "https://copafever.com/#website",
                   url: "https://copafever.com",
                   name: "Copafever",
+                  alternateName: "Copa Fever",
                   publisher: { "@id": "https://copafever.com/#organization" },
                   inLanguage: "fr-FR",
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: {
+                      "@type": "EntryPoint",
+                      urlTemplate:
+                        "https://copafever.com/?q={search_term_string}",
+                    },
+                    "query-input": "required name=search_term_string",
+                  },
                 },
               ],
             }),

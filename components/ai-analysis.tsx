@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
+import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
@@ -73,6 +74,7 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
     setData(null);
     setError(null);
     setLocked(false);
+    trackEvent("analysis_start", { match_id: match.id });
     startTransition(async () => {
       try {
         const result = await analyzeMatch(match);
@@ -83,6 +85,7 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
           }
           if (result.error === PAYWALL_REQUIRED) {
             setLocked(true);
+            trackEvent("paywall_view", { source: "match_analysis", match_id: match.id });
             return;
           }
           setError(result.error ?? "Erreur inconnue");

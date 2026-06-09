@@ -21,11 +21,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const match = await getMatchData(id);
   if (!match) return { title: "Match introuvable" };
+  const title = `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA & pronostic CDM 2026 | Copafever`;
+  const description = `Analyse IA complète : forme, stats, cotes et recommandation pari pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`;
+  const canonical = `/match/${id}`;
   return {
-    title: `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA CDM 2026 | Copafever`,
-    description: `Analyse IA complète : forme, stats, cotes et recommandation pari pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`,
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: `https://copafever.com${canonical}`,
+      type: "article",
+    },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
+
+const COUNTRY_NAME: Record<string, string> = {
+  USA: "États-Unis",
+  Canada: "Canada",
+  Mexique: "Mexique",
+};
 
 export const revalidate = 1800; // re-fetch every 30min
 
@@ -42,8 +59,44 @@ export default async function MatchPage({ params }: PageProps) {
     match.homeTeam.dataSource === "live" ||
     match.awayTeam.dataSource === "live";
 
+  const sportsEvent = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+    description: `${match.round} de la Coupe du Monde 2026 — ${match.homeTeam.name} contre ${match.awayTeam.name}.`,
+    sport: "Football",
+    startDate: `${match.date}T${match.time}:00+02:00`,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    url: `https://copafever.com/match/${id}`,
+    location: {
+      "@type": "Place",
+      name: match.stadium,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: match.city,
+        addressCountry: COUNTRY_NAME[match.country] ?? match.country,
+      },
+    },
+    homeTeam: { "@type": "SportsTeam", name: match.homeTeam.name },
+    awayTeam: { "@type": "SportsTeam", name: match.awayTeam.name },
+    competitor: [
+      { "@type": "SportsTeam", name: match.homeTeam.name },
+      { "@type": "SportsTeam", name: match.awayTeam.name },
+    ],
+    organizer: {
+      "@type": "Organization",
+      name: "FIFA",
+      url: "https://www.fifa.com",
+    },
+  };
+
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(sportsEvent) }}
+      />
       <AppSidebar />
       <main className="flex-1 min-w-0">
       {/* Top nav */}

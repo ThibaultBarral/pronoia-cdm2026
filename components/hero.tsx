@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Zap, ArrowDown, Sparkles, Search, Target, Wallet, ArrowRight } from "lucide-react";
 import AnalysisDemo from "@/components/analysis-demo";
+import { trackEvent } from "@/lib/analytics";
 
 const KICKOFF = new Date("2026-06-11T19:00:00-04:00");
 
@@ -198,6 +199,7 @@ export default function Hero() {
         >
           <motion.a
             href="/login?mode=signup"
+            onClick={() => trackEvent("signup_click", { location: "hero" })}
             whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(var(--accent-rgb),0.4)" }}
             whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[var(--accent)] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-soft)]"

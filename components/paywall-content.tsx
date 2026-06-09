@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { trackEvent } from "@/lib/analytics";
 import {
   Check, Flame, Zap, CalendarDays, Infinity as InfinityIcon,
   RotateCcw, AlertCircle, Settings, type LucideIcon,
@@ -33,6 +34,10 @@ export default function PaywallContent({
   const [info, setInfo] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [restoring, startRestore] = useTransition();
+
+  useEffect(() => {
+    if (!hasAccess) trackEvent("paywall_view", { source: "pricing_page" });
+  }, [hasAccess]);
 
   function checkout(plan: PaidPlan) {
     setError(null);

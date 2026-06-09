@@ -17,12 +17,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let matchPages: MetadataRoute.Sitemap = [];
   try {
     const matches = await getMatches();
-    matchPages = matches.map((m): MetadataRoute.Sitemap[number] => ({
-      url: `${BASE}/match/${m.id}`,
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.8,
-    }));
+    const today = now.toISOString().slice(0, 10);
+    // Soonest upcoming matches first → highest priority, decreasing gradually.
+    const sorted = [...matches].sort((a, b) => a.date.localeCompare(b.date));
+    matchPages = sorted.map((m, i): MetadataRoute.Sitemap[number] => {
+      const upcoming = m.date >= today;
+      // 0.9 for the very next match, easing down to ~0.6 for the last one.
+      const priority = Math.max(
+        0.6,
+        Number((0.9 - (i / Math.max(sorted.length - 1, 1)) * 0.3).toFixed(2))
+      );
+      return {
+        url: `${BASE}/match/${m.id}`,
+        lastModified: now,
+        changeFrequency: upcoming ? "daily" : "weekly",
+        priority,
+      };
+    });
   } catch {
     /* sitemap still valid without match pages */
   }
