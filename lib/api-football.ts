@@ -233,15 +233,51 @@ export async function fetchSquad(teamId: number): Promise<ApiSquadResponse | nul
   return results[0] ?? null;
 }
 
-/** Last N fixtures for a team (form) — cached 2h */
-export async function fetchTeamForm(
+/**
+ * Seasons accessible on the API-Football free plan, newest first.
+ * The `last` parameter and seasons ≥ 2025 are paywalled, but full-season
+ * fixture lists for 2022-2024 are available — we derive recent form from those.
+ */
+export const RECENT_SEASONS = [2024, 2023] as const;
+
+/** All fixtures for a team in a given season (all competitions) — cached 12h */
+export async function fetchTeamSeasonFixtures(
   teamId: number,
-  last = 5
+  season: number
 ): Promise<ApiFixtureResponse[]> {
   return apiFetch<ApiFixtureResponse>(
-    `/fixtures?team=${teamId}&last=${last}`,
-    7200
+    `/fixtures?team=${teamId}&season=${season}`,
+    43200
   );
+}
+
+/**
+ * Real recent matches for a team across all competitions.
+ * Walks RECENT_SEASONS until it has at least `min` finished games, then returns
+ * the `last` most recent (newest first). Free-plan friendly (no `last` param).
+ */
+export async function fetchRecentMatches(
+  teamId: number,
+  last = 10,
+  min = 8
+): Promise<ApiFixtureResponse[]> {
+  const collected: ApiFixtureResponse[] = [];
+
+  for (const season of RECENT_SEASONS) {
+    const fixtures = await fetchTeamSeasonFixtures(teamId, season).catch(
+      () => [] as ApiFixtureResponse[]
+    );
+    const finished = fixtures.filter((f) => f.fixture.status.short === "FT");
+    collected.push(...finished);
+    if (collected.length >= min) break;
+  }
+
+  return collected
+    .sort(
+      (a, b) =>
+        new Date(b.fixture.date).getTime() - new Date(a.fixture.date).getTime()
+    )
+    .slice(0, last);
 }
 
 /** Head-to-head between two teams — cached 6h */

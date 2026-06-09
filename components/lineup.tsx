@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { Users } from "lucide-react";
 import { Team } from "@/lib/types";
 
 const POSITION_ORDER = [
@@ -28,7 +27,7 @@ function posColor(pos: string): string {
   if (p === "GK") return "text-[#f59e0b] bg-[#f59e0b]/10 border-[#f59e0b]/20";
   if (p === "DF" || p === "CB" || p === "RB" || p === "LB") return "text-[#3b82f6] bg-[#3b82f6]/10 border-[#3b82f6]/20";
   if (p === "MF" || p === "CM" || p === "CDM" || p === "CAM") return "text-[#8b5cf6] bg-[#8b5cf6]/10 border-[#8b5cf6]/20";
-  return "text-[#00ff88] bg-[#00ff88]/10 border-[#00ff88]/20";
+  return "text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/20";
 }
 
 export default function Lineup({ team }: { team: Team }) {
@@ -41,7 +40,7 @@ export default function Lineup({ team }: { team: Team }) {
       <div className="flex items-center gap-2 mb-1">
         <span className="text-xl">{team.flag}</span>
         <span className="font-semibold text-[#f0f0f0]">{team.name}</span>
-        <span className="ml-auto text-[10px] text-[#00ff88] font-mono border border-[#00ff88]/20 bg-[#00ff88]/5 px-2 py-0.5 rounded">
+        <span className="ml-auto text-[10px] text-[var(--accent)] font-mono border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5 rounded">
           {team.lineup.formation}
         </span>
       </div>
@@ -101,26 +100,6 @@ export default function Lineup({ team }: { team: Team }) {
         /* Empty state */
         <div className="py-4 text-center text-[#555] text-xs">
           Sélection non encore annoncée
-        </div>
-      )}
-
-      {/* Key players (mock mode) */}
-      {team.keyPlayers.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-[#1f1f1f]">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Users size={11} className="text-[#ffd700]" />
-            <span className="text-[10px] text-[#888] uppercase tracking-wide">Joueurs clés</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {team.keyPlayers.map((p) => (
-              <span
-                key={p}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-[#ffd700]/10 border border-[#ffd700]/20 text-[#ffd700]"
-              >
-                {p}
-              </span>
-            ))}
-          </div>
         </div>
       )}
     </div>

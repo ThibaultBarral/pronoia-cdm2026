@@ -4,7 +4,7 @@ import BottomNav from "@/components/dashboard/bottom-nav";
 import PWAInstallGuide from "@/components/pwa-install-guide";
 
 export const metadata: Metadata = {
-  title: "Dashboard — Pronoia CDM 2026",
+  title: "Dashboard — Copafever CDM 2026",
   description: "Analysez les 72 matchs de groupe de la CDM 2026 avec l'IA",
 };
 

@@ -14,7 +14,7 @@ export default function H2HStats({ match }: { match: Match }) {
     const home = parseInt(parts[0]);
     const away = parseInt(parts[1].split(" ")[0]);
     if (isNaN(home) || isNaN(away)) return;
-    const isHomeTeamFirst = m.homeTeam === homeTeam.name;
+    const isHomeTeamFirst = m.homeTeam === (homeTeam.nameEn ?? homeTeam.name);
     if (home === away) draws++;
     else if (home > away) isHomeTeamFirst ? homeWins++ : awayWins++;
     else isHomeTeamFirst ? awayWins++ : homeWins++;
@@ -25,10 +25,16 @@ export default function H2HStats({ match }: { match: Match }) {
   return (
     <div className="rounded-xl border border-[#1f1f1f] bg-[#111] p-4">
       <div className="flex items-center gap-2 mb-4">
-        <History size={16} className="text-[#00ff88]" />
+        <History size={16} className="text-[var(--accent)]" />
         <span className="font-semibold text-[#f0f0f0]">Confrontations directes</span>
       </div>
 
+      {h2h.length === 0 ? (
+        <div className="py-6 text-center text-xs text-[#555]">
+          Historique des confrontations indisponible pour le moment.
+        </div>
+      ) : (
+      <>
       {/* Score summary */}
       <div className="grid grid-cols-3 gap-2 mb-4 text-center">
         <div>
@@ -74,6 +80,8 @@ export default function H2HStats({ match }: { match: Match }) {
           </div>
         ))}
       </div>
+      </>
+      )}
     </div>
   );
 }

@@ -4,15 +4,15 @@ import { motion, type Variants } from "framer-motion";
 import { Star, TrendingUp, Users, Zap } from "lucide-react";
 
 const STATS = [
-  { value: "3 200+", label: "analyses générées", icon: Zap, color: "#00ff88" },
+  { value: "3 200+", label: "analyses générées", icon: Zap, color: "var(--accent)" },
   { value: "72", label: "matchs CDM analysés", icon: TrendingUp, color: "#ffd700" },
-  { value: "4.8/5", label: "satisfaction parieurs", icon: Star, color: "#00d4ff" },
+  { value: "4.8/5", label: "satisfaction parieurs", icon: Star, color: "var(--accent-soft)" },
   { value: "18 k+", label: "visiteurs uniques", icon: Users, color: "#ff6b35" },
 ];
 
 const TESTIMONIALS = [
   {
-    name: "Antoine B.", location: "Paris", avatar: "AB", avatarBg: "#00ff88", stars: 5,
+    name: "Antoine B.", location: "Paris", avatar: "AB", avatarBg: "var(--accent)", stars: 5,
     quote: "Suivi la reco sur Allemagne-Curaçao à 2.1 cotes. L'IA avait identifié la défense poreuse de Curaçao sur les 20 premières minutes. Match plié à la 18e. Impressionnant.",
     tag: "Parieur régulier",
   },
@@ -22,7 +22,7 @@ const TESTIMONIALS = [
     tag: "Fan CDM depuis 2006",
   },
   {
-    name: "Romain D.", location: "Bordeaux", avatar: "RD", avatarBg: "#00d4ff", stars: 5,
+    name: "Romain D.", location: "Bordeaux", avatar: "RD", avatarBg: "var(--accent-soft)", stars: 5,
     quote: "Le streaming temps réel de l'analyse IA, c'est satisfaisant. J'ai l'impression d'avoir un expert dans ma poche. J'utilise ça avant chaque match de la phase de groupes.",
     tag: "Abonné depuis le lancement",
   },
@@ -69,12 +69,12 @@ export default function SocialProof() {
           {STATS.map(({ value, label, icon: Icon, color }) => (
             <motion.div
               key={label} variants={item}
-              whileHover={{ y: -4, boxShadow: `0 16px 32px ${color}18` }}
+              whileHover={{ y: -4, boxShadow: `0 16px 32px color-mix(in srgb, ${color} 9%, transparent)` }}
               className="glass rounded-2xl text-center py-7 px-4 transition-all duration-300"
             >
               <div
                 className="inline-flex items-center justify-center w-9 h-9 rounded-xl mb-3"
-                style={{ background: `${color}12`, border: `1px solid ${color}22` }}
+                style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 14%, transparent)` }}
               >
                 <Icon size={16} style={{ color }} />
               </div>
@@ -135,21 +135,21 @@ export default function SocialProof() {
         >
           <div className="flex items-center gap-2 mb-5">
             <motion.div
-              className="w-2 h-2 rounded-full bg-[#00ff88]"
+              className="w-2 h-2 rounded-full bg-[var(--accent)]"
               animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
-            <span className="text-[10px] text-[#00ff88] font-semibold uppercase tracking-widest">
+            <span className="text-[10px] text-[var(--accent)] font-semibold uppercase tracking-widest">
               Exemple d&apos;analyse générée
             </span>
             <span className="ml-auto text-[10px] text-[#4a5568] glass px-2 py-0.5 rounded-full">
-              Pronoia IA
+              Copafever IA
             </span>
           </div>
           <div className="font-mono text-xs md:text-sm leading-relaxed whitespace-pre-wrap text-[#9aa5b8] ai-response">
             {AI_SNIPPET.split("\n").map((line, i) => {
               if (line.startsWith("## "))
-                return <div key={i} className="text-[#00ff88] font-bold text-sm mb-2">{line.slice(3)}</div>;
+                return <div key={i} className="text-[var(--accent)] font-bold text-sm mb-2">{line.slice(3)}</div>;
               if (line.startsWith("**") && line.endsWith("**"))
                 return <div key={i} className="text-[#f0f0f0] font-semibold mt-2 mb-1">{line.slice(2, -2)}</div>;
               if (line.startsWith("**") && line.includes("**"))

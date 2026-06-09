@@ -20,7 +20,7 @@ export default async function HomePage() {
       <HomeClient matches={matches} />
       <footer className="border-t border-[#1f1f1f] mt-6 py-6 px-4 text-center">
         <p className="text-xs text-[#555]">
-          Pronoia · CDM 2026 · 11 juin — 19 juillet · Données API-Football & OpenFootball
+          Copafever · CDM 2026 · 11 juin — 19 juillet · Données sportives en temps réel
         </p>
       </footer>
     </main>

@@ -24,7 +24,7 @@ const RESULTS: { value: BetResult; label: string }[] = [
 ];
 
 const inputCls =
-  "w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors";
+  "w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[var(--accent)]/30 transition-colors";
 const labelCls = "block text-[10px] text-[#555] uppercase tracking-widest mb-2 font-medium";
 
 function SelectField({ value, onChange, children }: {
@@ -253,7 +253,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-4 mt-4">
+        <div className="flex-1 overflow-y-auto px-5 safe-area-bottom space-y-4 mt-4">
 
           {/* ─── IMAGE TAB ─── */}
           {tab === "image" && (
@@ -277,7 +277,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                   </div>
                   {imageFile && (
                     <button type="button" onClick={handleAnalyzeImage}
-                      className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all">
+                      className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all">
                       Analyser le ticket →
                     </button>
                   )}
@@ -286,13 +286,13 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
 
               {imageStage === "analyzing" && (
                 <div className="flex flex-col items-center gap-3 py-12">
-                  <Loader2 size={32} className="text-[#00ff88] animate-spin" />
+                  <Loader2 size={32} className="text-[var(--accent)] animate-spin" />
                   <p className="text-sm text-[#888]">Analyse du ticket en cours…</p>
                 </div>
               )}
 
               {imageStage === "preview" && (
-                <div className="p-3 rounded-xl bg-[#00ff88]/5 border border-[#00ff88]/20 flex items-center gap-2 text-xs text-[#00ff88]">
+                <div className="p-3 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center gap-2 text-xs text-[var(--accent)]">
                   <Check size={14} />
                   <span>Ticket détecté — vérifie les champs ci-dessous</span>
                   <button type="button" onClick={() => { setImageStage("upload"); setImageFile(null); }}
@@ -336,7 +336,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                     ))}
                   </div>
                   <button type="button" onClick={handleAnalyzeMulti}
-                    className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all">
+                    className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all">
                     Analyser {multiFiles.length} ticket{multiFiles.length > 1 ? "s" : ""} →
                   </button>
                 </>
@@ -344,7 +344,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
 
               {multiStage === "analyzing" && (
                 <div className="flex flex-col items-center gap-3 py-12">
-                  <Loader2 size={32} className="text-[#00ff88] animate-spin" />
+                  <Loader2 size={32} className="text-[var(--accent)] animate-spin" />
                   <p className="text-sm text-[#888]">
                     Analyse de {multiFiles.length} ticket{multiFiles.length > 1 ? "s" : ""}…
                   </p>
@@ -375,13 +375,13 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                           key={i}
                           onClick={() => setDetectedBets(prev => prev.map((b, j) => j === i ? { ...b, selected: !b.selected } : b))}
                           className={`rounded-xl border p-3.5 cursor-pointer transition-all ${
-                            bet.selected ? "border-[#00ff88]/20 bg-[#00ff88]/5" : "border-[#1a1a1a] bg-[#111] opacity-50"
+                            bet.selected ? "border-[var(--accent)]/20 bg-[var(--accent)]/5" : "border-[#1a1a1a] bg-[#111] opacity-50"
                           }`}
                         >
                           <div className="flex items-start gap-2.5">
                             <div className="mt-0.5 shrink-0 text-[#555]">
                               {bet.selected
-                                ? <CheckSquare size={15} className="text-[#00ff88]" />
+                                ? <CheckSquare size={15} className="text-[var(--accent)]" />
                                 : <Square size={15} />}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -418,7 +418,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                     type="button"
                     onClick={handleConfirmMulti}
                     disabled={detectedBets.filter(b => b.selected).length === 0}
-                    className="w-full py-3.5 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full py-3.5 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Enregistrer {detectedBets.filter(b => b.selected).length} pari{detectedBets.filter(b => b.selected).length > 1 ? "s" : ""}
                   </button>
@@ -489,7 +489,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                       onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddBookmaker())}
                       placeholder="Nom du bookmaker" autoFocus className={inputCls} />
                     <button type="button" onClick={handleAddBookmaker}
-                      className="px-3 rounded-xl bg-[#00ff88] text-[#0a0a0a]"><Check size={14} /></button>
+                      className="px-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a]"><Check size={14} /></button>
                   </div>
                 )}
               </div>
@@ -517,9 +517,9 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
               </div>
 
               {potentialProfit !== null && (
-                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#00ff88]/5 border border-[#00ff88]/10">
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/10">
                   <span className="text-xs text-[#555]">Gain potentiel</span>
-                  <span className="text-sm font-bold text-[#00ff88]">+{potentialProfit.toFixed(2)}{form.devise}</span>
+                  <span className="text-sm font-bold text-[var(--accent)]">+{potentialProfit.toFixed(2)}{form.devise}</span>
                 </div>
               )}
 
@@ -534,12 +534,12 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
               {/* Freebet */}
               <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] cursor-pointer">
                 <input type="checkbox" checked={form.isFreebet} onChange={(e) => set("isFreebet", e.target.checked)}
-                  className="w-4 h-4 rounded accent-[#00ff88]" />
+                  className="w-4 h-4 rounded accent-[var(--accent)]" />
                 <span className="text-sm text-[#888]">🎁 Ce pari est un freebet</span>
               </label>
 
               <button type="submit"
-                className="w-full py-3.5 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all hover:scale-[1.01]">
+                className="w-full py-3.5 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all hover:scale-[1.01]">
                 Enregistrer le pari
               </button>
             </form>

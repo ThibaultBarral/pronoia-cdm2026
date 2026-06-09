@@ -54,8 +54,7 @@ export default function EquityChart({
     );
   }
 
-  const color = isPositive ? "#00ff88" : "#ef4444";
-  const colorDim = isPositive ? "#00ff8820" : "#ef444420";
+  const color = isPositive ? "var(--accent)" : "#ef4444";
 
   return (
     <div className="w-full relative" style={{ height }}>
@@ -67,8 +66,8 @@ export default function EquityChart({
         {/* Area fill */}
         <defs>
           <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
+            <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.18 }} />
+            <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
           </linearGradient>
         </defs>
         <polygon points={areaPoints} fill="url(#equityGrad)" />
@@ -88,7 +87,7 @@ export default function EquityChart({
         <polyline
           points={points}
           fill="none"
-          stroke={color}
+          style={{ stroke: color }}
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -101,7 +100,7 @@ export default function EquityChart({
           const range = Math.max(...data) * 1.005 - Math.min(...data) * 0.995 || 1;
           const lastY = H - ((data[data.length - 1] - Math.min(...data) * 0.995) / range) * H;
           return (
-            <circle cx={lastX} cy={lastY} r="6" fill={color} stroke="#0a0a0a" strokeWidth="2" />
+            <circle cx={lastX} cy={lastY} r="6" stroke="#0a0a0a" strokeWidth="2" style={{ fill: color }} />
           );
         })()}
       </svg>

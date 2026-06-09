@@ -1,0 +1,19 @@
+<svg viewBox="0 0 580 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Copafever">
+  <defs>
+    <linearGradient id="grn" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0F9D58"/>
+      <stop offset="50%" stop-color="#16C172"/>
+      <stop offset="100%" stop-color="#3DF08A"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g font-family="'Inter Tight','Helvetica Neue',Arial,sans-serif" font-weight="800" font-size="64" letter-spacing="-2.5">
+    <text x="46" y="96" fill="#F4F5F7">copa</text>
+    <text x="204" y="96" fill="url(#grn)">fever</text>
+  </g>
+  <path d="M214 50 c1 -7 -4 -10 -2 -17 c-1 1 -9 7 -9 16 c0 7 5 12 11 12 c6 0 11 -4 11 -11 c0 -4 -2 -7 -5 -9 c1 4 -1 7 -4 8 c-2 1 -4 -0 -4 -3 z"
+        fill="url(#grn)" filter="url(#glow)"/>
+</svg>

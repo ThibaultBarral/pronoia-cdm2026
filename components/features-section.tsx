@@ -6,29 +6,29 @@ import { Target, Sword, BarChart2, Lightbulb, Clock, Shield } from "lucide-react
 const FEATURES = [
   {
     icon: Target,
-    color: "#00ff88",
-    grad: "from-[#00ff88]/15 to-[#00d4ff]/5",
+    color: "var(--accent)",
+    grad: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent-soft) 5%, transparent))",
     title: "Contexte & Enjeux",
     desc: "Forme récente, blessures, suspensions, pression psychologique et historique des confrontations. Rien n'est laissé au hasard.",
   },
   {
     icon: Sword,
     color: "#ffd700",
-    grad: "from-[#ffd700]/15 to-[#ff6b35]/5",
+    grad: "linear-gradient(135deg, color-mix(in srgb, #ffd700 15%, transparent), color-mix(in srgb, #ff6b35 5%, transparent))",
     title: "Forces & Faiblesses",
     desc: "Analyse tactique poussée des deux équipes. Qui domine les duels aériens ? Quelle défense est poreuse sur les contres ?",
   },
   {
     icon: BarChart2,
-    color: "#00d4ff",
-    grad: "from-[#00d4ff]/15 to-[#7c3aed]/5",
+    color: "var(--accent-soft)",
+    grad: "linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 15%, transparent), color-mix(in srgb, #7c3aed 5%, transparent))",
     title: "Décryptage des cotes",
     desc: "L'IA compare les probabilités implicites des bookmakers avec sa propre évaluation et détecte les value bets sous-cotés.",
   },
   {
     icon: Lightbulb,
     color: "#ff6b35",
-    grad: "from-[#ff6b35]/15 to-[#ffd700]/5",
+    grad: "linear-gradient(135deg, color-mix(in srgb, #ff6b35 15%, transparent), color-mix(in srgb, #ffd700 5%, transparent))",
     title: "Recommandation directe",
     desc: "Un pari actionnable avec raisonnement complet. Faible · Moyen · Élevé. Pas de flou, juste de la clarté.",
   },
@@ -36,7 +36,7 @@ const FEATURES = [
 
 const HOW_IT_WORKS = [
   { step: "01", title: "Choisissez un match", desc: "Parcourez les 72 matchs de groupe de la CDM 2026, filtrés par groupe ou date." },
-  { step: "02", title: "Lancez l'analyse IA", desc: "Un clic. Pronoia IA reçoit toutes les données et génère une analyse structurée en temps réel." },
+  { step: "02", title: "Lancez l'analyse IA", desc: "Un clic. Copafever IA reçoit toutes les données et génère une analyse structurée en temps réel." },
   { step: "03", title: "Pariez avec conviction", desc: "Recommandation en moins de 15 secondes. Contexte, cotes, value bet — tout est là." },
 ];
 
@@ -64,7 +64,7 @@ export default function FeaturesSection() {
             Une analyse complète,{" "}
             <span
               style={{
-                background: "linear-gradient(135deg, #00ff88, #00d4ff)",
+                background: "linear-gradient(135deg, var(--accent), var(--accent-soft))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
@@ -83,12 +83,12 @@ export default function FeaturesSection() {
             <motion.div
               key={title}
               variants={item}
-              whileHover={{ y: -6, boxShadow: `0 20px 40px ${color}18` }}
+              whileHover={{ y: -6, boxShadow: `0 20px 40px color-mix(in srgb, ${color} 9%, transparent)` }}
               className="glass rounded-2xl p-5 flex flex-col gap-4 cursor-default transition-all duration-300"
             >
               <div
-                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center shrink-0`}
-                style={{ border: `1px solid ${color}25` }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ backgroundImage: grad, border: `1px solid color-mix(in srgb, ${color} 15%, transparent)` }}
               >
                 <Icon size={18} style={{ color }} />
               </div>
@@ -109,17 +109,17 @@ export default function FeaturesSection() {
             <p className="text-xs text-[#3a4560] uppercase tracking-widest mb-2 font-medium">Comment ça marche</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            <div className="hidden md:block absolute top-7 left-[calc(16.67%+1.5rem)] right-[calc(16.67%+1.5rem)] h-px bg-gradient-to-r from-[#00ff88]/20 via-[#00d4ff]/20 to-[#00ff88]/20" />
+            <div className="hidden md:block absolute top-7 left-[calc(16.67%+1.5rem)] right-[calc(16.67%+1.5rem)] h-px bg-gradient-to-r from-[var(--accent)]/20 via-[var(--accent-soft)]/20 to-[var(--accent)]/20" />
             {HOW_IT_WORKS.map(({ step, title, desc }, i) => (
               <motion.div
                 key={step} variants={item}
                 className="flex flex-col items-center text-center gap-3"
               >
                 <motion.div
-                  whileHover={{ scale: 1.1, boxShadow: "0 0 24px rgba(0,255,136,0.3)" }}
+                  whileHover={{ scale: 1.1, boxShadow: "0 0 24px rgba(var(--accent-rgb),0.3)" }}
                   className="w-14 h-14 rounded-2xl glass-neon flex items-center justify-center"
                 >
-                  <span className="text-sm font-black text-[#00ff88] tracking-wider">{step}</span>
+                  <span className="text-sm font-black text-[var(--accent)] tracking-wider">{step}</span>
                 </motion.div>
                 <div>
                   <h4 className="font-bold text-[#f0f0f0] text-sm mb-1">{title}</h4>
@@ -137,9 +137,9 @@ export default function FeaturesSection() {
           transition={{ delay: 0.3, duration: 0.5 }}
         >
           {[
-            { icon: Clock, text: "Analyse en < 15 secondes", color: "#00ff88" },
-            { icon: Shield, text: "Données API-Football en temps réel", color: "#ffd700" },
-            { icon: BarChart2, text: "Analyse IA data-driven en temps réel", color: "#00d4ff" },
+            { icon: Clock, text: "Analyse en < 15 secondes", color: "var(--accent)" },
+            { icon: Shield, text: "Données sportives en temps réel", color: "#ffd700" },
+            { icon: BarChart2, text: "Analyse IA data-driven en temps réel", color: "var(--accent-soft)" },
           ].map(({ icon: Icon, text, color }) => (
             <motion.div
               key={text}

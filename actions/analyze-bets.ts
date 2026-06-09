@@ -1,7 +1,7 @@
 "use server";
 
 import Anthropic from "@anthropic-ai/sdk";
-import { requireAuthAndCredit } from "@/lib/ai-guard";
+import { requireAnalysisAccess } from "@/lib/ai-guard";
 import { validateImages } from "@/lib/validate-images";
 
 export interface ParsedBet {
@@ -44,7 +44,7 @@ export async function analyzeBetImages(
   images: Array<{ base64: string; mediaType: string }>
 ): Promise<{ ok: true; bets: ParsedBet[] } | { ok: false; error: string }> {
   // ── Auth + rate limit ─────────────────────────────────────────────
-  const guard = await requireAuthAndCredit();
+  const guard = await requireAnalysisAccess();
   if ("error" in guard) return { ok: false, error: guard.error };
 
   // ── Input validation ──────────────────────────────────────────────

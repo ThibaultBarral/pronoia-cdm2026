@@ -5,6 +5,19 @@ export interface FormResult {
   result: MatchResult;
   score: string;
   competition: string;
+  date?: string; // ISO date (YYYY-MM-DD) when known
+  venue?: "H" | "A"; // home / away for the analysed team
+}
+
+/** Computed momentum signal derived from a team's real recent matches. */
+export interface TeamMomentum {
+  sample: number; // number of matches the momentum is based on
+  last5Pts: number; // points over the 5 most recent (W=3, D=1)
+  last10Pts: number; // points over up to 10 most recent
+  goalsForAvg: number; // avg goals scored per match
+  goalsAgainstAvg: number; // avg goals conceded per match
+  cleanSheets: number; // clean sheets over the sample
+  trend: "hot" | "cold" | "neutral"; // form direction
 }
 
 export interface H2HMatch {
@@ -52,6 +65,8 @@ export interface Team {
   id: string;
   apiTeamId?: number;
   name: string;
+  /** Canonical English name — used for slugs, API lookups and H2H matching. */
+  nameEn?: string;
   shortName: string;
   flag: string;
   logo?: string;
@@ -59,6 +74,7 @@ export interface Team {
   fifaRanking: number;
   coach: string;
   recentForm: FormResult[];
+  momentum?: TeamMomentum;
   stats: TeamStats;
   lineup: Lineup;
   keyPlayers: string[];
@@ -66,6 +82,8 @@ export interface Team {
   suspensions: string[];
   strengths?: string[];
   weaknesses?: string[];
+  /** "live" when recentForm/stats come from API-Football, "static" when from team-data.ts */
+  dataSource?: "live" | "static";
 }
 
 export interface Match {

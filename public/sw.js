@@ -1,4 +1,4 @@
-const CACHE = "pronoia-v1";
+const CACHE = "copafever-v1";
 const PRECACHE = ["/dashboard", "/dashboard/bankroll"];
 
 self.addEventListener("install", (e) => {

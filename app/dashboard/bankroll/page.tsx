@@ -30,7 +30,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
             <div
               key={s}
               className={`h-1 rounded-full transition-all ${
-                s === step ? "w-8 bg-[#00ff88]" : s < step ? "w-4 bg-[#00ff88]/40" : "w-4 bg-[#1a1a1a]"
+                s === step ? "w-8 bg-[var(--accent)]" : s < step ? "w-4 bg-[var(--accent)]/40" : "w-4 bg-[#1a1a1a]"
               }`}
             />
           ))}
@@ -38,8 +38,8 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
 
         {step === 1 ? (
           <>
-            <div className="w-14 h-14 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center mx-auto mb-5">
-              <Wallet size={24} className="text-[#00ff88]" />
+            <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center mx-auto mb-5">
+              <Wallet size={24} className="text-[var(--accent)]" />
             </div>
             <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
               Bankroll de départ
@@ -60,7 +60,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
                     onChange={(e) => setAmount(e.target.value)}
                     min="1"
                     step="10"
-                    className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-2xl font-black text-[#f0f0f0] pr-10 focus:outline-none focus:border-[#00ff88]/30 tabular-nums"
+                    className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-2xl font-black text-[#f0f0f0] pr-10 focus:outline-none focus:border-[var(--accent)]/30 tabular-nums"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] text-xl font-bold">€</span>
                 </div>
@@ -73,7 +73,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
                     onClick={() => setAmount(String(v))}
                     className={`py-2 rounded-lg border text-sm font-medium transition-all ${
                       amount === String(v)
-                        ? "border-[#00ff88]/30 bg-[#00ff88]/10 text-[#00ff88]"
+                        ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]"
                         : "border-[#141414] text-[#444] hover:text-[#666] hover:bg-[#111]"
                     }`}
                   >
@@ -85,7 +85,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
               <button
                 onClick={() => setStep(2)}
                 disabled={!parseFloat(amount) || parseFloat(amount) <= 0}
-                className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Suivant
                 <ChevronRight size={15} />
@@ -99,7 +99,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
               Ton style de jeu
             </h2>
             <p className="text-sm text-[#555] text-center mb-6 leading-relaxed">
-              Pronoia adapte ses recommandations — types de paris et mises suggérées — à ton profil.
+              Copafever adapte ses recommandations — types de paris et mises suggérées — à ton profil.
             </p>
 
             <div className="space-y-2 mb-5">
@@ -109,7 +109,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
                   onClick={() => setPlaystyle(ps.id)}
                   className={`w-full text-left rounded-xl border p-3.5 transition-all ${
                     playstyle === ps.id
-                      ? "border-[#00ff88]/30 bg-[#00ff88]/5"
+                      ? "border-[var(--accent)]/30 bg-[var(--accent)]/5"
                       : "border-[#141414] bg-[#0d0d0d] hover:bg-[#111] hover:border-[#222]"
                   }`}
                 >
@@ -125,7 +125,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
                           {ps.stakeRange} bankroll
                         </span>
                         {playstyle === ps.id && (
-                          <span className="ml-auto text-[10px] text-[#00ff88] font-medium">✓</span>
+                          <span className="ml-auto text-[10px] text-[var(--accent)] font-medium">✓</span>
                         )}
                       </div>
                       <p className="text-[11px] text-[#555] leading-relaxed">{ps.description}</p>
@@ -144,7 +144,7 @@ function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playsty
               </button>
               <button
                 onClick={() => onSetup(parseFloat(amount) || 200, playstyle)}
-                className="flex-1 py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all hover:scale-[1.01] glow-neon"
+                className="flex-1 py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all hover:scale-[1.01] glow-neon"
               >
                 Démarrer le suivi
               </button>
@@ -178,7 +178,7 @@ function KpiCard({
       <div className="flex items-center gap-2 mb-2">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: `${color}12`, border: `1px solid ${color}20` }}
+          style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 13%, transparent)` }}
         >
           <Icon size={13} style={{ color }} />
         </div>
@@ -265,7 +265,7 @@ export default function BankrollPage() {
     const csv = [header, ...rows].join("\n");
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "pronoia-bankroll.csv";
+    a.download = "copafever-bankroll.csv";
     a.click();
   }
 
@@ -332,7 +332,7 @@ export default function BankrollPage() {
             {/* Add bet button — icon only on mobile, icon+text on desktop */}
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[var(--accent)] text-[#0a0a0a] text-xs font-bold hover:bg-[var(--accent-strong)] transition-all"
             >
               <Plus size={15} />
               <span className="hidden md:inline">Nouveau pari</span>
@@ -391,7 +391,7 @@ export default function BankrollPage() {
                         onClick={() => setTab("overview")}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           tab === "overview"
-                            ? "border-[#00ff88]/20 bg-[#00ff88]/10 text-[#00ff88]"
+                            ? "border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]"
                             : "border-[#141414] text-[#444] hover:text-[#666]"
                         }`}
                       >
@@ -401,7 +401,7 @@ export default function BankrollPage() {
                         onClick={() => setTab("history")}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                           tab === "history"
-                            ? "border-[#00ff88]/20 bg-[#00ff88]/10 text-[#00ff88]"
+                            ? "border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]"
                             : "border-[#141414] text-[#444] hover:text-[#666]"
                         }`}
                       >
@@ -417,7 +417,7 @@ export default function BankrollPage() {
                   {!data.playstyle && (
                     <div className="rounded-2xl border border-[#ffd700]/20 bg-[#ffd700]/5 p-4">
                       <p className="text-xs font-semibold text-[#ffd700] mb-3">
-                        🎮 Choisis ton style de jeu — Pronoia adaptera ses recommandations
+                        🎮 Choisis ton style de jeu — Copafever adaptera ses recommandations
                       </p>
                       <div className="grid grid-cols-2 gap-2">
                         {PLAYSTYLES.map((ps) => (
@@ -451,7 +451,7 @@ export default function BankrollPage() {
                           label="Win Rate"
                           value={`${s.winRate.toFixed(0)}%`}
                           sub={`${s.wonBets}V / ${s.lostBets}D sur ${s.totalBets}`}
-                          color="#00ff88"
+                          color="var(--accent)"
                           positive={s.winRate >= 50}
                         />
                         <KpiCard
@@ -459,7 +459,7 @@ export default function BankrollPage() {
                           label="ROI"
                           value={`${s.roiPercent >= 0 ? "+" : ""}${s.roiPercent}%`}
                           sub={`Misé : ${s.totalStaked.toFixed(0)}€`}
-                          color="#00d4ff"
+                          color="var(--accent-soft)"
                           positive={s.roiPercent >= 0}
                         />
                         <KpiCard
@@ -535,7 +535,7 @@ export default function BankrollPage() {
                                 className="w-4 h-0.5 rounded"
                                 style={{
                                   background:
-                                    s.currentAmount >= data.initialAmount ? "#00ff88" : "#ef4444",
+                                    s.currentAmount >= data.initialAmount ? "var(--accent)" : "#ef4444",
                                 }}
                               />
                               <span>Bankroll</span>
@@ -552,8 +552,8 @@ export default function BankrollPage() {
                       {/* Empty state CTA */}
                       {data.bets.length === 0 && (
                         <div className="rounded-2xl border border-dashed border-[#1a1a1a] flex flex-col items-center gap-3 py-12 text-center">
-                          <div className="w-12 h-12 rounded-2xl bg-[#00ff88]/5 border border-[#00ff88]/10 flex items-center justify-center">
-                            <Plus size={20} className="text-[#00ff88]" />
+                          <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center justify-center">
+                            <Plus size={20} className="text-[var(--accent)]" />
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-[#888]">Aucun pari enregistré</p>
@@ -563,7 +563,7 @@ export default function BankrollPage() {
                           </div>
                           <button
                             onClick={() => setShowForm(true)}
-                            className="px-5 py-2 rounded-lg bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all"
+                            className="px-5 py-2 rounded-lg bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all"
                           >
                             Ajouter mon premier pari
                           </button>
@@ -579,7 +579,7 @@ export default function BankrollPage() {
                         </h3>
                         <button
                           onClick={() => setShowForm(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/20 text-xs font-medium hover:bg-[#00ff88]/15 transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 text-xs font-medium hover:bg-[var(--accent)]/15 transition-all"
                         >
                           <Plus size={12} />
                           Ajouter

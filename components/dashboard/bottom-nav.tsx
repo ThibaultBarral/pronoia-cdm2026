@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Grid2X2, TrendingUp } from "lucide-react";
+import { Grid2X2, Trophy, TrendingUp, History, User } from "lucide-react";
 
 const TABS = [
   { href: "/dashboard", icon: Grid2X2, label: "Matchs" },
+  { href: "/dashboard/coupe-du-monde", icon: Trophy, label: "CDM" },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
+  { href: "/dashboard/historique", icon: History, label: "Historique" },
+  { href: "/dashboard/compte", icon: User, label: "Compte" },
 ];
 
 export default function BottomNav() {
@@ -24,7 +27,7 @@ export default function BottomNav() {
               key={href}
               href={href}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] transition-colors ${
-                active ? "text-[#00ff88]" : "text-[#444]"
+                active ? "text-[var(--accent)]" : "text-[#444]"
               }`}
             >
               <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />

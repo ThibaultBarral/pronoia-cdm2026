@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Wifi } from "lucide-react";
 import { getMatchData } from "@/lib/data-service";
+import { isAdmin } from "@/lib/admin";
 import MatchHeader from "@/components/match-header";
 import TeamForm from "@/components/team-form";
 import H2HStats from "@/components/h2h-stats";
@@ -10,6 +11,7 @@ import MatchStats from "@/components/match-stats";
 import OddsTable from "@/components/odds-table";
 import Lineup from "@/components/lineup";
 import AIAnalysis from "@/components/ai-analysis";
+import AppSidebar from "@/components/dashboard/app-sidebar";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const match = await getMatchData(id);
   if (!match) return { title: "Match introuvable" };
   return {
-    title: `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA CDM 2026 | Pronoia`,
+    title: `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA CDM 2026 | Copafever`,
     description: `Analyse IA complète : forme, stats, cotes et recommandation pari pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`,
   };
 }
@@ -29,16 +31,23 @@ export const revalidate = 1800; // re-fetch every 30min
 
 export default async function MatchPage({ params }: PageProps) {
   const { id } = await params;
-  const match = await getMatchData(id);
+  const [match, admin] = await Promise.all([getMatchData(id), isAdmin()]);
 
   if (!match) notFound();
 
-  const hasRealData = Boolean(match.apiFixtureId);
+  // Real once we resolved this match's API-Football fixture (real odds/live/squad)
+  // or got live form for a team. Honest "live data" signal.
+  const hasRealData =
+    Boolean(match.apiFixtureId) ||
+    match.homeTeam.dataSource === "live" ||
+    match.awayTeam.dataSource === "live";
 
   return (
-    <main className="min-h-screen">
+    <div className="flex min-h-screen bg-[#0a0a0a]">
+      <AppSidebar />
+      <main className="flex-1 min-w-0">
       {/* Top nav */}
-      <div className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-[#1f1f1f]">
+      <div className="safe-header sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-[#1f1f1f]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
           <Link
             href="/"
@@ -54,12 +63,12 @@ export default async function MatchPage({ params }: PageProps) {
           </span>
           <div className="ml-auto flex items-center gap-2">
             {hasRealData && (
-              <span className="hidden sm:flex items-center gap-1 text-[10px] text-[#00ff88]/70 border border-[#00ff88]/10 bg-[#00ff88]/5 px-2 py-0.5">
+              <span className="hidden sm:flex items-center gap-1 text-[10px] text-[var(--accent)]/70 border border-[var(--accent)]/10 bg-[var(--accent)]/5 px-2 py-0.5">
                 <Wifi size={9} />
-                Live API
+                En direct
               </span>
             )}
-            <span className="text-[10px] text-[#00ff88] font-mono border border-[#00ff88]/20 bg-[#00ff88]/5 px-2 py-0.5">
+            <span className="text-[10px] text-[var(--accent)] font-mono border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5">
               CDM 2026
             </span>
           </div>
@@ -97,16 +106,17 @@ export default async function MatchPage({ params }: PageProps) {
         )}
 
         <div className="animate-fade-in-up delay-400">
-          <AIAnalysis match={match} />
+          <AIAnalysis match={match} isAdmin={admin} />
         </div>
       </div>
 
       <footer className="border-t border-[#1f1f1f] mt-10 py-6 px-4 text-center">
         <p className="text-xs text-[#555]">
-          Pronoia · Analyse IA CDM 2026 ·{" "}
-          {hasRealData ? "Données en direct API-Football" : "Données mockées"}
+          Copafever · Analyse IA CDM 2026 ·{" "}
+          {hasRealData ? "Données en direct" : "Données indisponibles"}
         </p>
       </footer>
-    </main>
+      </main>
+    </div>
   );
 }

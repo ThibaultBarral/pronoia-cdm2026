@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TrendingUp, Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -19,13 +19,27 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Open directly on the signup tab when arriving from a "Commencer" CTA (?mode=signup).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "signup") {
+      setMode("signup");
+    }
+  }, []);
+
+  // Destination post-login : ?next=… s'il est interne (anti open-redirect), sinon /dashboard.
+  function nextPath() {
+    if (typeof window === "undefined") return "/dashboard";
+    const n = new URLSearchParams(window.location.search).get("next");
+    return n && n.startsWith("/") && !n.startsWith("//") ? n : "/dashboard";
+  }
+
   async function handleGoogle() {
     setGoogleLoading(true);
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`,
       },
     });
     if (error) { setError(error.message); setGoogleLoading(false); }
@@ -50,7 +64,7 @@ export default function LoginPage() {
         setError(error.message);
       } else {
         // autoconfirm ON → directly logged in
-        router.push("/dashboard");
+        router.push(nextPath());
         router.refresh();
       }
     } else {
@@ -62,7 +76,7 @@ export default function LoginPage() {
             : error.message
         );
       } else {
-        router.push("/dashboard");
+        router.push(nextPath());
         router.refresh();
       }
     }
@@ -70,7 +84,7 @@ export default function LoginPage() {
   }
 
   const inputCls =
-    "w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors";
+    "w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[var(--accent)]/30 transition-colors";
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
@@ -78,11 +92,11 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center mx-auto mb-4">
-            <TrendingUp size={24} className="text-[#00ff88]" />
-          </div>
-          <h1 className="text-2xl font-black text-[#f0f0f0] tracking-tight">Pronoia</h1>
-          <p className="text-sm text-[#555] mt-1">Analyse IA · CDM 2026 · Bankroll</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/copafever-icon.svg" alt="" className="w-14 h-14 rounded-2xl mx-auto mb-4" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-8 w-auto mx-auto" />
+          <p className="text-sm text-[#555] mt-2">Analyse IA · CDM 2026 · Bankroll</p>
         </div>
 
         <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6 space-y-4">
@@ -172,7 +186,7 @@ export default function LoginPage() {
               </div>
             )}
             {success && (
-              <div className="px-3 py-2.5 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/20 text-xs text-[#00ff88]">
+              <div className="px-3 py-2.5 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-xs text-[var(--accent)]">
                 {success}
               </div>
             )}
@@ -180,7 +194,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {loading && (
                 <div className="w-4 h-4 border-2 border-[#0a0a0a]/40 border-t-[#0a0a0a] rounded-full animate-spin" />
@@ -195,7 +209,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); setSuccess(null); }}
-              className="text-[#00ff88] hover:text-[#00cc6a] font-medium transition-colors"
+              className="text-[var(--accent)] hover:text-[var(--accent-strong)] font-medium transition-colors"
             >
               {mode === "login" ? "Créer un compte" : "Se connecter"}
             </button>

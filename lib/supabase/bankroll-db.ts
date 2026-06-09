@@ -43,14 +43,17 @@ export async function saveUserBankroll(data: BankrollData): Promise<string | nul
 
   const { data: bankroll, error } = await supabase
     .from("bankrolls")
-    .upsert({
-      ...(data.id ? { id: data.id } : {}),
-      user_id: user.id,
-      name: data.name ?? "Ma bankroll",
-      initial_amount: data.initialAmount,
-      start_date: data.startDate ?? new Date().toISOString().split("T")[0],
-      ...(data.playstyle !== undefined ? { playstyle: data.playstyle } : {}),
-    })
+    .upsert(
+      {
+        ...(data.id ? { id: data.id } : {}),
+        user_id: user.id,
+        name: data.name ?? "Ma bankroll",
+        initial_amount: data.initialAmount,
+        start_date: data.startDate ?? new Date().toISOString().split("T")[0],
+        ...(data.playstyle !== undefined ? { playstyle: data.playstyle } : {}),
+      },
+      { onConflict: "user_id" }
+    )
     .select("id")
     .single();
 

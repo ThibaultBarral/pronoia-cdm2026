@@ -1,0 +1,17 @@
+<svg viewBox="0 0 580 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Copafever">
+  <defs>
+    <linearGradient id="grn2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0F9D58"/>
+      <stop offset="60%" stop-color="#16C172"/>
+      <stop offset="100%" stop-color="#3DF08A"/>
+    </linearGradient>
+  </defs>
+  <g font-family="'Inter Tight','Helvetica Neue',Arial,sans-serif" font-weight="800" font-size="60" letter-spacing="-2.5">
+    <text x="50" y="86" fill="#F4F5F7">copa</text>
+    <text x="198" y="86" fill="url(#grn2)">fever</text>
+  </g>
+  <rect x="50" y="106" width="480" height="9" rx="4.5" fill="#1C1F22"/>
+  <rect x="50" y="106" width="330" height="9" rx="4.5" fill="url(#grn2)"/>
+  <circle cx="380" cy="110.5" r="9" fill="#16C172"/>
+  <circle cx="380" cy="110.5" r="3.5" fill="#0A0A0A"/>
+</svg>

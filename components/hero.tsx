@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Zap, ArrowDown, Sparkles } from "lucide-react";
+import { Zap, ArrowDown, Sparkles, Search, Target, Wallet, ArrowRight } from "lucide-react";
+import AnalysisDemo from "@/components/analysis-demo";
 
 const KICKOFF = new Date("2026-06-11T19:00:00-04:00");
 
@@ -28,7 +29,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
       whileHover={{ scale: 1.05 }}
     >
       <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl glass-neon flex items-center justify-center glow-neon">
-        <span className="text-2xl md:text-3xl font-black text-[#00ff88] tabular-nums text-glow-neon">
+        <span className="text-2xl md:text-3xl font-black text-[var(--accent)] tabular-nums text-glow-neon">
           {String(value).padStart(2, "0")}
         </span>
       </div>
@@ -42,27 +43,84 @@ const fadeUp = {
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] as const } }),
 };
 
+const ZERO: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+// Staggered headline reveal (shoplit-style momentum).
+const lineUp = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const } },
+};
+const headlineStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.14, delayChildren: 0.12 } },
+};
+
+// Animated value loop — communicates: AI analyses → you bet right → you cash in.
+const STEPS = [
+  { icon: Search, label: "L'IA analyse" },
+  { icon: Target, label: "Le bon pari" },
+  { icon: Wallet, label: "Tu encaisses" },
+];
+
+function ValueLoop() {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((a) => (a + 1) % STEPS.length), 1300);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+      {STEPS.map((s, i) => {
+        const on = i === active;
+        const Icon = s.icon;
+        return (
+          <div key={i} className="flex items-center gap-2 sm:gap-3">
+            <motion.div
+              animate={{ scale: on ? 1.06 : 1, opacity: on ? 1 : 0.5 }}
+              transition={{ duration: 0.4 }}
+              className={`flex items-center gap-2 rounded-full px-3.5 py-2 border ${on ? "glass-neon glow-neon" : "glass"}`}
+              style={on ? { borderColor: "rgba(var(--accent-rgb),0.5)" } : undefined}
+            >
+              <Icon size={15} className={on ? "text-[var(--accent)]" : "text-[#6a7488]"} />
+              <span className={`text-xs sm:text-sm font-bold ${on ? "text-[var(--accent)]" : "text-[#6a7488]"}`}>
+                {s.label}
+              </span>
+            </motion.div>
+            {i < STEPS.length - 1 && <ArrowRight size={14} className="text-[#2a3550] shrink-0" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Hero() {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(getTimeLeft());
+  // Start null so SSR and the first client render produce the SAME markup
+  // (deterministic zero placeholder). The real countdown is computed only
+  // after mount, avoiding a hydration mismatch on the live-changing value.
+  const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
+    const tick = () => setTimeLeft(getTimeLeft());
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
-  const isLive = Object.values(timeLeft).every((v) => v === 0);
+  const display = timeLeft ?? ZERO;
+  const isLive = timeLeft !== null && Object.values(timeLeft).every((v) => v === 0);
 
   return (
     <section className="gradient-hero relative overflow-hidden pt-16 pb-24 px-4">
       {/* Floating orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div
-          className="absolute top-10 left-[10%] w-72 h-72 rounded-full bg-[#00ff88]/8 blur-3xl"
+          className="absolute top-10 left-[10%] w-72 h-72 rounded-full bg-[var(--accent)]/8 blur-3xl"
           animate={{ y: [0, -20, 0], scale: [1, 1.05, 1] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute top-20 right-[8%] w-64 h-64 rounded-full bg-[#00d4ff]/6 blur-3xl"
+          className="absolute top-20 right-[8%] w-64 h-64 rounded-full bg-[var(--accent-soft)]/6 blur-3xl"
           animate={{ y: [0, 20, 0], scale: [1, 1.08, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
         />
@@ -71,7 +129,7 @@ export default function Hero() {
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-40 bg-gradient-to-b from-[#00ff88]/40 to-transparent" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-40 bg-gradient-to-b from-[var(--accent)]/40 to-transparent" />
       </div>
 
       <div className="max-w-4xl mx-auto text-center relative z-10">
@@ -79,48 +137,59 @@ export default function Hero() {
         {/* Badge */}
         <motion.div
           variants={fadeUp} initial="hidden" animate="show" custom={0}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-neon mb-8 shadow-lg"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-neon mb-7"
         >
-          <Trophy size={12} className="text-[#ffd700]" />
-          <span className="text-[11px] text-[#ffd700] font-semibold tracking-wide uppercase">
-            USA · Canada · Mexique · 11 juin — 19 juillet 2026
+          <Sparkles size={12} className="text-[var(--accent)]" />
+          <span className="text-[11px] text-[var(--accent)] font-bold tracking-wide uppercase">
+            Propulsé par l&apos;IA
           </span>
-          <Sparkles size={10} className="text-[#ffd700]/60" />
         </motion.div>
 
         {/* Headline */}
         <motion.h1
-          variants={fadeUp} initial="hidden" animate="show" custom={1}
-          className="text-5xl sm:text-6xl md:text-[76px] font-black leading-[1.05] tracking-tight mb-6"
+          variants={headlineStagger} initial="hidden" animate="show"
+          className="text-[2.75rem] sm:text-6xl md:text-7xl font-black leading-[1.04] tracking-tight mb-6"
         >
-          <span className="text-[#f0f0f0]">Trouvez le bon pari sur chaque match de la CDM,</span>
-          <br />
-          <span
-            className="text-glow-neon"
+          <motion.span variants={lineUp} className="block text-[#f0f0f0]">Analyse.</motion.span>
+          <motion.span variants={lineUp} className="block text-[#f0f0f0]">Parie malin.</motion.span>
+          <motion.span
+            variants={lineUp}
+            className="block text-glow-neon"
             style={{
-              background: "linear-gradient(135deg, #00ff88 0%, #00d4ff 100%)",
+              background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
           >
-            en 15 secondes.
-          </span>
+            Encaisse.
+          </motion.span>
         </motion.h1>
 
-        {/* Subhead */}
+        {/* Subhead — AI that makes you money */}
         <motion.p
           variants={fadeUp} initial="hidden" animate="show" custom={2}
-          className="text-[#7a8599] text-base md:text-lg max-w-2xl mx-auto mb-3 leading-relaxed"
+          className="text-[#9aa3b2] text-base md:text-xl max-w-xl mx-auto mb-7 leading-relaxed"
         >
-          L&apos;IA analyse forme, stats, cotes et value bets pour te livrer une recommandation directe sur chaque match de la Coupe du Monde 2026.
+          L&apos;IA décortique chaque match de la Coupe du Monde 2026 et te dit{" "}
+          <span className="text-[var(--accent)] font-semibold">où parier</span>.
+          Toi, tu encaisses. 💸
         </motion.p>
 
-        <motion.p
-          variants={fadeUp} initial="hidden" animate="show" custom={2}
-          className="text-[#3a4560] text-sm mb-10"
+        {/* Animated value loop — Analyse → Bon pari → Encaisse */}
+        <motion.div
+          variants={fadeUp} initial="hidden" animate="show" custom={2.4}
+          className="mb-8"
         >
-          104 matchs · 48 équipes · données en temps réel
-        </motion.p>
+          <ValueLoop />
+        </motion.div>
+
+        {/* Animated analysis demo — match → reco IA "value" → cagnotte qui grimpe */}
+        <motion.div
+          variants={fadeUp} initial="hidden" animate="show" custom={2.8}
+          className="mb-10"
+        >
+          <AnalysisDemo />
+        </motion.div>
 
         {/* CTAs */}
         <motion.div
@@ -128,21 +197,21 @@ export default function Hero() {
           className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
         >
           <motion.a
-            href="#matches"
-            whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(0,255,136,0.4)" }}
+            href="/login?mode=signup"
+            whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(var(--accent-rgb),0.4)" }}
             whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[#00ff88] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[#00e87a]"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[var(--accent)] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-soft)]"
           >
             <Zap size={15} />
-            Analyser un match maintenant
+            Commencer gratuitement
           </motion.a>
           <motion.a
-            href="#how-it-works"
+            href="#matches"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl glass text-[#7a8599] text-sm hover:text-[#f0f0f0] transition-colors"
           >
-            Comment ça marche
+            Voir les matchs
           </motion.a>
         </motion.div>
 
@@ -156,13 +225,13 @@ export default function Hero() {
                 Coup d&apos;envoi dans
               </p>
               <div className="flex items-center justify-center gap-3 md:gap-4">
-                <CountdownUnit value={timeLeft.days} label="jours" />
+                <CountdownUnit value={display.days} label="jours" />
                 <span className="text-[#2a3550] text-2xl font-light mb-5">:</span>
-                <CountdownUnit value={timeLeft.hours} label="heures" />
+                <CountdownUnit value={display.hours} label="heures" />
                 <span className="text-[#2a3550] text-2xl font-light mb-5">:</span>
-                <CountdownUnit value={timeLeft.minutes} label="min" />
+                <CountdownUnit value={display.minutes} label="min" />
                 <span className="text-[#2a3550] text-2xl font-light mb-5">:</span>
-                <CountdownUnit value={timeLeft.seconds} label="sec" />
+                <CountdownUnit value={display.seconds} label="sec" />
               </div>
             </>
           ) : (
@@ -170,8 +239,8 @@ export default function Hero() {
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass-neon animate-pulse-neon"
               whileHover={{ scale: 1.03 }}
             >
-              <Zap size={14} className="text-[#00ff88]" />
-              <span className="text-[#00ff88] font-semibold text-sm">CDM 2026 en cours — analyses live disponibles</span>
+              <Zap size={14} className="text-[var(--accent)]" />
+              <span className="text-[var(--accent)] font-semibold text-sm">CDM 2026 en cours — analyses live disponibles</span>
             </motion.div>
           )}
         </motion.div>

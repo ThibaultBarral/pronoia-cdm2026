@@ -1,6 +1,6 @@
 {
-  "name": "Pronoia — CDM 2026",
-  "short_name": "Pronoia",
+  "name": "Copafever — CDM 2026",
+  "short_name": "Copafever",
   "description": "Analyses IA des matchs CDM 2026 et suivi de bankroll",
   "start_url": "/dashboard",
   "display": "standalone",

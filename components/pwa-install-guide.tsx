@@ -10,8 +10,8 @@ const STORAGE_KEY = "pronoia_pwa_dismissed";
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-6 h-6 rounded-full bg-[#00ff88]/10 border border-[#00ff88]/30 flex items-center justify-center shrink-0 mt-0.5">
-        <span className="text-[10px] font-bold text-[#00ff88]">{n}</span>
+      <div className="w-6 h-6 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex items-center justify-center shrink-0 mt-0.5">
+        <span className="text-[10px] font-bold text-[var(--accent)]">{n}</span>
       </div>
       <p className="text-sm text-[#c0c0c0] leading-snug flex-1">{children}</p>
     </div>
@@ -48,7 +48,7 @@ function IOSGuide() {
         </Step>
       </div>
       <div className="flex justify-center pt-1">
-        <ArrowDown size={14} className="text-[#00ff88] animate-bounce" />
+        <ArrowDown size={14} className="text-[var(--accent)] animate-bounce" />
       </div>
       <div className="rounded-xl bg-[#0d1a20] border border-[#1a3040] p-3 text-xs text-[#5a9ab8] text-center leading-relaxed">
         L&apos;app apparaîtra sur ton écran d&apos;accueil comme une vraie app — sans barre du navigateur, en plein écran.
@@ -78,7 +78,7 @@ function AndroidGuide() {
         </Step>
       </div>
       <div className="rounded-xl bg-[#0d1a20] border border-[#1a3040] p-3 text-xs text-[#5a9ab8] text-center leading-relaxed">
-        Une bannière &quot;Installer Pronoia&quot; peut aussi apparaître automatiquement en bas de l&apos;écran.
+        Une bannière &quot;Installer Copafever&quot; peut aussi apparaître automatiquement en bas de l&apos;écran.
       </div>
     </div>
   );
@@ -114,11 +114,11 @@ export default function PWAInstallGuide() {
       <div className="w-full max-w-sm bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-[#141414]">
-          <div className="w-9 h-9 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
-            <Smartphone size={16} className="text-[#00ff88]" />
+          <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
+            <Smartphone size={16} className="text-[var(--accent)]" />
           </div>
           <div className="flex-1">
-            <p className="font-bold text-[#f0f0f0] text-sm">Installer Pronoia</p>
+            <p className="font-bold text-[#f0f0f0] text-sm">Installer Copafever</p>
             <p className="text-[10px] text-[#555]">Ajoute l&apos;app sur ton écran d&apos;accueil</p>
           </div>
           <button onClick={dismiss} className="text-[#444] hover:text-[#888] transition-colors p-1">
@@ -151,7 +151,7 @@ export default function PWAInstallGuide() {
 
           <button
             onClick={dismiss}
-            className="w-full mt-4 py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all"
+            className="w-full mt-4 py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all"
           >
             J&apos;ai compris
           </button>

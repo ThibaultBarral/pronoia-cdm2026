@@ -11,7 +11,7 @@ function OddPill({ label, value, highlight }: { label: string; value: number; hi
     <div
       className={`flex flex-col items-center px-2.5 py-1.5 rounded-lg border text-center min-w-[48px] transition-colors ${
         highlight
-          ? "border-[#00ff88]/25 bg-[#00ff88]/5 text-[#00ff88]"
+          ? "border-[var(--accent)]/25 bg-[var(--accent)]/5 text-[var(--accent)]"
           : "border-[#181818] bg-[#0d0d0d] text-[#666]"
       }`}
     >
@@ -82,7 +82,7 @@ export default function MatchRow({ match }: MatchRowProps) {
 
           {/* VS + time */}
           <div className="flex flex-col items-center shrink-0 w-14">
-            <span className="text-[9px] font-bold text-[#00ff88] tabular-nums">
+            <span className="text-[9px] font-bold text-[var(--accent)] tabular-nums">
               {match.time}
             </span>
             <span className="text-[9px] text-[#444]">
@@ -124,7 +124,7 @@ export default function MatchRow({ match }: MatchRowProps) {
 
       {/* CTA */}
       <div className="shrink-0">
-        <div className="flex items-center gap-1 text-[10px] text-[#444] group-hover:text-[#00ff88] transition-colors font-medium">
+        <div className="flex items-center gap-1 text-[10px] text-[#444] group-hover:text-[var(--accent)] transition-colors font-medium">
           <span className="hidden sm:block">Analyser</span>
           <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
         </div>

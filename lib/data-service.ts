@@ -1,9 +1,12 @@
 /**
- * Data service — combines three sources:
- *   1. OpenFootball (GitHub)  → 72 real WC 2026 group-stage fixtures (free, no key)
- *   2. API-Football (free)    → /players/squads + /coachs (work without season restriction)
- *   3. Mock data              → form, H2H, odds (fallback until paid plan)
+ * Data service (SERVER ONLY) — combines:
+ *   1. OpenFootball (GitHub)  → real WC 2026 group-stage fixtures (free, no key)
+ *   2. API-Football           → squads, coachs, recent form, H2H, odds, live score
+ *   All API-Football calls go through the Supabase cache (lib/api-cache) so users
+ *   read shared cached data and we control the request volume / quota.
+ *   No mock fallback once logged in: real data or honest empty states.
  */
+import "server-only";
 
 import type {
   ApiFixtureResponse,
@@ -13,16 +16,26 @@ import type {
 import {
   fetchSquad,
   fetchCoach,
-  fetchTeamForm,
+  fetchRecentMatches,
   fetchH2H,
+  fetchFixtures,
   fetchOdds,
   extractOdds,
   WC_LEAGUE,
   WC_SEASON,
 } from "./api-football";
-import { getTeamMeta } from "./team-ids";
+import { getCachedOrFetch } from "./api-cache";
+import { getTeamMeta, TEAM_META } from "./team-ids";
 import { getTeamProfile } from "./team-data";
-import type { Match, Team, FormResult, H2HMatch, Player, Lineup } from "./types";
+import type {
+  Match,
+  Team,
+  FormResult,
+  H2HMatch,
+  Player,
+  Lineup,
+  TeamMomentum,
+} from "./types";
 import { MATCHES as MOCK_MATCHES, getMatchById as getMockById } from "./mock-data";
 
 const OPENFOOTBALL_URL =
@@ -98,15 +111,37 @@ function venueToCountry(ground: string): "USA" | "Canada" | "Mexique" {
   return "USA";
 }
 
-// ─── Time conversion to Paris time (UTC+2 in summer) ─────────────────────────
+// ─── Time conversion to Paris time ───────────────────────────────────────────
 
-function toParisTime(timeStr: string): string {
+/**
+ * Convert an OpenFootball local date + "HH:MM UTC±X" into the Europe/Paris
+ * date AND time. Crucially this rolls the DATE over when the conversion crosses
+ * midnight (e.g. a 20:00 UTC-6 match becomes 04:00 the NEXT day in Paris), so
+ * matches sort and group correctly. DST-safe via Intl.
+ */
+function toParisDateTime(dateStr: string, timeStr: string): { date: string; time: string } {
   const m = timeStr.match(/(\d+):(\d+)\s+UTC([+-]\d+)/);
-  if (!m) return "21:00";
+  if (!m) return { date: dateStr, time: "21:00" };
   const [, hStr, minStr, tzStr] = m;
-  const utcH = parseInt(hStr) - parseInt(tzStr);
-  const parisH = ((utcH + 2) % 24 + 24) % 24;
-  return `${String(parisH).padStart(2, "0")}:${minStr}`;
+  const [Y, Mo, D] = dateStr.split("-").map((n) => parseInt(n, 10));
+  // Real UTC instant = local wall-clock minus its UTC offset.
+  const utcMs =
+    Date.UTC(Y, Mo - 1, D, parseInt(hStr, 10), parseInt(minStr, 10)) -
+    parseInt(tzStr, 10) * 3_600_000;
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(utcMs));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  let hour = get("hour");
+  if (hour === "24") hour = "00"; // some runtimes emit 24 for midnight
+  return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${hour}:${get("minute")}` };
 }
 
 // ─── Slug generation ──────────────────────────────────────────────────────────
@@ -159,14 +194,57 @@ function mapSquad(squadData: ApiSquadResponse | null): Lineup {
 // ─── Form mapping (API-Football last-5) ──────────────────────────────────────
 
 function mapForm(fixtures: ApiFixtureResponse[], teamId: number): FormResult[] {
-  return fixtures.slice(0, 5).map((f): FormResult => {
+  return fixtures.map((f): FormResult => {
     const isHome = f.teams.home.id === teamId;
     const tg = isHome ? (f.goals.home ?? 0) : (f.goals.away ?? 0);
     const og = isHome ? (f.goals.away ?? 0) : (f.goals.home ?? 0);
     const opponent = isHome ? f.teams.away.name : f.teams.home.name;
     const result: "W" | "D" | "L" = tg > og ? "W" : tg < og ? "L" : "D";
-    return { opponent, result, score: `${tg}-${og}`, competition: f.league.name };
+    return {
+      opponent,
+      result,
+      score: `${tg}-${og}`,
+      competition: f.league.name,
+      date: f.fixture.date.split("T")[0],
+      venue: isHome ? "H" : "A",
+    };
   });
+}
+
+/** Derive a momentum signal from already-mapped recent form (newest first). */
+function computeMomentum(form: FormResult[]): TeamMomentum | undefined {
+  if (!form.length) return undefined;
+
+  const pts = (r: FormResult["result"]) => (r === "W" ? 3 : r === "D" ? 1 : 0);
+  const last5 = form.slice(0, 5);
+  const last10 = form.slice(0, 10);
+
+  const last5Pts = last5.reduce((acc, f) => acc + pts(f.result), 0);
+  const last10Pts = last10.reduce((acc, f) => acc + pts(f.result), 0);
+
+  let goalsFor = 0;
+  let goalsAgainst = 0;
+  let cleanSheets = 0;
+  for (const f of last10) {
+    const [tg, og] = f.score.split("-").map((n) => parseInt(n, 10) || 0);
+    goalsFor += tg;
+    goalsAgainst += og;
+    if (og === 0) cleanSheets += 1;
+  }
+
+  const ppg = last5.length ? last5Pts / last5.length : 0;
+  const trend: TeamMomentum["trend"] =
+    ppg >= 2.2 ? "hot" : ppg <= 1.0 ? "cold" : "neutral";
+
+  return {
+    sample: last10.length,
+    last5Pts,
+    last10Pts,
+    goalsForAvg: Number((goalsFor / last10.length).toFixed(2)),
+    goalsAgainstAvg: Number((goalsAgainst / last10.length).toFixed(2)),
+    cleanSheets,
+    trend,
+  };
 }
 
 function mapH2H(fixtures: ApiFixtureResponse[]): H2HMatch[] {
@@ -203,7 +281,8 @@ async function buildTeam(
   const emptyTeam: Team = {
     id: String(teamId || name),
     apiTeamId: teamId || undefined,
-    name,
+    name: meta.fr,
+    nameEn: name,
     shortName: meta.shortName,
     flag: meta.flag,
     group,
@@ -230,21 +309,42 @@ async function buildTeam(
   if (!hasApiKey() || !teamId) return emptyTeam;
 
   const [squadRes, coachRes, formRes] = await Promise.allSettled([
-    fetchSquad(teamId),
-    fetchCoach(teamId),
-    // form: try with season 2025 qualifications or skip if blocked
-    fetchTeamForm(teamId, 5).catch(() => [] as ApiFixtureResponse[]),
+    getCachedOrFetch(`squad:${teamId}`, 86400, () => fetchSquad(teamId)),
+    getCachedOrFetch(`coach:${teamId}`, 604800, () => fetchCoach(teamId)),
+    // Real recent matches across all competitions (cached 12h)
+    getCachedOrFetch(`recent:${teamId}`, 43200, () => fetchRecentMatches(teamId, 10)).catch(
+      () => [] as ApiFixtureResponse[]
+    ),
   ]);
 
   const squad = squadRes.status === "fulfilled" ? squadRes.value : null;
   const coach = coachRes.status === "fulfilled" ? coachRes.value : null;
-  const form = formRes.status === "fulfilled" ? (formRes.value as ApiFixtureResponse[]) : [];
+  const fixtures =
+    formRes.status === "fulfilled" ? (formRes.value as ApiFixtureResponse[]) : [];
+
+  const realForm = fixtures.length ? mapForm(fixtures, teamId) : [];
+  const momentum = computeMomentum(realForm);
+
+  // Override quantitative stats with values derived from real matches when available;
+  // keep qualitative scouting (strengths/weaknesses/keyPlayers) from the static profile.
+  const liveStats =
+    momentum && profile?.stats
+      ? {
+          ...profile.stats,
+          goalsScored: Math.round(momentum.goalsForAvg * momentum.sample),
+          goalsConceded: Math.round(momentum.goalsAgainstAvg * momentum.sample),
+          cleanSheets: momentum.cleanSheets,
+        }
+      : emptyTeam.stats;
 
   return {
     ...emptyTeam,
-    coach: coach ? `${coach.firstname} ${coach.lastname}` : "",
-    recentForm: form.length ? mapForm(form, teamId) : [],
+    coach: coach ? `${coach.firstname} ${coach.lastname}` : emptyTeam.coach,
+    recentForm: realForm.length ? realForm : emptyTeam.recentForm,
+    momentum,
+    stats: realForm.length ? liveStats : emptyTeam.stats,
     lineup: mapSquad(squad),
+    dataSource: realForm.length ? "live" : "static",
   };
 }
 
@@ -268,7 +368,8 @@ export async function getMatches(): Promise<Match[]> {
       return {
         id: String(meta.apiId || name),
         apiTeamId: meta.apiId || undefined,
-        name,
+        name: meta.fr,
+        nameEn: name,
         shortName: meta.shortName,
         flag: meta.flag,
         group,
@@ -293,12 +394,14 @@ export async function getMatches(): Promise<Match[]> {
       };
     };
 
+    const kickoff = toParisDateTime(f.date, f.time);
+
     return {
       id: matchSlug(f.team1, f.team2),
       homeTeam: makeShell(f.team1, meta1),
       awayTeam: makeShell(f.team2, meta2),
-      date: f.date,
-      time: toParisTime(f.time),
+      date: kickoff.date,
+      time: kickoff.time,
       stadium: venueToStadium(f.ground),
       city: venueToCity(f.ground),
       country: venueToCountry(f.ground),
@@ -310,6 +413,18 @@ export async function getMatches(): Promise<Match[]> {
       score: f.score ? { home: f.score.ft[0], away: f.score.ft[1] } : { home: null, away: null },
     };
   });
+}
+
+/** Full data for a single national team (for the /team/[slug] page). */
+export async function getTeamBySlug(slug: string): Promise<Team | null> {
+  const name = Object.keys(TEAM_META).find((n) => slugify(n) === slug);
+  if (!name) return null;
+  return buildTeam(name, "", true, 0);
+}
+
+/** Stable slug for a team name (used to build /team/<slug> links). */
+export function teamSlug(name: string): string {
+  return slugify(name);
 }
 
 // ─── getMatchData — full data for one match ───────────────────────────────────
@@ -337,14 +452,30 @@ export async function getMatchData(id: string): Promise<Match | null> {
     buildTeam(fixture.team2, group, false, meta1.apiId),
   ]);
 
-  // H2H and odds — requires paid plan for `last` param; use mock H2H if available
+  // H2H, odds and live score — REAL only (no mock fallback). Empty = the UI shows
+  // an honest "indisponible" state. All API-Football calls are Supabase-cached.
   let h2h: HH2Match[] = [];
-  let odds = mockMatch?.odds ?? [];
+  let odds: Match["odds"] = [];
+  let apiFixtureId: number | undefined;
+  let liveStatus: Match["status"] | undefined;
+  let liveScore: Match["score"] | undefined;
 
   if (hasApiKey() && meta1.apiId && meta2.apiId) {
+    // Resolve this match's API-Football fixture → unlocks odds + live score.
+    const apiFixture = await resolveApiFixture(meta1.apiId, meta2.apiId);
+    if (apiFixture) {
+      apiFixtureId = apiFixture.fixture.id;
+      liveStatus = mapStatus(apiFixture.fixture.status.short);
+      liveScore = { home: apiFixture.goals.home, away: apiFixture.goals.away };
+    }
+
     const [h2hRes, oddsRes] = await Promise.allSettled([
-      fetchH2H(meta1.apiId, meta2.apiId, 5),
-      fetchOdds(0), // no fixture ID available from OpenFootball
+      getCachedOrFetch(`h2h:${meta1.apiId}-${meta2.apiId}`, 43200, () =>
+        fetchH2H(meta1.apiId!, meta2.apiId!, 5)
+      ),
+      apiFixtureId
+        ? getCachedOrFetch(`odds:${apiFixtureId}`, 2700, () => fetchOdds(apiFixtureId!))
+        : Promise.resolve(null),
     ]);
 
     if (h2hRes.status === "fulfilled" && h2hRes.value.length > 0) {
@@ -356,29 +487,14 @@ export async function getMatchData(id: string): Promise<Match | null> {
     }
   }
 
-  // Fall back to mock H2H if API blocked
-  if (!h2h.length && mockMatch?.h2h?.length) {
-    h2h = mockMatch.h2h;
-  }
-
-  // Fall back to mock stats (form, xG, etc.) if team has none from API
-  if (!homeTeam.recentForm.length && mockMatch) {
-    homeTeam.recentForm = mockMatch.homeTeam.recentForm;
-    homeTeam.stats = mockMatch.homeTeam.stats;
-    homeTeam.keyPlayers = mockMatch.homeTeam.keyPlayers;
-  }
-  if (!awayTeam.recentForm.length && mockMatch) {
-    awayTeam.recentForm = mockMatch.awayTeam.recentForm;
-    awayTeam.stats = mockMatch.awayTeam.stats;
-    awayTeam.keyPlayers = mockMatch.awayTeam.keyPlayers;
-  }
+  const kickoff = toParisDateTime(fixture.date, fixture.time);
 
   return {
     id,
     homeTeam,
     awayTeam,
-    date: fixture.date,
-    time: toParisTime(fixture.time),
+    date: kickoff.date,
+    time: kickoff.time,
     stadium: venueToStadium(fixture.ground),
     city: venueToCity(fixture.ground),
     country: venueToCountry(fixture.ground),
@@ -386,12 +502,49 @@ export async function getMatchData(id: string): Promise<Match | null> {
     round: "Phase de groupes",
     h2h,
     odds,
-    status: "NS",
-    score: fixture.score
-      ? { home: fixture.score.ft[0], away: fixture.score.ft[1] }
-      : { home: null, away: null },
+    apiFixtureId,
+    status: liveStatus ?? "NS",
+    score:
+      liveScore ??
+      (fixture.score
+        ? { home: fixture.score.ft[0], away: fixture.score.ft[1] }
+        : { home: null, away: null }),
   };
 }
 
-// Fix typo in import above
 type HH2Match = import("./types").H2HMatch;
+
+// ─── API-Football fixture resolution (for odds + live score) ──────────────────
+
+function mapStatus(short: string): Match["status"] {
+  switch (short) {
+    case "1H": return "1H";
+    case "HT": return "HT";
+    case "2H":
+    case "ET": return "2H";
+    case "FT": return "FT";
+    case "AET": return "AET";
+    case "PEN": return "PEN";
+    default: return "NS";
+  }
+}
+
+/** Find the WC 2026 API-Football fixture for a team pair (cached fixtures list). */
+async function resolveApiFixture(
+  idA: number,
+  idB: number
+): Promise<ApiFixtureResponse | null> {
+  const fixtures = await getCachedOrFetch(
+    `fixtures:wc${WC_SEASON}`,
+    43200,
+    () => fetchFixtures()
+  ).catch(() => [] as ApiFixtureResponse[]);
+
+  return (
+    fixtures.find((f) => {
+      const h = f.teams.home.id;
+      const a = f.teams.away.id;
+      return (h === idA && a === idB) || (h === idB && a === idA);
+    }) ?? null
+  );
+}

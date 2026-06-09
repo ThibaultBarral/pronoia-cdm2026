@@ -100,7 +100,7 @@ export default function MatchCard({ match, index = 0 }: MatchCardProps) {
           <div className="w-px h-8 bg-[#1f1f1f]" />
           <OddsChip label={match.awayTeam.shortName} value={winamax.away} />
           <div className="w-px h-8 bg-[#1f1f1f]" />
-          <div className="flex items-center gap-1 text-[#00ff88] text-xs font-medium group-hover:gap-2 transition-all">
+          <div className="flex items-center gap-1 text-[var(--accent)] text-xs font-medium group-hover:gap-2 transition-all">
             <span>Analyser</span>
             <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
           </div>

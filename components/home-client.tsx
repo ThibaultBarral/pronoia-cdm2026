@@ -14,7 +14,7 @@ export default function HomeClient({ matches }: { matches: Match[] }) {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-[#f0f0f0] flex items-center gap-2">
-            <Zap size={18} className="text-[#00ff88]" />
+            <Zap size={18} className="text-[var(--accent)]" />
             Matchs à analyser
           </h2>
           <p className="text-sm text-[#888] mt-0.5">

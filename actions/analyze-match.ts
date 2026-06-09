@@ -1,272 +1,139 @@
 "use server";
 
-import Anthropic from "@anthropic-ai/sdk";
-import { Match } from "@/lib/types";
-import { requireAuthAndCredit } from "@/lib/ai-guard";
-import { createClient } from "@/lib/supabase/server";
-import { PLAYSTYLES } from "@/lib/bankroll";
+import type { Match } from "@/lib/types";
+import { requireAnalysisAccess } from "@/lib/ai-guard";
+import { callClaudeJson } from "@/lib/claude-json";
+import { getCachedOrFetch } from "@/lib/api-cache";
+import { saveAnalysis } from "@/lib/supabase/analyses-db";
+import { predictMatch, type MatchPrediction } from "@/lib/match-model";
+import type { MatchAnalysisData } from "@/lib/analysis-schema";
 
-type AnalyzeResult =
-  | { ok: true; stream: ReadableStream<Uint8Array> }
-  | { ok: false; error: string };
+type Result = { ok: true; data: MatchAnalysisData } | { ok: false; error: string };
 
-// ─── System prompt — cached after first call (>1024 tokens) ──────────────────
+/** The qualitative fields Claude writes (numbers come from our model). */
+interface ClaudeMatchText {
+  summary: string;
+  scenario: string;
+  secondaryScenarios: { title: string; detail: string }[];
+  keyStrengths: { team: "home" | "away"; points: string[] }[];
+  factors: { label: string; kind: "pos" | "neg" | "neutral" }[];
+  recommendation: {
+    bet: string;
+    odds?: string;
+    bookmaker?: string;
+    confidence: "Faible" | "Moyen" | "Élevé" | "Très élevé";
+    stake: string;
+    rationale: string;
+  };
+}
 
-const SYSTEM_PROMPT = `Tu es Pronoia, analyste de paris sportifs expert spécialisé CDM 2026. Tu reçois des données structurées de matchs et tu génères des analyses ultra-concises destinées à des parieurs avertis.
+const SYSTEM_PROMPT = `Tu es Copafever, le pote calé en foot qui explique les paris de la Coupe du Monde 2026 à des DÉBUTANTS. Ton chaleureux, simple, un peu fun, tutoiement, zéro jargon non expliqué. Tu traduis chaque chiffre en clair et rappelles de miser petit, pour le plaisir.
 
-TON RÔLE
-Trouver les marchés où les bookmakers se trompent. Pas prédire le résultat — détecter la value. Une cote sous-évaluée de 5+ points de probabilité = signal d'action.
+On te fournit déjà les CHIFFRES calculés par notre modèle (probabilités, buts attendus, over/under, comparaison). Ne les recalcule pas et ne les contredis pas : appuie-toi dessus. Ton rôle est d'écrire le TEXTE et la RECOMMANDATION de pari.
 
-PRINCIPES
+Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte autour) au format EXACT :
+{
+  "summary": "2-3 phrases : qui part favori et l'ambiance du match, en clair",
+  "scenario": "3-4 phrases : le déroulé le plus probable du match",
+  "secondaryScenarios": [{"title": "ex. Over 2.5 buts", "detail": "explication simple basée sur les chiffres fournis"}],
+  "keyStrengths": [{"team": "home", "points": ["force 1", "force 2"]}, {"team": "away", "points": ["force 1"]}],
+  "factors": [{"label": "ex. Supériorité offensive", "kind": "pos|neg|neutral"}],
+  "recommendation": {
+    "bet": "le pari conseillé en mots simples",
+    "odds": "cote si disponible dans les cotes fournies, sinon omettre",
+    "bookmaker": "bookmaker si cote fournie, sinon omettre",
+    "confidence": "Faible|Moyen|Élevé|Très élevé",
+    "stake": "1 à 3% de ta cagnotte",
+    "rationale": "1-2 phrases : pourquoi ce pari a de la valeur, en clair"
+  }
+}
 
-1. Factuel avant tout
-Chaque bullet contient ≥1 chiffre ou fait vérifiable. Interdit : "France joue bien". Valide : "France xG/match 1.72 > SEN 1.35 sur 10 matchs qualif".
+RÈGLES : 2 à 3 secondaryScenarios, 3 à 5 factors, "home"=équipe à domicile/1ère citée. Base-toi UNIQUEMENT sur les données et chiffres fournis. Si les cotes manquent, baisse la confiance et n'invente pas de cote.`;
 
-2. Value betting — méthodologie obligatoire
-• Probabilité implicite = (1 / cote) × 100
-• Marge bookmaker = somme des prob. implicites − 100
-• Value = ta probabilité estimée > prob. implicite + marge
-• Écart ≥ 5pts → mention, ≥ 10pts → recommandation forte
-
-3. Calibration confiance
-• Élevé : écart probabilité ≥ 10pts ET données forme disponibles
-• Moyen : écart 5-9pts OU données partielles
-• Faible : écart < 5pts OU trop d'incertitudes (blessures, 1er match tournoi)
-
-4. Concision absolue
-• Max 3 bullets par section (sauf Avantages & Risques : max 4)
-• 1 ligne par bullet
-• Pas de phrase d'intro, pas de conclusion, pas de reformulation des données brutes
-
-FORMAT EXACT — ne jamais dévier, respecter l'ordre et les titres
-
-## ⚡ Chiffres clés
-• [stat comparative la plus décisive entre les 2 équipes]
-• [2e signal fort — forme récente ou H2H avec chiffre]
-• [contexte situationnel : blessure clé, 1er match groupe, pression, altitude, etc.]
-
-## ⚔️ Avantages & Risques
-• [PAYS1]: [avantage tactique ou physique + chiffre justificatif]
-• [PAYS1]: [vulnérabilité identifiée + chiffre ou fait]
-• [PAYS2]: [avantage tactique ou physique + chiffre justificatif]
-• [PAYS2]: [vulnérabilité identifiée + chiffre ou fait]
-
-## 📊 Value Bet
-• Prob. implicites: 1=[X]% · N=[X]% · 2=[X]% (marge bk [X]%)
-• Prob. estimées:   1=[X]% · N=[X]% · 2=[X]%
-• Écart: [marché] +[X]pts → [VALUE / neutre / éviter]
-
-## 💡 Recommandation
-**[PARI PRÉCIS] @ [COTE] — [Bookmaker]**
-Confiance: [Faible|Moyen|Élevé] · Mise: [X]% bankroll
-▸ [justification 1 ligne, 1-2 chiffres, actionnable]
-
-EXEMPLES DE BULLETS CORRECTS
-• FRA xG/match qualifs 1.72 vs SEN 1.35 — écart +27% sur 10 matchs, tendance confirmée
-• H2H: FRA 3V 1N 1D sur 5 derniers, dernier face-à-face Nov 2022 (3-3 TAB, ARG gagne)
-• Prob. implicites: 1=60.6% · N=25.6% · 2=19.2% (marge bk 5.4%)
-• FRA victoire @ 1.65 → prob. implicite 60.6%, estimation 68% → value +7.4pts → ACTION
-
-INTERDICTIONS
-- Ne commence JAMAIS par "Cette rencontre", "Ce match", "Dans ce contexte"
-- Ne reformule pas les données fournies sans les analyser
-- Pas de bullet sans chiffre
-- Pas de texte après la section Recommandation
-- Si données insuffisantes pour value bet → l'indiquer clairement dans la section 📊`;
-
-// ─── Compact data formatter ───────────────────────────────────────────────────
-
-function buildPrompt(match: Match): string {
+function buildPrompt(match: Match, pred: MatchPrediction): string {
   const { homeTeam: h, awayTeam: a } = match;
 
   const formStr = (team: typeof h): string => {
     if (!team.recentForm.length) return "Données non disponibles";
-    const results = team.recentForm.map((f) => f.result).join("");
-    const pts = team.recentForm.reduce(
-      (acc, f) => acc + (f.result === "W" ? 3 : f.result === "D" ? 1 : 0),
-      0
-    );
-    const detail = team.recentForm
-      .map((f) => `${f.result}${f.score}(${f.opponent.slice(0, 3).toUpperCase()})`)
-      .join(" ");
-    return `${results} — ${pts}/15pts — ${detail}`;
+    return team.recentForm
+      .slice(0, 8)
+      .map((f) => `${f.result}${f.score}(${f.venue ?? ""}${f.opponent.slice(0, 3).toUpperCase()})`)
+      .join(" · ");
   };
-
-  const xGPerMatch = (total: number, played = 6): string =>
-    played > 0 ? (total / played).toFixed(2) : "N/A";
-
-  const h2hStr = match.h2h.length
-    ? match.h2h
-        .map((m) => `${m.date.slice(0, 4)} ${m.homeTeam.slice(0, 3)}-${m.awayTeam.slice(0, 3)} ${m.score} [${m.competition.slice(0, 15)}]`)
-        .join(" | ")
-    : "Pas de H2H récent disponible";
 
   const oddsStr = match.odds.length
-    ? match.odds
-        .map((o) => {
-          const p1 = ((1 / o.home) * 100).toFixed(1);
-          const pN = ((1 / o.draw) * 100).toFixed(1);
-          const p2 = ((1 / o.away) * 100).toFixed(1);
-          return `${o.bookmaker}: 1=${o.home}(${p1}%) N=${o.draw}(${pN}%) 2=${o.away}(${p2}%)`;
-        })
-        .join("\n")
+    ? match.odds.map((o) => `${o.bookmaker}: 1=${o.home} N=${o.draw} 2=${o.away}`).join(" | ")
     : "Cotes non disponibles";
 
-  const injStr = (team: typeof h) => {
-    const all = [
-      ...team.injuries.map((i) => `🟡 ${i}`),
-      ...team.suspensions.map((s) => `🔴 ${s}`),
-    ];
-    return all.length ? all.join(", ") : "—";
-  };
+  const h2hStr = match.h2h.length
+    ? match.h2h.map((m) => `${m.date.slice(0, 4)} ${m.homeTeam.slice(0, 3)}-${m.awayTeam.slice(0, 3)} ${m.score}`).join(" | ")
+    : "Pas de H2H";
 
-  const scoutStr = (team: typeof h): string => {
-    const lines: string[] = [];
-    if (team.strengths?.length) lines.push(`Forces: ${team.strengths.join(" | ")}`);
-    if (team.weaknesses?.length) lines.push(`Faiblesses: ${team.weaknesses.join(" | ")}`);
-    return lines.join("\n") || "Données scout non disponibles";
-  };
+  const cmp = pred.comparison.map((c) => `${c.label} ${c.home}/${c.away}`).join(" · ");
 
-  return `CDM 2026 | ${match.round} Gr.${match.group} | ${match.date} ${match.time} | ${match.stadium}, ${match.city}
+  return `CDM 2026 | ${match.round}${match.group ? ` Gr.${match.group}` : ""} | ${match.date} ${match.time} | ${match.stadium}, ${match.city}
 
-${h.flag} ${h.name} (#${h.fifaRanking} FIFA) vs ${a.flag} ${a.name} (#${a.fifaRanking} FIFA)
+${h.flag} ${h.name} (#${h.fifaRanking} FIFA, domicile/1er) vs ${a.flag} ${a.name} (#${a.fifaRanking} FIFA)
 
-FORME 5 DERNIERS
+FORME RÉCENTE (V/N/D, score, lieu, adv) :
 ${h.flag} ${h.name}: ${formStr(h)}
 ${a.flag} ${a.name}: ${formStr(a)}
 
-STATS QUALIFICATIONS
-${h.name}: poss ${h.stats.possession}% | buts ${h.stats.goalsScored}/${h.stats.goalsConceded} | xG/match ${xGPerMatch(h.stats.xGFor)}/${xGPerMatch(h.stats.xGAgainst)} | CS ${h.stats.cleanSheets}
-${a.name}: poss ${a.stats.possession}% | buts ${a.stats.goalsScored}/${a.stats.goalsConceded} | xG/match ${xGPerMatch(a.stats.xGFor)}/${xGPerMatch(a.stats.xGAgainst)} | CS ${a.stats.cleanSheets}
+H2H : ${h2hStr}
+COTES : ${oddsStr}
 
-SCOUTING
-${h.flag} ${h.name}:
-${scoutStr(h)}
-
-${a.flag} ${a.name}:
-${scoutStr(a)}
-
-H2H (5 derniers): ${h2hStr}
-
-ABSENCES
-${h.name}: ${injStr(h)}
-${a.name}: ${injStr(a)}
-
-COTES (prob. implicite)
-${oddsStr}`;
+CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
+- Probabilités : ${h.name} ${pred.probabilities.home}% · Nul ${pred.probabilities.draw}% · ${a.name} ${pred.probabilities.away}%
+- Buts attendus : ${h.name} ${pred.expectedGoals.home} · ${a.name} ${pred.expectedGoals.away}
+- Over 2.5 : ${pred.markets.over25}% · Under 2.5 : ${pred.markets.under25}% · Les deux marquent : ${pred.markets.bttsYes}%
+- Comparaison (home/away) : ${cmp}
+- Niveau de confiance global : ${pred.confidence}`;
 }
 
-// ─── Playstyle context fetcher ────────────────────────────────────────────────
+async function generate(match: Match): Promise<MatchAnalysisData> {
+  const pred = predictMatch(match);
+  const text = await callClaudeJson<ClaudeMatchText>({
+    system: SYSTEM_PROMPT,
+    user: buildPrompt(match, pred),
+    maxTokens: 1500,
+  });
 
-async function getUserPlaystyleContext(userId: string): Promise<string> {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("bankrolls")
-      .select("playstyle")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const playstyle = data?.playstyle as string | null;
-    if (!playstyle) return "";
-
-    const ps = PLAYSTYLES.find((p) => p.id === playstyle);
-    if (!ps) return "";
-
-    return `\n\nPROFIL PARIEUR
-Style: ${ps.label} ${ps.emoji} — ${ps.tagline}
-Mise recommandée: ${ps.stakeRange} de bankroll
-→ Adapte la section Recommandation à ce profil : propose un type de pari et une mise cohérents avec ce style.`;
-  } catch {
-    return "";
-  }
+  // Merge Claude's narrative with our grounded numbers.
+  return {
+    summary: text.summary,
+    scenario: text.scenario,
+    confidence: pred.confidence,
+    probabilities: pred.probabilities,
+    secondaryScenarios: text.secondaryScenarios ?? [],
+    keyStrengths: text.keyStrengths ?? [],
+    factors: text.factors ?? [],
+    comparison: pred.comparison,
+    expectedGoals: pred.expectedGoals,
+    markets: pred.markets,
+    recommendation: text.recommendation,
+  };
 }
 
-// ─── Server Action ────────────────────────────────────────────────────────────
-
-export async function analyzeMatch(match: Match): Promise<AnalyzeResult> {
-  // Auth + rate limit
-  const guard = await requireAuthAndCredit();
+export async function analyzeMatch(match: Match): Promise<Result> {
+  const guard = await requireAnalysisAccess();
   if ("error" in guard) return { ok: false, error: guard.error };
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return { ok: false, error: "Clé API Anthropic manquante — ajoutez ANTHROPIC_API_KEY dans .env.local" };
-  }
-
-  const client = new Anthropic({ apiKey });
-
-  // Fetch playstyle to personalise the recommendation (non-blocking on failure)
-  const playstyleCtx = await getUserPlaystyleContext(guard.userId);
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `analysis:match:${match.id}:${day}`;
 
   try {
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        try {
-          const anthropicStream = await client.messages.stream({
-            model: "claude-sonnet-4-5",
-            max_tokens: 600,
-            system: [
-              {
-                type: "text",
-                text: SYSTEM_PROMPT,
-                // Cache the system prompt — reused across all match analyses
-                // Saves ~90% on system prompt tokens after first call (Anthropic ephemeral cache, 5min TTL)
-                cache_control: { type: "ephemeral" },
-              },
-            ],
-            messages: [
-              {
-                role: "user",
-                content: buildPrompt(match) + playstyleCtx,
-              },
-            ],
-          });
-
-          for await (const chunk of anthropicStream) {
-            if (
-              chunk.type === "content_block_delta" &&
-              chunk.delta.type === "text_delta"
-            ) {
-              controller.enqueue(new TextEncoder().encode(chunk.delta.text));
-            }
-          }
-
-          // Append usage info as a hidden comment the UI can parse
-          const final = await anthropicStream.finalMessage();
-          const { input_tokens, output_tokens } = final.usage;
-          const usageAny = final.usage as unknown as Record<string, number>;
-          const cacheRead = usageAny.cache_read_input_tokens ?? 0;
-          const cacheWrite = usageAny.cache_creation_input_tokens ?? 0;
-
-          // Sonnet 4.5 pricing (USD per token)
-          const inputCost = (input_tokens - cacheRead - cacheWrite) * 3e-6;
-          const cacheWriteCost = cacheWrite * 3.75e-6;
-          const cacheReadCost = cacheRead * 0.3e-6;
-          const outputCost = output_tokens * 15e-6;
-          const totalCost = inputCost + cacheWriteCost + cacheReadCost + outputCost;
-
-          const usagePayload = JSON.stringify({
-            in: input_tokens,
-            out: output_tokens,
-            cacheRead,
-            cacheWrite,
-            cost: totalCost.toFixed(4),
-          });
-
-          controller.enqueue(
-            new TextEncoder().encode(`\n<!--PRONOIA_USAGE:${usagePayload}-->`)
-          );
-          controller.close();
-        } catch (err) {
-          controller.error(err);
-        }
-      },
+    const data = await getCachedOrFetch(key, 86400, () => generate(match));
+    await saveAnalysis(guard.userId, {
+      kind: "match",
+      target: match.id,
+      title: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+      homeFlag: match.homeTeam.flag,
+      awayFlag: match.awayTeam.flag,
+      data,
     });
-
-    return { ok: true, stream };
+    return { ok: true, data };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erreur inconnue";
-    return { ok: false, error: message };
+    console.error("[analyze-match] error:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Erreur lors de l'analyse." };
   }
 }

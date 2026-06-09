@@ -3,23 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import {
-  Trophy, LayoutGrid, TrendingUp,
-  User, LogOut, Zap,
-} from "lucide-react";
+import { LayoutGrid, Globe, Trophy, TrendingUp, Sparkles, Crown, LogOut, ChevronRight, ShieldCheck, History, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useSubscription } from "@/lib/use-subscription";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const NAV = [
-  { href: "/dashboard", icon: LayoutGrid, label: "Matchs CDM 2026", exact: true },
+  { href: "/dashboard", icon: LayoutGrid, label: "Matchs", exact: true },
+  { href: "/dashboard/coupe-du-monde", icon: Trophy, label: "Coupe du monde" },
+  { href: "/dashboard/teams", icon: Globe, label: "Équipes" },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
+  { href: "/dashboard/historique", icon: History, label: "Historique" },
+  { href: "/dashboard/compte", icon: User, label: "Compte" },
+  { href: "/dashboard/pricing", icon: Sparkles, label: "Abonnement" },
 ];
-
-const USAGE = { today: 3, limit: 20 };
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const usagePct = Math.min((USAGE.today / USAGE.limit) * 100, 100);
+  const sub = useSubscription();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const supabase = createClient();
 
@@ -27,10 +28,11 @@ export default function AppSidebar() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
-  const pseudo = user?.user_metadata?.pseudo
-    || user?.user_metadata?.full_name
-    || user?.email?.split("@")[0]
-    || "…";
+  const pseudo =
+    user?.user_metadata?.pseudo ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Invité";
   const avatar = user?.user_metadata?.avatar_url;
   const initials = pseudo.slice(0, 2).toUpperCase();
 
@@ -40,87 +42,127 @@ export default function AppSidebar() {
   }
 
   return (
-    <aside className="hidden md:flex md:flex-col w-56 shrink-0 h-screen sticky top-0 bg-[#080b12] border-r border-white/5">
+    <aside
+      className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 border-r border-white/5"
+      style={{ background: "linear-gradient(180deg, #0a0e16 0%, #070a10 100%)" }}
+    >
       {/* Logo */}
-      <div className="px-5 py-4 border-b border-[#141414]">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/15 flex items-center justify-center">
-            <Trophy size={15} className="text-[#00ff88]" />
-          </div>
-          <div>
-            <div className="font-black text-[#f0f0f0] text-sm tracking-tight leading-none">
-              Pronoia<span className="text-[#00ff88]">.</span>
-            </div>
-            <div className="text-[10px] text-[#444] mt-0.5">Analyse IA CDM 2026</div>
-          </div>
+      <div className="px-5 pt-5 pb-4">
+        <Link href="/" className="flex flex-col gap-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
+          <div className="text-[10px] text-[#3a4250] tracking-wide">Analyse IA · CDM 2026</div>
         </Link>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({ href, icon: Icon, label, exact }) => {
-          const active = exact
-            ? pathname === href
-            : pathname.startsWith(href);
-          return (
+      <nav className="flex-1 px-3 py-2">
+        <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-[#3a4250]">
+          Navigation
+        </p>
+        <div className="space-y-1">
+          {NAV.map(({ href, icon: Icon, label, exact }) => {
+            const active = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`group relative flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-xl text-sm transition-all ${
+                  active
+                    ? "bg-[var(--accent)]/12 text-[var(--accent)]"
+                    : "text-[#7a8290] hover:text-[#cdd3db] hover:bg-white/[0.03]"
+                }`}
+              >
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-[var(--accent)]" />
+                )}
+                <span
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                    active ? "bg-[var(--accent)]/15" : "bg-white/[0.03] group-hover:bg-white/[0.06]"
+                  }`}
+                >
+                  <Icon size={16} />
+                </span>
+                <span className="font-semibold">{label}</span>
+              </Link>
+            );
+          })}
+
+          {user?.app_metadata?.is_admin === true && (
             <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${
-                active
-                  ? "bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/15"
-                  : "text-[#555] hover:text-[#888] hover:bg-[#111]"
+              href="/admin"
+              className={`group relative flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-xl text-sm transition-all ${
+                pathname.startsWith("/admin")
+                  ? "bg-[#ffd700]/12 text-[#ffd700]"
+                  : "text-[#7a8290] hover:text-[#cdd3db] hover:bg-white/[0.03]"
               }`}
             >
-              <Icon size={15} />
-              <span className="font-medium">{label}</span>
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/[0.03] group-hover:bg-white/[0.06]">
+                <ShieldCheck size={16} />
+              </span>
+              <span className="font-semibold">Admin</span>
             </Link>
-          );
-        })}
+          )}
+        </div>
       </nav>
 
-      {/* Usage bar */}
-      <div className="px-4 py-3 border-t border-[#141414]">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-1.5 text-xs text-[#555]">
-            <Zap size={11} className="text-[#00ff88]" />
-            <span>Analyses du jour</span>
-          </div>
-          <span className="text-xs font-bold text-[#888]">
-            {USAGE.today}/{USAGE.limit}
-          </span>
-        </div>
-        <div className="h-1.5 bg-[#111] rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${usagePct}%`,
-              background: usagePct > 80
-                ? "linear-gradient(90deg, #ef4444, #ff6b35)"
-                : "linear-gradient(90deg, #00ff88, #00cc6a)",
-            }}
-          />
-        </div>
+      {/* Subscription card */}
+      <div className="px-3 pb-3">
+        {sub?.access ? (
+          <Link
+            href="/dashboard/pricing"
+            className="flex items-center gap-2.5 rounded-2xl glass-neon px-3.5 py-3 hover:bg-[var(--accent)]/[0.08] transition-colors"
+          >
+            <span className="w-8 h-8 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center shrink-0">
+              <Crown size={15} className="text-[var(--accent)]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-[var(--accent)] truncate">
+                {sub.label ?? "Premium actif"}
+              </div>
+              <div className="text-[10px] text-[#5a6472]">Gérer mon abonnement</div>
+            </div>
+            <ChevronRight size={14} className="text-[var(--accent)]/60 shrink-0" />
+          </Link>
+        ) : (
+          <Link
+            href="/dashboard/pricing"
+            className="block rounded-2xl p-[1px]"
+            style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
+          >
+            <div className="rounded-2xl bg-[#0a0e16] px-3.5 py-3">
+              <div className="flex items-center gap-1.5 text-[var(--accent)] mb-1">
+                <Sparkles size={13} />
+                <span className="text-xs font-black uppercase tracking-wide">Premium</span>
+              </div>
+              <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
+                Débloque les analyses IA de tous les matchs.
+              </p>
+              <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
+                Passer Premium
+              </div>
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* User */}
-      <div className="px-3 py-3 border-t border-[#141414] space-y-0.5">
-        <div className="flex items-center gap-2.5 px-3 py-2">
-          {avatar ? (
-            <img src={avatar} alt={pseudo} className="w-7 h-7 rounded-full object-cover shrink-0" />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-[#00ff88]/20 border border-[#00ff88]/30 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-[#00ff88]">{initials}</span>
-            </div>
-          )}
-          <span className="text-xs text-[#666] truncate flex-1">{pseudo}</span>
-        </div>
+      <div className="px-3 py-3 border-t border-white/5 flex items-center gap-2.5">
+        {avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatar} alt={pseudo} className="w-8 h-8 rounded-full object-cover shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/25 flex items-center justify-center shrink-0">
+            <span className="text-[11px] font-bold text-[var(--accent)]">{initials}</span>
+          </div>
+        )}
+        <span className="text-xs font-medium text-[#aab1bd] truncate flex-1">{pseudo}</span>
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs text-[#444] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-all"
+          aria-label="Se déconnecter"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-[#5a6472] hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all shrink-0"
         >
-          <LogOut size={13} />
-          <span>Se déconnecter</span>
+          <LogOut size={15} />
         </button>
       </div>
     </aside>

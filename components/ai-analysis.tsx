@@ -1,139 +1,94 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bot, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Bot, Sparkles, RefreshCw, AlertCircle, Lock, Gauge,
+  Coins, Target, TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
+import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
+import AskAiModal from "@/components/ask-ai-modal";
+import ShareAnalysisButton from "@/components/share-analysis-button";
+import {
+  DISCLAIMER, type Confidence, type MatchAnalysisData,
+} from "@/lib/analysis-schema";
 
-interface AIAnalysisProps {
-  match: Match;
-}
+const CONFIDENCE_FILL: Record<Confidence, number> = {
+  "Faible": 35,
+  "Moyen": 55,
+  "Élevé": 78,
+  "Très élevé": 92,
+};
 
-
-// ─── Markdown renderer ─────────────────────────────────────────────────────
-
-function formatInline(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-[#f0f0f0] font-bold">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="text-[#ffd700] not-italic font-medium">$1</em>')
-    .replace(/`(.+?)`/g, '<code class="text-[#00ff88] font-mono text-xs bg-[#00ff88]/10 px-1 rounded">$1</code>');
-}
-
-function RenderMarkdown({ text }: { text: string }) {
-  const lines = text.split("\n");
-  const elements: React.ReactNode[] = [];
-
-  const sectionColors: Record<string, string> = {
-    "⚡": "#ffd700",
-    "⚔️": "#ef4444",
-    "📊": "#00d4ff",
-    "💡": "#00ff88",
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    if (line.startsWith("## ")) {
-      const heading = line.slice(3);
-      const emoji = heading.match(/[\u{1F300}-\u{1FFFF}⚡⚔️📊💡]/u)?.[0] ?? "";
-      const color = sectionColors[emoji] ?? "#00ff88";
-      elements.push(
-        <h2
-          key={i}
-          className="flex items-center gap-2 text-sm font-bold mt-5 mb-2.5 pb-1.5 border-b first:mt-0"
-          style={{ color, borderColor: `${color}20` }}
-        >
-          {heading}
-        </h2>
-      );
-
-    } else if (line.startsWith("• ") || line.startsWith("- ")) {
-      const content = line.slice(2);
-      // Detect if line starts with probability data (special formatting)
-      const isValueLine = content.startsWith("Prob.") || content.startsWith("Écart:");
-      elements.push(
-        <div key={i} className="flex gap-2 text-xs text-[#c0c0c0] leading-relaxed py-0.5 group">
-          <span
-            className="shrink-0 mt-0.5 font-bold"
-            style={{ color: isValueLine ? "#00d4ff" : "#00ff88" }}
-          >
-            ▸
-          </span>
-          <span dangerouslySetInnerHTML={{ __html: formatInline(content) }} />
-        </div>
-      );
-
-    } else if (line.startsWith("▸ ")) {
-      elements.push(
-        <div key={i} className="flex gap-2 text-xs text-[#888] leading-relaxed mt-1">
-          <span className="text-[#555] shrink-0">▸</span>
-          <span dangerouslySetInnerHTML={{ __html: formatInline(line.slice(2)) }} />
-        </div>
-      );
-
-    } else if (line.startsWith("**") && line.endsWith("**")) {
-      elements.push(
-        <div key={i} className="text-sm font-bold text-[#f0f0f0] mt-1">
-          {line.slice(2, -2)}
-        </div>
-      );
-
-    } else if (line.trim() !== "") {
-      elements.push(
-        <p
-          key={i}
-          className="text-xs text-[#c0c0c0] leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: formatInline(line) }}
+function ProbRow({ label, pct, accent }: { label: string; pct: number; accent?: boolean }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="text-[#c0c0c0]">{label}</span>
+        <span className={`font-black tabular-nums ${accent ? "text-[var(--accent)]" : "text-[#c0c0c0]"}`}>
+          {pct}%
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${pct}%`, background: accent ? "var(--accent)" : "#6b7280" }}
         />
-      );
-    }
-  }
-
-  return <>{elements}</>;
+      </div>
+    </div>
+  );
 }
 
+function CompareRow({ label, home, away }: { label: string; home: number; away: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px] mb-1">
+        <span className="text-[var(--accent)] font-bold tabular-nums">{home}%</span>
+        <span className="text-[var(--text-muted)] uppercase tracking-wide font-bold">{label}</span>
+        <span className="text-[#ef4444] font-bold tabular-nums">{away}%</span>
+      </div>
+      <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.06]">
+        <div className="h-full bg-[var(--accent)]" style={{ width: `${home}%` }} />
+        <div className="h-full bg-[#ef4444]" style={{ width: `${away}%` }} />
+      </div>
+    </div>
+  );
+}
 
-// ─── Main component ────────────────────────────────────────────────────────
-
-export default function AIAnalysis({ match }: AIAnalysisProps) {
-  const [content, setContent] = useState("");
+export default function AIAnalysis({ match, isAdmin = false }: { match: Match; isAdmin?: boolean }) {
+  const router = useRouter();
+  const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const isStreaming = isPending && content !== "";
-  const isLoading = isPending && content === "";
+  const h = match.homeTeam;
+  const a = match.awayTeam;
 
   function handleGenerate() {
-    setContent("");
-
+    setData(null);
     setError(null);
-    setDone(false);
-
+    setLocked(false);
     startTransition(async () => {
       try {
         const result = await analyzeMatch(match);
         if (!result.ok) {
+          if (result.error === AUTH_REQUIRED) {
+            router.push(`/login?next=/match/${match.id}`);
+            return;
+          }
+          if (result.error === PAYWALL_REQUIRED) {
+            setLocked(true);
+            return;
+          }
           setError(result.error ?? "Erreur inconnue");
           return;
         }
-
-        const reader = result.stream.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done: doneReading, value } = await reader.read();
-          if (doneReading) break;
-          buffer += decoder.decode(value, { stream: true });
-        }
-
-        // Strip internal usage comment before rendering
-        buffer = buffer.replace(/\n<!--PRONOIA_USAGE:.+?-->/, "");
-
-        setContent(buffer);
-        setDone(true);
+        setData(result.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur de connexion");
       }
@@ -143,50 +98,75 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
   return (
     <section className="rounded-2xl glass overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 bg-gradient-to-r from-[#00ff88]/5 to-transparent">
-        <div className="w-9 h-9 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
-          <Bot size={18} className="text-[#00ff88]" />
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 bg-gradient-to-r from-[var(--accent)]/5 to-transparent">
+        <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
+          <Bot size={18} className="text-[var(--accent)]" />
         </div>
         <div>
-          <div className="font-semibold text-[#f0f0f0] text-sm">Analyse Pronoia IA</div>
-          <div className="text-[10px] text-[#555]">Pronoia IA · Format data-driven</div>
+          <div className="font-semibold text-[#f0f0f0] text-sm">Analyse Copafever IA</div>
+          <div className="text-[10px] text-[#555]">Probabilités, comparaison & recommandation pari</div>
         </div>
-        {done && (
-          <span className="ml-auto text-[10px] text-[#00ff88] border border-[#00ff88]/20 bg-[#00ff88]/5 px-2 py-0.5 rounded-full">
+        {data && (
+          <span className="ml-auto text-[10px] text-[var(--accent)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5 rounded-full">
             Analyse complète
           </span>
         )}
       </div>
 
-      {/* Body */}
       <div className="p-5">
-        {/* Empty state */}
-        {!content && !isLoading && !error && (
+        {/* Locked */}
+        {locked && (
+          <div className="relative overflow-hidden rounded-xl border border-[var(--accent)]/15 bg-gradient-to-b from-[var(--accent)]/[0.04] to-transparent py-9 px-5">
+            <div className="absolute inset-0 px-6 pt-6 space-y-2.5 opacity-[0.12] blur-[3px] pointer-events-none select-none" aria-hidden>
+              {["w-3/4", "w-full", "w-5/6", "w-2/3", "w-full", "w-1/2"].map((w, i) => (
+                <div key={i} className={`h-2.5 rounded-full bg-[#9aa] ${w}`} />
+              ))}
+            </div>
+            <div className="relative flex flex-col items-center gap-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
+                <Lock size={24} className="text-[var(--accent)]" />
+              </div>
+              <div>
+                <p className="text-[#f0f0f0] font-bold text-base mb-1">Analyse IA Premium</p>
+                <p className="text-xs text-[#888] max-w-xs leading-relaxed mx-auto">
+                  Probabilités, value bets détectés et recommandation de pari sur ce match.
+                </p>
+              </div>
+              <Link
+                href="/dashboard/pricing"
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[#06231a] font-bold px-6 py-2.5 text-sm glow-neon transition-all hover:scale-105"
+              >
+                <Sparkles size={15} /> Passer Premium
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Empty */}
+        {!data && !isPending && !error && !locked && (
           <div className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#00ff88]/5 border border-[#00ff88]/10 flex items-center justify-center animate-pulse-neon">
-              <Sparkles size={28} className="text-[#00ff88]" />
+            <div className="w-16 h-16 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center justify-center animate-pulse-neon">
+              <Sparkles size={28} className="text-[var(--accent)]" />
             </div>
             <div>
               <p className="text-[#f0f0f0] font-semibold mb-1">Prêt à analyser</p>
               <p className="text-xs text-[#666] max-w-xs leading-relaxed">
-                Contexte · Forces & risques · Value bet · Recommandation directe<br/>
-                <span className="text-[#444]">Format concis, 100% data-driven</span>
+                Probabilités · Comparaison · Buts attendus · Value bet & recommandation
               </p>
             </div>
             <Button
               onClick={handleGenerate}
-              className="bg-[#00ff88] hover:bg-[#00cc6a] text-[#0a0a0a] font-bold px-6 py-2.5 glow-neon transition-all hover:scale-105"
+              className="bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[#0a0a0a] font-bold px-6 py-2.5 glow-neon transition-all hover:scale-105"
             >
-              <Sparkles size={15} className="mr-2" />
-              Générer l&apos;analyse IA
+              <Sparkles size={15} className="mr-2" /> Générer l&apos;analyse IA
             </Button>
           </div>
         )}
 
         {/* Loading */}
-        {isLoading && (
+        {isPending && (
           <div className="flex flex-col items-center gap-3 py-8">
-            <div className="w-7 h-7 rounded-full border-2 border-[#00ff88]/20 border-t-[#00ff88] animate-spin-custom" />
+            <div className="w-7 h-7 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
             <p className="text-xs text-[#555]">Analyse des données en cours…</p>
           </div>
         )}
@@ -195,39 +175,189 @@ export default function AIAnalysis({ match }: AIAnalysisProps) {
         {error && (
           <div className="flex items-start gap-3 p-4 rounded-xl border border-[#ef4444]/20 bg-[#ef4444]/5 mb-4">
             <AlertCircle size={15} className="text-[#ef4444] shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-medium text-[#ef4444]">Erreur</p>
-              <p className="text-[10px] text-[#888] mt-0.5">{error}</p>
-            </div>
+            <p className="text-xs text-[#888]">{error}</p>
           </div>
         )}
 
-        {/* Streaming content */}
-        {(content || isStreaming) && (
-          <div className={`${isStreaming ? "streaming-cursor" : ""}`}>
-            {content ? (
-              <RenderMarkdown text={content} />
-            ) : (
-              <div className="flex items-center gap-2 py-4">
-                <div className="w-5 h-5 rounded-full border-2 border-[#00ff88]/20 border-t-[#00ff88] animate-spin-custom" />
-                <span className="text-xs text-[#555]">Analyse en cours…</span>
+        {/* Result */}
+        {data && (
+          <div className="space-y-6">
+            {/* Summary */}
+            <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.summary}</p>
+
+            {/* Confidence gauge */}
+            <div className="rounded-xl glass p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--text-muted)]">
+                  <Gauge size={13} /> Confiance de l&apos;IA
+                </span>
+                <span className="text-xs font-black text-[var(--accent)]">{data.confidence}</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent-strong)] to-[var(--accent-soft)]"
+                  style={{ width: `${CONFIDENCE_FILL[data.confidence] ?? 55}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Probabilities */}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
+                Probabilités exactes
+              </h3>
+              <div className="space-y-2.5">
+                <ProbRow label={`Victoire ${h.name}`} pct={data.probabilities.home} accent />
+                <ProbRow label="Match nul" pct={data.probabilities.draw} />
+                <ProbRow label={`Victoire ${a.name}`} pct={data.probabilities.away} />
+              </div>
+            </div>
+
+            {/* Scenario */}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                Scénario probable
+              </h3>
+              <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.scenario}</p>
+            </div>
+
+            {/* Secondary scenarios */}
+            {data.secondaryScenarios.length > 0 && (
+              <div className="space-y-2">
+                {data.secondaryScenarios.map((s, i) => (
+                  <div key={i} className="rounded-xl glass p-3.5">
+                    <div className="text-sm font-bold text-[#f0f0f0]">{s.title}</div>
+                    <p className="text-xs text-[#999] mt-1 leading-relaxed">{s.detail}</p>
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Regenerate */}
-        {(done || error) && (
-          <div className="mt-4 pt-4 border-t border-[#1a1a1a] flex justify-center">
-            <Button
-              variant="outline"
-              onClick={handleGenerate}
-              disabled={isPending}
-              className="border-[#1f1f1f] text-[#666] hover:border-[#00ff88]/30 hover:text-[#00ff88] text-xs"
-            >
-              <RefreshCw size={12} className="mr-1.5" />
-              Regénérer
-            </Button>
+            {/* Key strengths */}
+            {data.keyStrengths.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {data.keyStrengths.map((ks, i) => (
+                  <div key={i} className="rounded-xl glass p-3.5">
+                    <div className="text-xs font-black text-[var(--accent)] mb-1.5">
+                      {ks.team === "home" ? h.name : a.name}
+                    </div>
+                    <ul className="space-y-1">
+                      {ks.points.map((p, j) => (
+                        <li key={j} className="text-xs text-[#c0c0c0] flex gap-1.5">
+                          <span className="text-[var(--accent)]">•</span> {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Factors */}
+            {data.factors.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {data.factors.map((f, i) => (
+                  <span
+                    key={i}
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full border"
+                    style={
+                      f.kind === "pos"
+                        ? { color: "var(--accent)", borderColor: "rgba(22,193,114,0.3)", background: "rgba(22,193,114,0.08)" }
+                        : f.kind === "neg"
+                          ? { color: "#ef4444", borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)" }
+                          : { color: "#9aa3af", borderColor: "rgba(154,163,175,0.25)", background: "rgba(154,163,175,0.06)" }
+                    }
+                  >
+                    {f.label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Comparison */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black text-[var(--accent)]">{h.name}</span>
+                <span className="text-xs font-black uppercase tracking-wide text-[var(--text-muted)]">
+                  <TrendingUp size={12} className="inline mr-1" />Comparaison
+                </span>
+                <span className="text-xs font-black text-[#ef4444]">{a.name}</span>
+              </div>
+              <div className="space-y-2.5">
+                {data.comparison.map((c) => (
+                  <CompareRow key={c.label} label={c.label} home={c.home} away={c.away} />
+                ))}
+              </div>
+            </div>
+
+            {/* Expected goals & markets */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="rounded-xl glass p-3 text-center">
+                <Target size={13} className="text-[var(--text-muted)] mx-auto mb-1" />
+                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.expectedGoals.home}</div>
+                <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {h.shortName}</div>
+              </div>
+              <div className="rounded-xl glass p-3 text-center">
+                <Target size={13} className="text-[var(--text-muted)] mx-auto mb-1" />
+                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.expectedGoals.away}</div>
+                <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {a.shortName}</div>
+              </div>
+              <div className="rounded-xl glass p-3 text-center">
+                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.markets.over25}%</div>
+                <div className="text-[10px] text-[var(--text-muted)]">+2.5 buts</div>
+              </div>
+              <div className="rounded-xl glass p-3 text-center">
+                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.markets.bttsYes}%</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Les 2 marquent</div>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div className="rounded-2xl glass-neon glow-neon p-4">
+              <div className="flex items-center gap-1.5 text-[var(--accent)] mb-2">
+                <Coins size={15} />
+                <span className="text-xs font-black uppercase tracking-wide">Notre recommandation</span>
+              </div>
+              <div className="text-base font-black text-[#f0f0f0]">
+                {data.recommendation.bet}
+                {data.recommendation.odds && (
+                  <span className="text-[var(--accent)]">
+                    {" "}— cote {data.recommendation.odds}
+                    {data.recommendation.bookmaker ? ` (${data.recommendation.bookmaker})` : ""}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#aaa] mt-1.5 leading-relaxed">{data.recommendation.rationale}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
+                <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] font-bold">
+                  Confiance : {data.recommendation.confidence}
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
+                  Mise : {data.recommendation.stake}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-[var(--text-muted)] text-center">{DISCLAIMER}</p>
+
+            {/* Ask AI + regenerate */}
+            <div className="pt-4 border-t border-[#1a1a1a] flex flex-col sm:flex-row items-center justify-center gap-3">
+              {isAdmin && (
+                <ShareAnalysisButton
+                  matchId={match.id}
+                  title={`${match.homeTeam.name} vs ${match.awayTeam.name}`}
+                />
+              )}
+              <AskAiModal match={match} />
+              <Button
+                variant="outline"
+                onClick={handleGenerate}
+                disabled={isPending}
+                className="border-[#1f1f1f] text-[#666] hover:border-[var(--accent)]/30 hover:text-[var(--accent)] text-xs"
+              >
+                <RefreshCw size={12} className="mr-1.5" /> Regénérer
+              </Button>
+            </div>
           </div>
         )}
       </div>

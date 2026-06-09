@@ -48,7 +48,7 @@ export default function BetTable({ bets, onDelete, onUpdateResult }: BetTablePro
 
   function SortIcon({ k }: { k: typeof sortKey }) {
     if (sortKey !== k) return <ChevronUp size={10} className="text-[#333]" />;
-    return sortDir === "asc" ? <ChevronUp size={10} className="text-[#00ff88]" /> : <ChevronDown size={10} className="text-[#00ff88]" />;
+    return sortDir === "asc" ? <ChevronUp size={10} className="text-[var(--accent)]" /> : <ChevronDown size={10} className="text-[var(--accent)]" />;
   }
 
   if (bets.length === 0) {
@@ -73,7 +73,7 @@ export default function BetTable({ bets, onDelete, onUpdateResult }: BetTablePro
               onClick={() => setFilter(f)}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-all border ${
                 filter === f
-                  ? "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20"
+                  ? "bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20"
                   : "text-[#444] border-[#141414] hover:text-[#666] bg-[#0d0d0d]"
               }`}
             >
@@ -154,7 +154,7 @@ export default function BetTable({ bets, onDelete, onUpdateResult }: BetTablePro
                         setEditingId(null);
                       }}
                       onBlur={() => setEditingId(null)}
-                      className="bg-[#111] border border-[#00ff88]/30 rounded text-xs text-[#c0c0c0] px-1 py-0.5"
+                      className="bg-[#111] border border-[var(--accent)]/30 rounded text-xs text-[#c0c0c0] px-1 py-0.5"
                     >
                       {(["pending", "won", "lost", "void"] as BetResult[]).map((r) => (
                         <option key={r} value={r}>{RESULT_LABEL[r]}</option>

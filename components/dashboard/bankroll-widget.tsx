@@ -10,7 +10,7 @@ import {
 import BetForm from "@/components/bankroll/bet-form";
 
 const inputCls =
-  "w-full bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors";
+  "w-full bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[var(--accent)]/30 transition-colors";
 const labelCls = "block text-[10px] text-[#555] uppercase tracking-widest mb-2 font-medium";
 
 // ── Setup modal (first time) ──────────────────────────────────────────────────
@@ -33,8 +33,8 @@ function SetupModal({
           <button onClick={onSkip} className="absolute top-4 right-4 text-[#444] hover:text-[#888] transition-colors">
             <X size={18} />
           </button>
-          <div className="w-12 h-12 rounded-2xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center mx-auto mb-4">
-            <TrendingUp size={20} className="text-[#00ff88]" />
+          <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center mx-auto mb-4">
+            <TrendingUp size={20} className="text-[var(--accent)]" />
           </div>
           <h2 className="text-lg font-bold text-[#f0f0f0] mb-1">Configure ta bankroll</h2>
           <p className="text-sm text-[#555] mb-5">Crée ta première bankroll pour commencer le suivi</p>
@@ -57,7 +57,7 @@ function SetupModal({
           </div>
           <button
             onClick={() => onSetup(name.trim() || "Ma bankroll", parseFloat(amount) || 100, startDate)}
-            className="w-full py-3.5 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all mt-1"
+            className="w-full py-3.5 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all mt-1"
           >
             Créer ma première bankroll
           </button>
@@ -123,7 +123,7 @@ function EditModal({
 
           <button
             onClick={() => onSave(name.trim() || "Ma bankroll", parseFloat(amount) || data.initialAmount, startDate)}
-            className="w-full py-3 rounded-xl bg-[#00ff88] text-[#0a0a0a] font-bold text-sm hover:bg-[#00cc6a] transition-all"
+            className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all"
           >
             Enregistrer
           </button>
@@ -269,11 +269,11 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
       {!data ? (
         dismissed ? null : (
           <div
-            className="rounded-2xl border border-dashed border-[#1a1a1a] bg-[#0d0d0d] flex flex-col items-center gap-3 py-8 cursor-pointer hover:border-[#00ff88]/20 transition-all group"
+            className="rounded-2xl border border-dashed border-[#1a1a1a] bg-[#0d0d0d] flex flex-col items-center gap-3 py-8 cursor-pointer hover:border-[var(--accent)]/20 transition-all group"
             onClick={() => setShowSetup(true)}
           >
-            <div className="w-10 h-10 rounded-xl bg-[#00ff88]/5 border border-[#00ff88]/10 flex items-center justify-center group-hover:bg-[#00ff88]/10 transition-all">
-              <TrendingUp size={18} className="text-[#00ff88]" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center justify-center group-hover:bg-[var(--accent)]/10 transition-all">
+              <TrendingUp size={18} className="text-[var(--accent)]" />
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-[#555]">Configurer ma bankroll</p>

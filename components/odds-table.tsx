@@ -12,6 +12,20 @@ function bestOdd(values: number[]) {
 export default function OddsTable({ match }: { match: Match }) {
   const { odds, homeTeam, awayTeam } = match;
 
+  if (odds.length === 0) {
+    return (
+      <div className="rounded-xl border border-[#1f1f1f] bg-[#111] p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={16} className="text-[#ffd700]" />
+          <span className="font-semibold text-[#f0f0f0]">Cotes</span>
+        </div>
+        <div className="py-6 text-center text-xs text-[#555]">
+          Cotes indisponibles pour le moment.
+        </div>
+      </div>
+    );
+  }
+
   const bestHome = bestOdd(odds.map((o) => o.home));
   const bestDraw = bestOdd(odds.map((o) => o.draw));
   const bestAway = bestOdd(odds.map((o) => o.away));
@@ -21,7 +35,6 @@ export default function OddsTable({ match }: { match: Match }) {
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp size={16} className="text-[#ffd700]" />
         <span className="font-semibold text-[#f0f0f0]">Cotes en direct</span>
-        <span className="ml-auto text-[10px] text-[#888] uppercase tracking-wide">mockées</span>
       </div>
 
       {/* Header */}
@@ -39,13 +52,13 @@ export default function OddsTable({ match }: { match: Match }) {
             className="grid grid-cols-4 gap-2 py-2 border-b border-[#1a1a1a] last:border-0"
           >
             <div className="text-sm text-[#888] font-medium">{o.bookmaker}</div>
-            <div className={`text-center text-sm font-bold tabular-nums ${o.home === bestHome ? "text-[#00ff88]" : "text-[#f0f0f0]"}`}>
+            <div className={`text-center text-sm font-bold tabular-nums ${o.home === bestHome ? "text-[var(--accent)]" : "text-[#f0f0f0]"}`}>
               {o.home.toFixed(2)}
             </div>
             <div className={`text-center text-sm font-bold tabular-nums ${o.draw === bestDraw ? "text-[#ffd700]" : "text-[#f0f0f0]"}`}>
               {o.draw.toFixed(2)}
             </div>
-            <div className={`text-center text-sm font-bold tabular-nums ${o.away === bestAway ? "text-[#00ff88]" : "text-[#f0f0f0]"}`}>
+            <div className={`text-center text-sm font-bold tabular-nums ${o.away === bestAway ? "text-[var(--accent)]" : "text-[#f0f0f0]"}`}>
               {o.away.toFixed(2)}
             </div>
           </div>

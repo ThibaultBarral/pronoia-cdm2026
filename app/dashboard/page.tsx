@@ -7,11 +7,13 @@ import {
 } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import MatchRow from "@/components/dashboard/match-row";
+import MatchAnalyzer from "@/components/match-analyzer";
+import PremiumSpotlight from "@/components/dashboard/premium-spotlight";
 import BankrollWidget from "@/components/dashboard/bankroll-widget";
 import UserMenu from "@/components/auth/user-menu";
 import { Match } from "@/lib/types";
 import { useEffect } from "react";
-import { getMatches } from "@/lib/data-service";
+import { getMatchesAction } from "@/actions/get-matches";
 
 // Client wrapper that fetches data + handles state
 export default function DashboardPage() {
@@ -22,7 +24,7 @@ export default function DashboardPage() {
   const [showBetForm, setShowBetForm] = useState(false);
 
   useEffect(() => {
-    getMatches().then((m) => {
+    getMatchesAction().then((m) => {
       setMatches(m);
       setLoading(false);
     });
@@ -32,13 +34,16 @@ export default function DashboardPage() {
     .filter((m) => activeGroup === "ALL" || m.group === activeGroup)
     .filter((m) => {
       if (!search) return true;
-      const q = search.toLowerCase();
-      return (
-        m.homeTeam.name.toLowerCase().includes(q) ||
-        m.awayTeam.name.toLowerCase().includes(q) ||
-        m.homeTeam.shortName.toLowerCase().includes(q) ||
-        m.awayTeam.shortName.toLowerCase().includes(q)
-      );
+      const norm = (s: string) =>
+        s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+      const q = norm(search);
+      const hay = [
+        m.homeTeam.name, m.homeTeam.nameEn, m.homeTeam.shortName,
+        m.awayTeam.name, m.awayTeam.nameEn, m.awayTeam.shortName,
+      ]
+        .filter(Boolean)
+        .map((s) => norm(s as string));
+      return hay.some((h) => h.includes(q));
     })
     .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
 
@@ -51,6 +56,14 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // Real, data-derived figures only.
+  const nextMatch = [...matches]
+    .filter((m) => (m.status ?? "NS") === "NS")
+    .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime())[0];
+  const nationsCount = new Set(
+    matches.flatMap((m) => [m.homeTeam.id, m.awayTeam.id])
+  ).size;
+
   const statsBar = [
     {
       icon: Trophy,
@@ -61,22 +74,22 @@ export default function DashboardPage() {
     {
       icon: Calendar,
       label: "Prochain match",
-      value: matches[0]
-        ? `${matches[0].homeTeam.flag} vs ${matches[0].awayTeam.flag}`
+      value: nextMatch
+        ? `${nextMatch.homeTeam.flag} ${nextMatch.homeTeam.shortName} – ${nextMatch.awayTeam.shortName} ${nextMatch.awayTeam.flag}`
         : "—",
-      color: "#00ff88",
+      color: "var(--accent)",
     },
     {
       icon: TrendingUp,
-      label: "Matchs analysés",
-      value: "0",
-      color: "#00d4ff",
+      label: "Nations engagées",
+      value: nationsCount ? `${nationsCount}` : "—",
+      color: "var(--accent-soft)",
     },
     {
       icon: Zap,
-      label: "Analyses / jour",
-      value: "20 gratuites",
-      color: "#00ff88",
+      label: "Analyse IA",
+      value: "Sur chaque match",
+      color: "var(--accent)",
     },
   ];
 
@@ -99,7 +112,7 @@ export default function DashboardPage() {
               placeholder="Chercher une équipe…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#111] border border-[#1a1a1a] text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[#00ff88]/30 transition-colors"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#111] border border-[#1a1a1a] text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[var(--accent)]/30 transition-colors"
             />
           </div>
 
@@ -110,7 +123,7 @@ export default function DashboardPage() {
             </span>
             <button
               onClick={() => setShowBetForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00ff88] text-[#0a0a0a] text-xs font-bold hover:bg-[#00cc6a] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[#0a0a0a] text-xs font-bold hover:bg-[var(--accent-strong)] transition-all"
             >
               <Plus size={12} />
               Pari
@@ -125,7 +138,7 @@ export default function DashboardPage() {
               onClick={() => setActiveGroup("ALL")}
               className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                 activeGroup === "ALL"
-                  ? "bg-[#00ff88]/12 text-[#00ff88] border border-[#00ff88]/20"
+                  ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/20"
                   : "text-[#444] border border-[#181818] hover:text-[#666] hover:bg-[#111]"
               }`}
             >
@@ -137,7 +150,7 @@ export default function DashboardPage() {
                 onClick={() => setActiveGroup(g)}
                 className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                   activeGroup === g
-                    ? "bg-[#00ff88]/15 text-[#00ff88] border border-[#00ff88]/20"
+                    ? "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/20"
                     : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"
                 }`}
               >
@@ -149,6 +162,12 @@ export default function DashboardPage() {
 
         {/* Content */}
         <main className="flex-1 overflow-auto p-4 md:p-6 space-y-6">
+          {/* Premium spotlight — countdown + top analyses (conversion & retention) */}
+          {!loading && <PremiumSpotlight matches={matches} />}
+
+          {/* Team → upcoming matches analyzer */}
+          {!loading && <MatchAnalyzer matches={matches} />}
+
           {/* Bankroll widget */}
           <div className="space-y-4">
             <BankrollWidget
@@ -166,7 +185,7 @@ export default function DashboardPage() {
               >
                 <div
                   className="w-8 h-8 flex items-center justify-center shrink-0"
-                  style={{ background: `${color}12`, border: `1px solid ${color}20` }}
+                  style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 13%, transparent)` }}
                 >
                   <Icon size={14} style={{ color }} />
                 </div>
@@ -193,7 +212,7 @@ export default function DashboardPage() {
               <Search size={24} />
               <p className="text-sm">Aucun match trouvé</p>
               <button
-                className="text-xs text-[#00ff88] hover:underline"
+                className="text-xs text-[var(--accent)] hover:underline"
                 onClick={() => { setSearch(""); setActiveGroup("ALL"); }}
               >
                 Réinitialiser les filtres
@@ -218,7 +237,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <h3
                         className={`text-xs font-bold uppercase tracking-wide ${
-                          date === today ? "text-[#00ff88]" : "text-[#333]"
+                          date === today ? "text-[var(--accent)]" : "text-[#333]"
                         }`}
                       >
                         {label}
