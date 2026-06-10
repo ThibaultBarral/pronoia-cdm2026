@@ -1,22 +1,30 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Bot, Sparkles, RefreshCw, AlertCircle, Lock, Gauge,
-  Coins, Target, TrendingUp,
+  Coins, Target, TrendingUp, Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
 import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
+import { computeStats, loadBankroll, PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
+import { loadUserBankroll } from "@/lib/supabase/bankroll-db";
+import { createClient } from "@/lib/supabase/client";
+import { recommendStake, parseOdds } from "@/lib/staking";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import {
   DISCLAIMER, type Confidence, type MatchAnalysisData,
 } from "@/lib/analysis-schema";
+
+const PLAYSTYLE_LABEL = Object.fromEntries(
+  PLAYSTYLES.map((p) => [p.id, p.label])
+) as Record<Playstyle, string>;
 
 const CONFIDENCE_FILL: Record<Confidence, number> = {
   "Faible": 35,
@@ -66,9 +74,48 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const [isPending, startTransition] = useTransition();
+  // Live bankroll + bettor profile → personalised € stake on the recommendation.
+  const [bankroll, setBankroll] = useState<{ amount: number; playstyle?: Playstyle } | null>(null);
+  const [bankrollReady, setBankrollReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const [{ data: { user } }, br] = await Promise.all([
+          supabase.auth.getUser(),
+          loadUserBankroll(),
+        ]);
+        if (!active) return;
+        const profile =
+          (user?.user_metadata?.bettor_profile as Playstyle | undefined) ??
+          br?.playstyle;
+        const source = br ?? loadBankroll();
+        if (source) {
+          setBankroll({ amount: computeStats(source).currentAmount, playstyle: profile });
+        } else if (profile) {
+          setBankroll({ amount: 0, playstyle: profile });
+        }
+      } catch {
+        /* no bankroll → the block shows a setup CTA */
+      } finally {
+        if (active) setBankrollReady(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const h = match.homeTeam;
   const a = match.awayTeam;
+
+  const rec = data?.recommendation;
+  const stakeAdvice =
+    rec && bankroll && bankroll.amount > 0
+      ? recommendStake(bankroll.amount, bankroll.playstyle, rec.confidence, parseOdds(rec.odds))
+      : null;
 
   function handleGenerate() {
     setData(null);
@@ -335,10 +382,48 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
                 <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] font-bold">
                   Confiance : {data.recommendation.confidence}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
-                  Mise : {data.recommendation.stake}
-                </span>
+                {!stakeAdvice && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
+                    Mise indicative : {data.recommendation.stake}
+                  </span>
+                )}
               </div>
+
+              {/* Personalised € stake from the user's live bankroll + profile */}
+              {stakeAdvice ? (
+                <div className="mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-3.5">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--accent)] mb-1.5">
+                    <Wallet size={12} /> Mise conseillée pour toi
+                  </div>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-2xl font-black text-[#f0f0f0] tabular-nums">
+                      {stakeAdvice.amount} €
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      {stakeAdvice.pct.toLocaleString("fr-FR")}% de ta bankroll ({stakeAdvice.bankroll.toLocaleString("fr-FR")} €)
+                    </span>
+                  </div>
+                  {stakeAdvice.potentialGain != null && (
+                    <div className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+                      Si ça passe : <span className="text-[var(--accent)] font-bold">+{stakeAdvice.potentialGain.toLocaleString("fr-FR")} €</span>
+                      {" "}· retour {stakeAdvice.potentialReturn?.toLocaleString("fr-FR")} €
+                    </div>
+                  )}
+                  <p className="mt-2 text-[10px] text-[#5a6472] leading-relaxed">
+                    Calculé sur ta bankroll actuelle, ton profil {bankroll?.playstyle ? `« ${PLAYSTYLE_LABEL[bankroll.playstyle]} »` : ""} et la confiance du pari · plafonné à 5% pour ta sécurité.
+                  </p>
+                </div>
+              ) : bankrollReady && (!bankroll || bankroll.amount <= 0) ? (
+                <Link
+                  href="/dashboard/bankroll"
+                  className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.04] p-3 text-xs text-[var(--text-muted)] hover:bg-[var(--accent)]/[0.08] transition-colors"
+                >
+                  <Wallet size={14} className="text-[var(--accent)] shrink-0" />
+                  <span>
+                    <span className="text-[var(--accent)] font-bold">Configure ta bankroll</span> pour voir le montant exact à miser sur ce pari.
+                  </span>
+                </Link>
+              ) : null}
             </div>
 
             <p className="text-[10px] text-[var(--text-muted)] text-center">{DISCLAIMER}</p>
