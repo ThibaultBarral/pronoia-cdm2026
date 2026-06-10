@@ -3,6 +3,7 @@ import {
   ArrowUpRight, ArrowDownRight, Minus, type LucideIcon,
 } from "lucide-react";
 import type { AdminStats } from "@/lib/admin";
+import SignupsChart from "@/components/admin/signups-chart";
 
 /* ── Building blocks ─────────────────────────────────────────────────────── */
 
@@ -64,7 +65,6 @@ function MiniCard({
 /* ── Dashboard ───────────────────────────────────────────────────────────── */
 
 export default function AdminDashboard({ stats }: { stats: AdminStats }) {
-  const maxSignup = Math.max(1, ...stats.signupsByDay.map((d) => d.count));
   const maxPlan = Math.max(1, ...stats.planBreakdown.map((p) => p.count));
 
   return (
@@ -121,37 +121,9 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Signups 14 days */}
+        {/* Signups 14 days (interactive) */}
         <div className="lg:col-span-2 rounded-2xl glass px-5 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-[#9aa3b2]">
-              Inscriptions · 14 derniers jours
-            </h3>
-            <span className="text-[11px] text-[#5a6472]">{stats.newUsers7d} cette semaine</span>
-          </div>
-          <div className="flex items-end gap-1.5 h-28">
-            {stats.signupsByDay.map((d) => {
-              const h = Math.round((d.count / maxSignup) * 100);
-              const isToday = d.date === stats.signupsByDay[stats.signupsByDay.length - 1].date;
-              return (
-                <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group">
-                  <div className="w-full flex items-end h-full" title={`${d.date} · ${d.count}`}>
-                    <div
-                      className="w-full rounded-t-md transition-all group-hover:opacity-100"
-                      style={{
-                        height: `${Math.max(h, d.count > 0 ? 6 : 2)}%`,
-                        background: isToday ? "var(--accent)" : "var(--accent-soft)",
-                        opacity: d.count > 0 ? 0.85 : 0.25,
-                      }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-[#5a6472] tabular-nums">
-                    {Number(d.date.slice(8, 10))}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <SignupsChart data={stats.signupsByDay} weekTotal={stats.newUsers7d} />
         </div>
 
         {/* Plan breakdown */}
