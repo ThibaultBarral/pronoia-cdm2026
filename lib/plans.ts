@@ -26,6 +26,12 @@ export interface Offer {
   name: string;
   /** Display price only — the real charge is configured on Whop. */
   priceLabel: string;
+  /** Higher "anchor" price shown struck-through next to the real one (urgency). */
+  anchorPrice?: string;
+  /** Small discount pill next to the anchor, e.g. "-50%". */
+  discountLabel?: string;
+  /** Urgency line under the price, e.g. "Tarif Coupe du Monde · offre limitée". */
+  urgencyLabel?: string;
   /** Unit shown under the price: "/ sem." · "une seule fois". */
   unit: string;
   sublabel: string;
@@ -71,6 +77,9 @@ export const OFFERS: Offer[] = [
     plan: "pass_cdm",
     name: "Pass CDM 2026",
     priceLabel: "14,99 €",
+    anchorPrice: "29,99 €",
+    discountLabel: "-50%",
+    urgencyLabel: "Tarif lancement Coupe du Monde",
     unit: "une seule fois",
     sublabel: "0,14 € par match · accès jusqu'au 19 juillet",
     ctaLabel: "Débloquer le Pass — 14,99 €",

@@ -154,12 +154,32 @@ export default function PaywallContent({
               </div>
 
               {/* Price */}
+              {(o.discountLabel || o.anchorPrice) && (
+                <div className="flex items-center gap-2 mb-1.5">
+                  {o.discountLabel && (
+                    <span className="inline-flex items-center text-[11px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#ef4444]/15 text-[#ff6b6b] border border-[#ef4444]/30">
+                      {o.discountLabel}
+                    </span>
+                  )}
+                  {o.anchorPrice && (
+                    <span className="text-lg font-bold text-[var(--text-muted)] line-through decoration-[#ef4444]/60 decoration-2">
+                      {o.anchorPrice}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-1.5">
                 <span className="text-[40px] leading-none font-black" style={{ color: gold ? "#ffd700" : "var(--text)" }}>
                   {o.priceLabel}
                 </span>
                 <span className="text-sm text-[var(--text-muted)] mb-1.5">{o.unit}</span>
               </div>
+              {o.urgencyLabel && (
+                <p className="flex items-center gap-1.5 text-[12px] font-bold text-[#ff9d5c] mt-2">
+                  <Flame size={13} className="shrink-0" />
+                  {o.urgencyLabel}
+                </p>
+              )}
               <p className="text-sm text-[var(--text-muted)] mt-2 mb-5">{o.sublabel}</p>
 
               {/* Features */}
