@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Users, BadgeCheck, Zap, Euro, Gift } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminControls from "@/components/admin/admin-controls";
 import AdminToggle from "@/components/admin/admin-toggle";
 import FreeAccessControls from "@/components/admin/free-access-controls";
 import VipToggle from "@/components/admin/vip-toggle";
-import { isAdmin, getAdminData } from "@/lib/admin";
+import AdminDashboard from "@/components/admin/admin-dashboard";
+import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
 import { planName } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Admin — Copafever", robots: { index: false } };
@@ -29,17 +29,7 @@ export default async function AdminPage() {
   if (!(await isAdmin())) notFound();
 
   const { users, totalRevenue } = await getAdminData();
-  const activeCount = users.filter((u) => u.status === "active" || u.status === "trialing").length;
-  const vipCount = users.filter((u) => u.vip).length;
-  const totalAnalyses = users.reduce((s, u) => s + u.analysesCount, 0);
-
-  const kpis = [
-    { icon: Users, label: "Utilisateurs", value: String(users.length), color: "var(--accent)" },
-    { icon: BadgeCheck, label: "Abonnés actifs", value: String(activeCount), color: "#ffd700" },
-    { icon: Gift, label: "Accès VIP", value: String(vipCount), color: "var(--accent-soft)" },
-    { icon: Zap, label: "Analyses totales", value: String(totalAnalyses), color: "var(--accent-soft)" },
-    { icon: Euro, label: "CA réel (Whop)", value: `${totalRevenue.toFixed(2)} €`, color: "var(--accent)" },
-  ];
+  const stats = computeAdminStats(users, totalRevenue);
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
@@ -47,23 +37,14 @@ export default async function AdminPage() {
       <div className="flex-1 min-w-0 overflow-y-auto">
         <main className="px-4 md:px-8 py-8 max-w-6xl mx-auto">
           <header className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-black text-[#f0f0f0]">Panel administrateur</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-[#f0f0f0]">Tableau de bord</h1>
             <p className="text-sm text-[var(--text-muted)] mt-1.5">
-              Vue d&apos;ensemble des utilisateurs, de l&apos;usage et de la rentabilité.
+              Acquisition, activation, rétention et rentabilité de Copafever.
             </p>
           </header>
 
-          {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-            {kpis.map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="rounded-2xl glass px-4 py-3.5">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#5a6472] mb-1.5">
-                  <Icon size={12} style={{ color }} /> {label}
-                </div>
-                <div className="text-2xl font-black text-[#f0f0f0]">{value}</div>
-              </div>
-            ))}
-          </div>
+          {/* Analytics dashboard */}
+          <AdminDashboard stats={stats} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
             <AdminControls />

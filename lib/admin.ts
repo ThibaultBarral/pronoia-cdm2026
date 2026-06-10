@@ -120,6 +120,119 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
   return { users, totalRevenue: revenue.total };
 }
 
+// ─── Aggregated dashboard stats (pure, derived from the user rows) ─────────────
+
+export interface PlanCount {
+  plan: Plan;
+  label: string;
+  count: number;
+}
+
+export interface AdminStats {
+  // Acquisition
+  totalUsers: number;
+  newUsers7d: number;
+  newUsers30d: number;
+  /** New users in the previous 7-day window (for a week-over-week delta). */
+  prevNewUsers7d: number;
+  signupsByDay: { date: string; count: number }[]; // last 14 days, oldest→newest
+  // Activation / engagement
+  onboardedRate: number; // % with a bettor profile
+  activationRate: number; // % who ran ≥1 analysis
+  usersWithAnalysis: number;
+  totalAnalyses: number;
+  avgAnalysesPerUser: number;
+  // Retention
+  activeUsers7d: number; // signed in within 7 days
+  activeUsers30d: number;
+  // Monetization
+  paidUsers: number; // active/trialing on a paid plan
+  vipUsers: number;
+  conversionRate: number; // paidUsers / totalUsers
+  totalRevenue: number;
+  arpu: number; // revenue ÷ paying users
+  planBreakdown: PlanCount[];
+}
+
+const PLAN_ORDER: Plan[] = ["free", "pass_cdm", "weekly", "monthly", "lifetime"];
+const PLAN_LABEL: Record<Plan, string> = {
+  free: "Gratuit",
+  pass_cdm: "Pass CDM",
+  weekly: "Hebdo",
+  monthly: "Mensuel",
+  lifetime: "À vie",
+};
+
+/** Compute the dashboard metrics from already-fetched rows (no extra queries). */
+export function computeAdminStats(
+  users: AdminUserRow[],
+  totalRevenue: number
+): AdminStats {
+  const now = Date.now();
+  const DAY = 86_400_000;
+  const within = (iso: string | null, fromDays: number, toDays = 0): boolean => {
+    if (!iso) return false;
+    const age = now - new Date(iso).getTime();
+    return age >= toDays * DAY && age < fromDays * DAY;
+  };
+
+  const totalUsers = users.length;
+  const newUsers7d = users.filter((u) => within(u.createdAt, 7)).length;
+  const newUsers30d = users.filter((u) => within(u.createdAt, 30)).length;
+  const prevNewUsers7d = users.filter((u) => within(u.createdAt, 14, 7)).length;
+
+  const activeUsers7d = users.filter((u) => within(u.lastSignInAt, 7)).length;
+  const activeUsers30d = users.filter((u) => within(u.lastSignInAt, 30)).length;
+
+  const onboarded = users.filter((u) => u.bettorProfile).length;
+  const usersWithAnalysis = users.filter((u) => u.analysesCount > 0).length;
+  const totalAnalyses = users.reduce((s, u) => s + u.analysesCount, 0);
+
+  const isPaid = (u: AdminUserRow) =>
+    u.plan !== "free" && (u.status === "active" || u.status === "trialing");
+  const paidUsers = users.filter(isPaid).length;
+  const vipUsers = users.filter((u) => u.vip).length;
+
+  // Signups for each of the last 14 calendar days (UTC), oldest → newest.
+  const signupsByDay: { date: string; count: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now - i * DAY);
+    const key = d.toISOString().slice(0, 10);
+    const count = users.filter((u) => (u.createdAt ?? "").slice(0, 10) === key).length;
+    signupsByDay.push({ date: key, count });
+  }
+
+  const planBreakdown: PlanCount[] = PLAN_ORDER.map((plan) => ({
+    plan,
+    label: PLAN_LABEL[plan],
+    count: users.filter((u) => u.plan === plan).length,
+  })).filter((p) => p.count > 0);
+
+  const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
+
+  return {
+    totalUsers,
+    newUsers7d,
+    newUsers30d,
+    prevNewUsers7d,
+    signupsByDay,
+    onboardedRate: pct(onboarded, totalUsers),
+    activationRate: pct(usersWithAnalysis, totalUsers),
+    usersWithAnalysis,
+    totalAnalyses,
+    avgAnalysesPerUser:
+      totalUsers > 0 ? Math.round((totalAnalyses / totalUsers) * 10) / 10 : 0,
+    activeUsers7d,
+    activeUsers30d,
+    paidUsers,
+    vipUsers,
+    conversionRate: pct(paidUsers, totalUsers),
+    totalRevenue,
+    arpu: paidUsers > 0 ? Math.round((totalRevenue / paidUsers) * 100) / 100 : 0,
+    planBreakdown,
+  };
+}
+
 async function findUserByEmail(email: string) {
   const admin = createAdminClient();
   const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
