@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Plan } from "@/lib/plans";
+import { ACQUISITION_CHANNELS, isRealChannel } from "@/lib/acquisition";
 
 const WHOP_COMPANY_ID = "biz_2exftzpAHl23k9";
 
@@ -20,6 +21,8 @@ export interface AdminUserRow {
   freeAnalysesUsed: number;
   vip: boolean; // accès gratuit offert (admin), indépendant des plans payants
   revenue: number; // CA réel Whop (€), payé − remboursé
+  acquisitionChannel: string | null; // "tiktok" | … | "skip" | null
+  acquisitionDetail: string | null; // précision libre saisie par l'utilisateur
 }
 
 /** True if the currently authenticated user is an admin (app_metadata only). */
@@ -113,6 +116,8 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
         freeAnalysesUsed: (s?.free_analyses_used as number | null) ?? 0,
         vip: Boolean(s?.vip),
         revenue: membershipId ? revenue.byMembership.get(membershipId) ?? 0 : 0,
+        acquisitionChannel: (meta.acquisition_channel as string | null) ?? null,
+        acquisitionDetail: (meta.acquisition_detail as string | null) ?? null,
       };
     })
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
@@ -125,6 +130,13 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
 export interface PlanCount {
   plan: Plan;
   label: string;
+  count: number;
+}
+
+export interface ChannelCount {
+  channel: string;
+  label: string;
+  emoji: string;
   count: number;
 }
 
@@ -152,6 +164,9 @@ export interface AdminStats {
   totalRevenue: number;
   arpu: number; // revenue ÷ paying users
   planBreakdown: PlanCount[];
+  // Acquisition channels ("comment nous as-tu connus")
+  acquisitionBreakdown: ChannelCount[]; // real answered channels, desc by count
+  acquisitionAnswered: number; // users who picked a real channel
 }
 
 const PLAN_ORDER: Plan[] = ["free", "pass_cdm", "weekly", "monthly", "lifetime"];
@@ -208,6 +223,18 @@ export function computeAdminStats(
     count: users.filter((u) => u.plan === plan).length,
   })).filter((p) => p.count > 0);
 
+  const acquisitionBreakdown: ChannelCount[] = ACQUISITION_CHANNELS.map((c) => ({
+    channel: c.id,
+    label: c.label,
+    emoji: c.emoji,
+    count: users.filter((u) => u.acquisitionChannel === c.id).length,
+  }))
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count);
+  const acquisitionAnswered = users.filter((u) =>
+    isRealChannel(u.acquisitionChannel)
+  ).length;
+
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
   return {
@@ -230,6 +257,8 @@ export function computeAdminStats(
     totalRevenue,
     arpu: paidUsers > 0 ? Math.round((totalRevenue / paidUsers) * 100) / 100 : 0,
     planBreakdown,
+    acquisitionBreakdown,
+    acquisitionAnswered,
   };
 }
 

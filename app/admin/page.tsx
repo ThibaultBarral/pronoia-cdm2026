@@ -8,6 +8,7 @@ import VipToggle from "@/components/admin/vip-toggle";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
 import { planName } from "@/lib/plans";
+import { channelLabel } from "@/lib/acquisition";
 
 export const metadata: Metadata = { title: "Admin — Copafever", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -59,6 +60,7 @@ export default async function AdminPage() {
                   <tr className="text-[10px] uppercase tracking-wide text-[#5a6472] border-b border-white/5">
                     <th className="text-left font-semibold px-4 py-3">Utilisateur</th>
                     <th className="text-left font-semibold px-3 py-3">Profil</th>
+                    <th className="text-left font-semibold px-3 py-3">Canal</th>
                     <th className="text-left font-semibold px-3 py-3">Plan</th>
                     <th className="text-left font-semibold px-3 py-3">Statut</th>
                     <th className="text-right font-semibold px-3 py-3">Analyses</th>
@@ -77,6 +79,20 @@ export default async function AdminPage() {
                         <div className="text-[11px] text-[#5a6472]">{u.email ?? "—"}</div>
                       </td>
                       <td className="px-3 py-3 text-[#9aa3b2] capitalize">{u.bettorProfile ?? "—"}</td>
+                      <td className="px-3 py-3">
+                        {u.acquisitionChannel ? (
+                          <div>
+                            <div className="text-[#e0e0e0]">{channelLabel(u.acquisitionChannel)}</div>
+                            {u.acquisitionDetail && (
+                              <div className="text-[11px] text-[#5a6472] max-w-[160px] truncate" title={u.acquisitionDetail}>
+                                {u.acquisitionDetail}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[#5a6472]">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3 text-[#9aa3b2]">{planName(u.plan) ?? "Gratuit"}</td>
                       <td className="px-3 py-3">
                         <span className="text-[11px] text-[#9aa3b2]">

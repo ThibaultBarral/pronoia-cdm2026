@@ -182,6 +182,54 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
           </div>
         </div>
       </div>
+
+      {/* Acquisition channels */}
+      <div className="rounded-2xl glass px-5 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#9aa3b2]">
+            Canaux d&apos;acquisition
+          </h3>
+          <span className="text-[11px] text-[#5a6472]">
+            {stats.acquisitionAnswered}/{stats.totalUsers} ont répondu
+          </span>
+        </div>
+
+        {stats.acquisitionBreakdown.length === 0 ? (
+          <p className="text-xs text-[#5a6472] py-4 text-center">
+            Aucune réponse pour l&apos;instant — les nouveaux inscrits verront la question.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+            {stats.acquisitionBreakdown.map((c) => {
+              const share = stats.acquisitionAnswered
+                ? Math.round((c.count / stats.acquisitionAnswered) * 100)
+                : 0;
+              const maxChannel = Math.max(1, ...stats.acquisitionBreakdown.map((x) => x.count));
+              return (
+                <div key={c.channel}>
+                  <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="text-[#f0f0f0] font-semibold">
+                      {c.emoji} {c.label}
+                    </span>
+                    <span className="tabular-nums text-[#9aa3b2]">
+                      {c.count} · {share}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[var(--accent)]"
+                      style={{ width: `${(c.count / maxChannel) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="text-[10px] text-[#5a6472] mt-3">
+          Le détail libre saisi par chaque utilisateur est visible dans la colonne « Canal » du tableau ci-dessous.
+        </p>
+      </div>
     </div>
   );
 }
