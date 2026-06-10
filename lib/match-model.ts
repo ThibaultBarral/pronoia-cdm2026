@@ -10,10 +10,13 @@ import "server-only";
 
 import type { Match, Team } from "./types";
 import type { Confidence } from "./analysis-schema";
+import { getElo } from "./elo";
 
 const BASE_TOTAL_GOALS = 2.6;
 const MAX_SUPREMACY = 3;
-const RATING_PER_GOAL = 200;
+// Elo points per goal of supremacy. Kept in sync with lib/simulation so the
+// per-match favourite never contradicts the World Cup projection.
+const RATING_PER_GOAL = 350;
 
 function factorial(n: number): number {
   let r = 1;
@@ -24,19 +27,20 @@ function poissonPmf(lambda: number, k: number): number {
   return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
 }
 
-function ratingFromRank(rank: number): number {
-  const r = rank > 0 ? Math.min(rank, 120) : 80;
-  return 2000 - 7.5 * r;
-}
-
-/** Rating from FIFA rank, nudged by live momentum (last-5 points). */
+/**
+ * Real World Football Elo (lib/elo) — the SAME rating source as the tournament
+ * simulation — nudged by live momentum (last-5 points). Using Elo here (not the
+ * stale FIFA rank) is what keeps the per-match favourite consistent with the
+ * World Cup group/title projection (e.g. Ecuador 1935 Elo > Germany 1925, even
+ * though Germany sits higher in the FIFA ranking).
+ */
 function ratingOf(team: Team): number {
   let bonus = 0;
   if (team.momentum) {
     // last5Pts ∈ [0,15] → bonus ∈ [-30,+30]
     bonus = ((team.momentum.last5Pts - 7.5) / 7.5) * 30;
   }
-  return ratingFromRank(team.fifaRanking) + bonus;
+  return getElo(team.nameEn ?? team.name) + bonus;
 }
 
 function expectedGoals(rA: number, rB: number): { la: number; lb: number } {

@@ -2,6 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
+  // IMPORTANT (Supabase SSR): `response` must be recreated inside setAll after
+  // the request cookies are updated, otherwise the refreshed auth token is not
+  // propagated and the browser/server sessions desync → random sign-outs. See
+  // the canonical @supabase/ssr Next.js middleware pattern.
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -11,41 +15,52 @@ export async function proxy(request: NextRequest) {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (toSet) => {
-          toSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
-          });
+          toSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          toSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
+  // Must run immediately after createServerClient — triggers the token refresh
+  // whose new cookies setAll writes onto `response`.
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
   const hasProfile = Boolean(user?.user_metadata?.bettor_profile);
   const isAdminUser = user?.app_metadata?.is_admin === true;
 
+  // Redirect while carrying over any refreshed auth cookies, so navigating into
+  // a redirect branch never drops the freshly-rotated session.
+  const redirectTo = (dest: string) => {
+    const r = NextResponse.redirect(new URL(dest, request.url));
+    response.cookies.getAll().forEach((c) => r.cookies.set(c));
+    return r;
+  };
+
   // Not signed in → protect private areas.
   if (!user && (path.startsWith("/dashboard") || path === "/onboarding" || path.startsWith("/admin"))) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectTo("/login");
   }
 
   // Admin area — admins only.
   if (user && path.startsWith("/admin") && !isAdminUser) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectTo("/dashboard");
   }
 
   if (user) {
     // Signed in but no bettor profile yet → force onboarding once.
     if (!hasProfile && path.startsWith("/dashboard")) {
-      return NextResponse.redirect(new URL("/onboarding", request.url));
+      return redirectTo("/onboarding");
     }
     // Already onboarded → keep them out of /login and /onboarding.
     if (path === "/login") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return redirectTo("/dashboard");
     }
     if (hasProfile && path === "/onboarding") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return redirectTo("/dashboard");
     }
   }
 
@@ -53,5 +68,17 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/onboarding", "/admin/:path*", "/admin"],
+  // Refresh the Supabase session everywhere a signed-in user navigates —
+  // including /match (where they read "un pari") so the token never goes stale
+  // there and they aren't bounced to /login on the next click. Public marketing
+  // pages (/, /cgu, …) are left out so anonymous/SEO traffic skips the auth hop.
+  matcher: [
+    "/dashboard/:path*",
+    "/match/:path*",
+    "/team/:path*",
+    "/login",
+    "/onboarding",
+    "/admin/:path*",
+    "/admin",
+  ],
 };
