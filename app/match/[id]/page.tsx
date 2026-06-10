@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Wifi } from "lucide-react";
 import { getMatchData } from "@/lib/data-service";
-import { isAdmin } from "@/lib/admin";
+import { createClient } from "@/lib/supabase/server";
 import MatchHeader from "@/components/match-header";
 import TeamForm from "@/components/team-form";
 import H2HStats from "@/components/h2h-stats";
@@ -48,9 +48,18 @@ export const revalidate = 1800; // re-fetch every 30min
 
 export default async function MatchPage({ params }: PageProps) {
   const { id } = await params;
-  const [match, admin] = await Promise.all([getMatchData(id), isAdmin()]);
+  const supabase = await createClient();
+  const [match, { data: { user } }] = await Promise.all([
+    getMatchData(id),
+    supabase.auth.getUser(),
+  ]);
 
   if (!match) notFound();
+
+  const admin = user?.app_metadata?.is_admin === true;
+  // Signed-in users came from the dashboard → send "Retour" back there (not to
+  // the public marketing landing, which looks like being logged out).
+  const backHref = user ? "/dashboard" : "/";
 
   // Real once we resolved this match's API-Football fixture (real odds/live/squad)
   // or got live form for a team. Honest "live data" signal.
@@ -103,7 +112,7 @@ export default async function MatchPage({ params }: PageProps) {
       <div className="safe-header sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-[#1f1f1f]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
           <Link
-            href="/"
+            href={backHref}
             className="flex items-center gap-1.5 text-sm text-[#888] hover:text-[#f0f0f0] transition-colors"
           >
             <ArrowLeft size={14} />
