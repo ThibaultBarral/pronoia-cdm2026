@@ -329,6 +329,52 @@ export async function fetchTeams(): Promise<Array<{ team: ApiTeam; venue: ApiVen
   );
 }
 
+// ─── Standings (domestic leagues + UCL/UEL league phase) ─────────────────────
+
+export interface ApiStandingRow {
+  rank: number;
+  team: ApiTeam;
+  points: number;
+  goalsDiff: number;
+  group: string;
+  form: string | null;
+  status: string;
+  description: string | null;
+  all: {
+    played: number;
+    win: number;
+    draw: number;
+    lose: number;
+    goals: { for: number; against: number };
+  };
+}
+
+export interface ApiStandingsResponse {
+  league: {
+    id: number;
+    name: string;
+    country: string;
+    season: number;
+    /** One inner array per group (single array for round-robin leagues). */
+    standings: ApiStandingRow[][];
+  };
+}
+
+/**
+ * Final standings for a league + season — cached 24h.
+ * Returns the flattened groups (`standings`), or [] if unavailable.
+ */
+export async function fetchStandings(
+  leagueId: number,
+  season: number,
+): Promise<ApiStandingRow[][]> {
+  const results = await apiFetch<ApiStandingsResponse>(
+    `/standings?league=${leagueId}&season=${season}`,
+    86400,
+  );
+  return results[0]?.league?.standings ?? [];
+}
+
 // ─── Odds extraction helpers ─────────────────────────────────────────────────
 
 const BOOKMAKER_PRIORITY = [

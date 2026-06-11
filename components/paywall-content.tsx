@@ -6,11 +6,13 @@ import { motion } from "framer-motion";
 import { trackEvent } from "@/lib/analytics";
 import {
   Check, Flame, Zap, CalendarDays, Infinity as InfinityIcon,
-  RotateCcw, AlertCircle, Settings, type LucideIcon,
+  RotateCcw, AlertCircle, Settings, Lock, type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { createCheckout } from "@/actions/create-checkout";
 import { restoreSubscription } from "@/actions/restore-subscription";
 import { VISIBLE_OFFERS, planName, type Plan, type PaidPlan } from "@/lib/plans";
+import LaunchCountdown from "@/components/launch-countdown";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
   pass_cdm: Flame,
@@ -73,8 +75,13 @@ export default function PaywallContent({
           Choisis ton plan
         </h1>
         <p className="text-base text-[var(--text-muted)] mt-3">
-          Accède aux analyses IA de chaque match de la Coupe du Monde 2026.
+          Accède aux analyses IA de la CDM 2026 et de toutes les compétitions à venir.
         </p>
+        {currentPlan !== "lifetime" && (
+          <div className="mt-5 flex justify-center">
+            <LaunchCountdown />
+          </div>
+        )}
       </div>
 
       {/* Active subscriber — manage / cancel */}
@@ -83,21 +90,33 @@ export default function PaywallContent({
           <div className="flex items-center gap-2 text-sm">
             <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
             <span className="text-[var(--text)] font-semibold">
-              Abonnement actif{currentPlan ? ` · ${planName(currentPlan)}` : ""}
+              {currentPlan === "pass_cdm"
+                ? "Pass CDM actif · accès complet jusqu'au 19 juillet"
+                : `Abonnement actif${currentPlan ? ` · ${planName(currentPlan)}` : ""}`}
             </span>
           </div>
-          <a
-            href={manageUrl ?? "#"}
-            target={manageUrl ? "_blank" : undefined}
-            rel="noreferrer"
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
-              manageUrl
-                ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20"
-                : "glass text-[var(--text-muted)] cursor-not-allowed"
-            }`}
-          >
-            <Settings size={15} /> Gérer / Résilier
-          </a>
+          {currentPlan === "pass_cdm" ? (
+            <button
+              onClick={() => checkout("lifetime")}
+              disabled={pending === "lifetime"}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold bg-[#ffd700]/12 text-[#ffd700] border border-[#ffd700]/30 hover:bg-[#ffd700]/20 transition-colors disabled:opacity-60"
+            >
+              {pending === "lifetime" ? "Redirection…" : "Passer à vie — 59 €"}
+            </button>
+          ) : (
+            <a
+              href={manageUrl ?? "#"}
+              target={manageUrl ? "_blank" : undefined}
+              rel="noreferrer"
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
+                manageUrl
+                  ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20"
+                  : "glass text-[var(--text-muted)] cursor-not-allowed"
+              }`}
+            >
+              <Settings size={15} /> Gérer / Résilier
+            </a>
+          )}
         </div>
       )}
 
@@ -190,6 +209,17 @@ export default function PaywallContent({
                     <span>{f}</span>
                   </li>
                 ))}
+                {o.lockedFeatures?.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2.5 text-sm text-[var(--text-muted)]"
+                  >
+                    <Lock size={15} className="mt-0.5 shrink-0 text-[var(--text-muted)]" />
+                    <span className="line-through decoration-[var(--text-muted)]/50">
+                      {f}
+                    </span>
+                  </li>
+                ))}
               </ul>
 
               {/* CTA */}
@@ -222,6 +252,20 @@ export default function PaywallContent({
         })}
       </div>
 
+      {/* Price-hike strip */}
+      <div className="max-w-3xl mx-auto mt-6 rounded-2xl glass px-5 py-3.5 flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center">
+        <span className="text-xs text-[var(--text-muted)]">
+          <span className="font-bold text-[#cdd3db]">Le 19 juillet, l&apos;Accès à vie passe à 99 €.</span>{" "}
+          Les abonnements continuent sur toutes les compétitions 2026/27.
+        </span>
+        <Link
+          href="/dashboard/competitions"
+          className="text-xs font-bold text-[var(--accent)] hover:underline shrink-0"
+        >
+          Voir les compétitions →
+        </Link>
+      </div>
+
       {(error || info) && (
         <div
           className={`flex items-center justify-center gap-2 text-sm mt-6 rounded-xl px-3 py-2.5 max-w-md mx-auto ${
@@ -237,8 +281,8 @@ export default function PaywallContent({
       {/* Footer */}
       <div className="mt-10 text-center space-y-3">
         <p className="text-xs text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed">
-          Paiement unique pour le Pass et l&apos;Accès à vie — aucun renouvellement automatique.
-          Accès garanti jusqu&apos;au 19 juillet pour le Pass.
+          Hebdo et Mensuel : abonnements annulables à tout moment, sans engagement.
+          Accès à vie : un seul paiement, pour toujours.
           <br />
           Les analyses sont fournies à titre informatif. Les paris sportifs comportent des risques ·
           Réservé aux 18 ans et plus · Jouez responsable.

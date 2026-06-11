@@ -80,9 +80,9 @@ export default function AskAiModal({ match }: { match: Match }) {
                 <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
                   <Lock size={20} className="text-[var(--accent)]" />
                 </div>
-                <p className="text-sm text-[var(--text)] font-semibold">Réservé au Pass & Accès à vie</p>
+                <p className="text-sm text-[var(--text)] font-semibold">Réservé au Mensuel & Accès à vie</p>
                 <p className="text-xs text-[var(--text-muted)] max-w-xs">
-                  Le chat IA contextuel est inclus dans le Pass CDM 2026 et l&apos;Accès à vie. Pose
+                  Le chat IA contextuel est inclus dans le Mensuel et l&apos;Accès à vie. Pose
                   des questions illimitées à l&apos;IA sur chaque match.
                 </p>
                 <Link

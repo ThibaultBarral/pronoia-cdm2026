@@ -9,6 +9,7 @@ import AppSidebar from "@/components/dashboard/app-sidebar";
 import MatchRow from "@/components/dashboard/match-row";
 import MatchAnalyzer from "@/components/match-analyzer";
 import PremiumSpotlight from "@/components/dashboard/premium-spotlight";
+import LaunchPricingBanner from "@/components/dashboard/launch-pricing-banner";
 import BankrollWidget from "@/components/dashboard/bankroll-widget";
 import UserMenu from "@/components/auth/user-menu";
 import { Match } from "@/lib/types";
@@ -162,6 +163,9 @@ export default function DashboardPage() {
 
         {/* Content */}
         <main className="flex-1 overflow-auto p-4 md:p-6 space-y-6">
+          {/* Launch-pricing urgency (dismissible, hidden for lifetime) */}
+          <LaunchPricingBanner />
+
           {/* Premium spotlight — countdown + top analyses (conversion & retention) */}
           {!loading && <PremiumSpotlight matches={matches} />}
 

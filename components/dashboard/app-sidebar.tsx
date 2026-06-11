@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutGrid, Globe, Trophy, TrendingUp, Sparkles, Crown, LogOut, ChevronRight, ShieldCheck, History, User } from "lucide-react";
+import { LayoutGrid, Globe, Trophy, TrendingUp, Sparkles, Crown, LogOut, ChevronRight, ShieldCheck, History, User, Layers, Map } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useSubscription } from "@/lib/use-subscription";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const NAV = [
   { href: "/dashboard", icon: LayoutGrid, label: "Matchs", exact: true },
+  { href: "/dashboard/competitions", icon: Layers, label: "Compétitions" },
+  { href: "/dashboard/roadmap", icon: Map, label: "Roadmap" },
   { href: "/dashboard/coupe-du-monde", icon: Trophy, label: "Coupe du monde" },
   { href: "/dashboard/teams", icon: Globe, label: "Équipes" },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
@@ -51,7 +53,7 @@ export default function AppSidebar() {
         <Link href="/" className="flex flex-col gap-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
-          <div className="text-[10px] text-[#3a4250] tracking-wide">Analyse IA · CDM 2026</div>
+          <div className="text-[10px] text-[#3a4250] tracking-wide">Analyse IA · Football</div>
         </Link>
       </div>
 

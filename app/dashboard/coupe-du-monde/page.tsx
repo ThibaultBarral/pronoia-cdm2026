@@ -45,7 +45,7 @@ export default async function CoupeDuMondePage() {
           <WcTabs
             groupsSlot={<GroupsGrid groups={groups} simBySlug={simBySlug} />}
             bracketSlot={
-              <FeatureGate feature="bracket" label="Le tableau final est réservé au Pass & Accès à vie">
+              <FeatureGate feature="bracket" label="Le tableau final est réservé au Mensuel & Accès à vie">
                 <BracketView bracket={bracket} />
               </FeatureGate>
             }

@@ -6,7 +6,7 @@ import { useSubscription } from "@/lib/use-subscription";
 import { planHasFeature, type Feature } from "@/lib/plans";
 
 /**
- * Soft client-side gate for Pass/Vie-only features (simulator, bracket).
+ * Soft client-side gate for Mensuel/Vie-only features (simulator, bracket).
  *
  * The children are always rendered (kept in the DOM/SSR for caching & SEO) but
  * blurred behind a lock + upgrade CTA until the subscription resolves and the
@@ -16,7 +16,7 @@ import { planHasFeature, type Feature } from "@/lib/plans";
  */
 export default function FeatureGate({
   feature,
-  label = "Réservé au Pass & Accès à vie",
+  label = "Réservé au Mensuel & Accès à vie",
   children,
 }: {
   feature: Feature;

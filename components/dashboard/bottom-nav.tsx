@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Grid2X2, Trophy, TrendingUp, History, User } from "lucide-react";
+import { Grid2X2, Layers, Trophy, TrendingUp, History, User } from "lucide-react";
 
 const TABS = [
   { href: "/dashboard", icon: Grid2X2, label: "Matchs" },
+  { href: "/dashboard/competitions", icon: Layers, label: "Compét." },
   { href: "/dashboard/coupe-du-monde", icon: Trophy, label: "CDM" },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
-  { href: "/dashboard/historique", icon: History, label: "Historique" },
+  { href: "/dashboard/historique", icon: History, label: "Histo." },
   { href: "/dashboard/compte", icon: User, label: "Compte" },
 ];
 

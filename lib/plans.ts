@@ -51,49 +51,60 @@ export interface Offer {
   highlight?: boolean;
   /** Bullet features listed inside the pricing card. */
   features: string[];
+  /** Features explicitly NOT included — shown struck-through under the list
+   *  (e.g. Hebdo: the 3 premium tools reserved to Mensuel). */
+  lockedFeatures?: string[];
   /** env var holding the Whop plan id for this offer. */
   envKey: string;
 }
 
-/** Display order matches the paywall mockup: Hebdo, Pass CDM (center), Lifetime. */
+/**
+ * Display order = paywall hierarchy: Hebdo (gauche), Mensuel (centre/hero),
+ * Accès à vie (droite). Pass CDM is `hidden` (retired from sale 2026-06-11) but
+ * kept in the array so webhooks / restore / hasFeature keep resolving existing
+ * memberships with ALL features until 19 July 2026 (grandfathering).
+ */
 export const OFFERS: Offer[] = [
   {
     plan: "weekly",
     name: "Hebdo",
     priceLabel: "4,99 €",
     unit: "/ semaine",
-    sublabel: "Pour tester sur une affiche",
+    sublabel: "Pour tester l'IA sur la CDM",
     ctaLabel: "Choisir l'Hebdo",
-    note: "Sur tout le tournoi, ça revient à ~27 €",
     features: [
       "Analyses IA complètes illimitées",
       "Value bets & cotes en direct",
       "Niveau de confiance par pari",
       "Suivi bankroll & ROI",
     ],
+    lockedFeatures: ["Chat IA, simulateur & bracket → réservés au Mensuel"],
     envKey: "WHOP_PLAN_WEEKLY",
   },
   {
-    plan: "pass_cdm",
-    name: "Pass CDM 2026",
+    plan: "monthly",
+    name: "Mensuel",
     priceLabel: "14,99 €",
-    anchorPrice: "29,99 €",
-    discountLabel: "-50%",
-    urgencyLabel: "Tarif lancement Coupe du Monde",
-    unit: "une seule fois",
-    sublabel: "0,14 € par match · accès jusqu'au 19 juillet",
-    ctaLabel: "Débloquer le Pass — 14,99 €",
-    oneTime: true,
-    badge: "★ Meilleur deal",
+    unit: "/ mois",
+    sublabel:
+      "CDM 2026 incluse · puis Ligue 1, PL, Liga, Serie A, Bundesliga, LDC & LDE",
+    ctaLabel: "S'abonner — 14,99 €/mois",
+    note: "Analyse illimitée — la concurrence facture 19 €/mois",
+    badge: "★ MEILLEUR DEAL",
     badgeKind: "green",
     highlight: true,
     features: [
-      "Tout l'Hebdo, plus :",
+      "Analyses IA complètes illimitées",
+      "Value bets & cotes en direct",
+      "Niveau de confiance par pari",
+      "Suivi bankroll & ROI",
       "Chat IA contextuel",
       "Simulateur de parcours",
       "Bracket interactif",
+      "Toutes les compétitions 2026/27",
+      "Annulable à tout moment",
     ],
-    envKey: "WHOP_PLAN_PASS_CDM",
+    envKey: "WHOP_PLAN_MONTHLY",
   },
   {
     plan: "lifetime",
@@ -101,39 +112,43 @@ export const OFFERS: Offer[] = [
     priceLabel: "59 €",
     anchorPrice: "99 €",
     discountLabel: "-40%",
-    urgencyLabel: "Offre de lancement · à vie",
+    urgencyLabel: "Tarif CDM · passe à 99 € le 19 juillet",
     unit: "une seule fois",
     sublabel: "Un seul paiement · toutes les compétitions, pour toujours",
     ctaLabel: "Accès à vie — 59 €",
-    note: "Soit ~40 € de moins que les apps concurrentes",
+    note: "Le seul paiement unique — zéro abonnement",
     oneTime: true,
     badge: "À VIE",
     badgeKind: "life",
     features: [
-      "Tout le Pass CDM, plus :",
-      "Toutes les compétitions après la CDM",
+      "Tout le Mensuel, à vie :",
+      "Chat IA, simulateur & bracket",
+      "Ligue 1 🇫🇷 · Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿 · La Liga 🇪🇸 · Serie A 🇮🇹 · Bundesliga 🇩🇪 · LDC & LDE 🇪🇺",
       "Priorité nouvelles fonctionnalités",
       "Plus jamais de paiement",
     ],
     envKey: "WHOP_PLAN_LIFETIME",
   },
   {
-    plan: "monthly",
-    name: "Mensuel",
-    priceLabel: "7,99 €",
-    unit: "/ mois",
-    // Disabled during the World Cup — hidden from pricing, kept for legacy
-    // subscribers' entitlement and webhook resolution.
+    plan: "pass_cdm",
+    name: "Pass CDM 2026",
+    priceLabel: "14,99 €",
+    unit: "une seule fois",
+    // Retiré de la vente le 2026-06-11 (remplacé par le Mensuel comme hero).
+    // GARDÉ ici (hidden) pour le grandfathering : les memberships Pass CDM
+    // existants conservent TOUTES les features jusqu'au 19/07/2026 via les
+    // webhooks / restore / hasFeature. Ne pas supprimer avant cette date.
     hidden: true,
-    sublabel: "Pour continuer après les poules",
-    ctaLabel: "Débloquer · 7,99 €",
+    sublabel: "Accès complet jusqu'au 19 juillet",
+    ctaLabel: "Pass CDM",
+    oneTime: true,
     features: [
       "Analyses IA complètes illimitées",
-      "Value bets & cotes en direct",
-      "Niveau de confiance par pari",
-      "Suivi bankroll & ROI",
+      "Chat IA contextuel",
+      "Simulateur de parcours",
+      "Bracket interactif",
     ],
-    envKey: "WHOP_PLAN_MONTHLY",
+    envKey: "WHOP_PLAN_PASS_CDM",
   },
 ];
 
@@ -144,8 +159,9 @@ export const VISIBLE_OFFERS: Offer[] = OFFERS.filter((o) => !o.hidden);
 
 /**
  * Premium features gated above the shared base. Everyone with access (Hebdo /
- * Pass / Vie) gets the core product — full unlimited AI analyses, value bets,
- * odds, confidence, bankroll/ROI. These three are reserved to Pass + Vie.
+ * Mensuel / Vie) gets the core product — full unlimited AI analyses, value bets,
+ * odds, confidence, bankroll/ROI. These three tools are reserved to Mensuel +
+ * Vie (and Pass CDM legacy, grandfathered until 19 July 2026).
  */
 export type Feature = "chat_ia" | "simulator" | "bracket";
 

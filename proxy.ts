@@ -32,6 +32,13 @@ export async function proxy(request: NextRequest) {
   const hasProfile = Boolean(user?.user_metadata?.bettor_profile);
   const isAdminUser = user?.app_metadata?.is_admin === true;
 
+  // Read-only vitrine pages under /dashboard that stay public (SEO + conversion):
+  // the Competitions hub/detail and the Roadmap. They never expose user data and
+  // are crawlable, so they're exempt from the auth + onboarding redirects below.
+  const isPublicDashboard =
+    path.startsWith("/dashboard/competitions") ||
+    path.startsWith("/dashboard/roadmap");
+
   // Redirect while carrying over any refreshed auth cookies, so navigating into
   // a redirect branch never drops the freshly-rotated session.
   const redirectTo = (dest: string) => {
@@ -41,7 +48,12 @@ export async function proxy(request: NextRequest) {
   };
 
   // Not signed in → protect private areas.
-  if (!user && (path.startsWith("/dashboard") || path === "/onboarding" || path.startsWith("/admin"))) {
+  if (
+    !user &&
+    ((path.startsWith("/dashboard") && !isPublicDashboard) ||
+      path === "/onboarding" ||
+      path.startsWith("/admin"))
+  ) {
     return redirectTo("/login");
   }
 
@@ -52,7 +64,7 @@ export async function proxy(request: NextRequest) {
 
   if (user) {
     // Signed in but no bettor profile yet → force onboarding once.
-    if (!hasProfile && path.startsWith("/dashboard")) {
+    if (!hasProfile && path.startsWith("/dashboard") && !isPublicDashboard) {
       return redirectTo("/onboarding");
     }
     // Already onboarded → keep them out of /login and /onboarding.
