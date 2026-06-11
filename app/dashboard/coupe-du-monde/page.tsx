@@ -4,10 +4,11 @@ import WcHeader from "@/components/wc/wc-header";
 import TopFavorites from "@/components/wc/top-favorites";
 import TeamSearch from "@/components/wc/team-search";
 import WcTabs from "@/components/wc/wc-tabs";
-import GroupsGrid from "@/components/wc/groups-grid";
+import GroupStandings from "@/components/wc/group-standings";
 import BracketView from "@/components/wc/bracket-view";
 import FeatureGate from "@/components/feature-gate";
-import { getGroups, getAllTeams } from "@/lib/groups";
+import { getAllTeams } from "@/lib/groups";
+import { getGroupStandings } from "@/lib/group-standings";
 import { getSimulation, getTopFavorites } from "@/lib/simulation";
 import { getBracket } from "@/lib/bracket";
 
@@ -24,8 +25,8 @@ const KICKOFF = "2026-06-11T19:00:00Z";
 export const revalidate = 120; // refresh ~2min so the live-conditioned sim surfaces fast
 
 export default async function CoupeDuMondePage() {
-  const [groups, allTeams, sim, favorites, bracket] = await Promise.all([
-    getGroups(),
+  const [standings, allTeams, sim, favorites, bracket] = await Promise.all([
+    getGroupStandings(),
     getAllTeams(),
     getSimulation(),
     getTopFavorites(3),
@@ -43,7 +44,7 @@ export default async function CoupeDuMondePage() {
           <TopFavorites favorites={favorites} />
           <TeamSearch teams={allTeams} />
           <WcTabs
-            groupsSlot={<GroupsGrid groups={groups} simBySlug={simBySlug} />}
+            groupsSlot={<GroupStandings standings={standings} simBySlug={simBySlug} />}
             bracketSlot={
               <FeatureGate feature="bracket" label="Le tableau final est réservé au Mensuel & Accès à vie">
                 <BracketView bracket={bracket} />

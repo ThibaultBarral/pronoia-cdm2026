@@ -116,6 +116,11 @@ async function generate(match: Match): Promise<MatchAnalysisData> {
 }
 
 export async function analyzeMatch(match: Match): Promise<Result> {
+  // No pre-match analysis for a finished match (checked before any credit spend).
+  if (match.status === "FT" || match.status === "AET" || match.status === "PEN") {
+    return { ok: false, error: "Ce match est terminé — l'analyse pré-match n'est plus disponible." };
+  }
+
   const guard = await requireAnalysisAccess();
   if ("error" in guard) return { ok: false, error: guard.error };
 

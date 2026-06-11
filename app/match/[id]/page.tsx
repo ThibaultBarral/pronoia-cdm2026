@@ -11,7 +11,10 @@ import MatchStats from "@/components/match-stats";
 import OddsTable from "@/components/odds-table";
 import Lineup from "@/components/lineup";
 import AIAnalysis from "@/components/ai-analysis";
+import MatchResult from "@/components/match-result";
 import AppSidebar from "@/components/dashboard/app-sidebar";
+
+const FINISHED = new Set(["FT", "AET", "PEN"]);
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,8 +24,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const match = await getMatchData(id);
   if (!match) return { title: "Match introuvable" };
-  const title = `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA & pronostic CDM 2026 | Copafever`;
-  const description = `Analyse IA complète : forme, stats, cotes et recommandation pari pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`;
+  const done = FINISHED.has(match.status ?? "");
+  const title = done
+    ? `${match.homeTeam.name} ${match.score?.home}–${match.score?.away} ${match.awayTeam.name} — Résultat & stats CDM 2026 | Copafever`
+    : `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA & pronostic CDM 2026 | Copafever`;
+  const description = done
+    ? `Résultat, stats et forme pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`
+    : `Analyse IA complète : forme, stats, cotes et recommandation pari pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`;
   const canonical = `/match/${id}`;
   return {
     title,
@@ -57,6 +65,7 @@ export default async function MatchPage({ params }: PageProps) {
   if (!match) notFound();
 
   const admin = user?.app_metadata?.is_admin === true;
+  const finished = FINISHED.has(match.status ?? "");
   // Signed-in users came from the dashboard → send "Retour" back there (not to
   // the public marketing landing, which looks like being logged out).
   const backHref = user ? "/dashboard" : "/";
@@ -152,7 +161,7 @@ export default async function MatchPage({ params }: PageProps) {
           <MatchStats homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
         </div>
 
-        {match.odds.length > 0 && (
+        {!finished && match.odds.length > 0 && (
           <div className="animate-fade-in-up delay-200">
             <OddsTable match={match} />
           </div>
@@ -168,7 +177,11 @@ export default async function MatchPage({ params }: PageProps) {
         )}
 
         <div className="animate-fade-in-up delay-400">
-          <AIAnalysis match={match} isAdmin={admin} />
+          {finished ? (
+            <MatchResult match={match} />
+          ) : (
+            <AIAnalysis match={match} isAdmin={admin} />
+          )}
         </div>
       </div>
 

@@ -63,6 +63,8 @@ function StatusBadge({ match }: { match: Match }) {
 
 export default function MatchRow({ match }: MatchRowProps) {
   const odds = match.odds[0]; // Best odds (first bookmaker)
+  const finished =
+    match.status === "FT" || match.status === "AET" || match.status === "PEN";
 
   return (
     <Link
@@ -125,7 +127,7 @@ export default function MatchRow({ match }: MatchRowProps) {
       {/* CTA */}
       <div className="shrink-0">
         <div className="flex items-center gap-1 text-[10px] text-[#444] group-hover:text-[var(--accent)] transition-colors font-medium">
-          <span className="hidden sm:block">Analyser</span>
+          <span className="hidden sm:block">{finished ? "Résultat" : "Analyser"}</span>
           <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
         </div>
       </div>
