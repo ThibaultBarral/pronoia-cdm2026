@@ -1,6 +1,6 @@
 import {
   Users, Euro, Percent, Zap, UserCheck, Activity, Gift, CalendarPlus,
-  ArrowUpRight, ArrowDownRight, Minus, type LucideIcon,
+  TicketPercent, ArrowUpRight, ArrowDownRight, Minus, type LucideIcon,
 } from "lucide-react";
 import type { AdminStats } from "@/lib/admin";
 import SignupsChart from "@/components/admin/signups-chart";
@@ -116,6 +116,10 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
         <MiniCard
           icon={CalendarPlus} label="Nouveaux (30j)" value={String(stats.newUsers30d)}
           sub={`${stats.newUsers7d} sur 7j`}
+        />
+        <MiniCard
+          icon={TicketPercent} label="Win-back KICKOFF20" value={String(stats.winbackShown)}
+          sub={`pop-ups affichées · ${stats.winbackEligible} éligibles`} accent="var(--accent-soft)"
         />
       </div>
 

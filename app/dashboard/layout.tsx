@@ -3,6 +3,7 @@ import PWARegister from "@/components/pwa-register";
 import BottomNav from "@/components/dashboard/bottom-nav";
 import PWAInstallGuide from "@/components/pwa-install-guide";
 import AcquisitionSurvey from "@/components/acquisition-survey";
+import WinbackPopup from "@/components/winback-popup";
 
 export const metadata: Metadata = {
   title: "Dashboard — Copafever CDM 2026",
@@ -20,6 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <BottomNav />
       <PWAInstallGuide />
       <AcquisitionSurvey />
+      <WinbackPopup />
     </div>
   );
 }

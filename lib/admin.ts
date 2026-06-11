@@ -2,7 +2,8 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Plan } from "@/lib/plans";
+import { FREE_ANALYSES_LIMIT, type Plan } from "@/lib/plans";
+import { WINBACK_MIN_VISIT_DAYS } from "@/lib/winback";
 import { ACQUISITION_CHANNELS, isRealChannel } from "@/lib/acquisition";
 
 const WHOP_COMPANY_ID = "biz_2exftzpAHl23k9";
@@ -19,6 +20,8 @@ export interface AdminUserRow {
   status: string | null;
   analysesCount: number;
   freeAnalysesUsed: number;
+  visitDays: number; // jours de visite distincts (tracking win-back)
+  winbackSeen: boolean; // pop-up KICKOFF20 déjà affichée
   vip: boolean; // accès gratuit offert (admin), indépendant des plans payants
   revenue: number; // CA réel Whop (€), payé − remboursé
   acquisitionChannel: string | null; // "tiktok" | … | "skip" | null
@@ -87,7 +90,7 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
 
   const [{ data: list }, { data: subs }, revenue] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    admin.from("subscriptions").select("user_id, plan, status, analyses_count, free_analyses_used, whop_membership_id, vip"),
+    admin.from("subscriptions").select("user_id, plan, status, analyses_count, free_analyses_used, visit_days, winback_popup_seen_at, whop_membership_id, vip"),
     fetchWhopRevenue(),
   ]);
 
@@ -114,6 +117,8 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
         status: (s?.status as string | null) ?? null,
         analysesCount: (s?.analyses_count as number | null) ?? 0,
         freeAnalysesUsed: (s?.free_analyses_used as number | null) ?? 0,
+        visitDays: (s?.visit_days as number | null) ?? 0,
+        winbackSeen: Boolean(s?.winback_popup_seen_at),
         vip: Boolean(s?.vip),
         revenue: membershipId ? revenue.byMembership.get(membershipId) ?? 0 : 0,
         acquisitionChannel: (meta.acquisition_channel as string | null) ?? null,
@@ -167,6 +172,9 @@ export interface AdminStats {
   // Acquisition channels ("comment nous as-tu connus")
   acquisitionBreakdown: ChannelCount[]; // real answered channels, desc by count
   acquisitionAnswered: number; // users who picked a real channel
+  // Win-back (KICKOFF20)
+  winbackShown: number; // pop-ups affichées (winback_popup_seen_at non null)
+  winbackEligible: number; // non-abonnés actuellement éligibles (pas encore vue)
 }
 
 const PLAN_ORDER: Plan[] = ["free", "pass_cdm", "weekly", "monthly", "lifetime"];
@@ -235,6 +243,17 @@ export function computeAdminStats(
     isRealChannel(u.acquisitionChannel)
   ).length;
 
+  // Win-back (KICKOFF20): non-subscriber = free plan, not VIP.
+  const winbackShown = users.filter((u) => u.winbackSeen).length;
+  const winbackEligible = users.filter(
+    (u) =>
+      u.plan === "free" &&
+      !u.vip &&
+      !u.winbackSeen &&
+      u.visitDays >= WINBACK_MIN_VISIT_DAYS &&
+      u.freeAnalysesUsed >= FREE_ANALYSES_LIMIT,
+  ).length;
+
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
   return {
@@ -259,6 +278,8 @@ export function computeAdminStats(
     planBreakdown,
     acquisitionBreakdown,
     acquisitionAnswered,
+    winbackShown,
+    winbackEligible,
   };
 }
 
