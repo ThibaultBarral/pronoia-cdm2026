@@ -49,23 +49,46 @@ function useCountdown(target: number | null): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
+const LIVE = new Set(["1H", "2H", "HT"]);
+
 export default function PremiumSpotlight({ matches }: { matches: Match[] }) {
   const sub = useSubscription();
   const access = sub?.access ?? false;
 
-  // World Cup opening = earliest scheduled match in the real dataset.
-  const opening = matches.length
+  const opener = matches.length
     ? matches.reduce((a, b) => (datetime(a) <= datetime(b) ? a : b))
     : null;
-  const countdown = useCountdown(opening ? datetime(opening) : null);
+  const anyStarted = matches.some((m) => (m.status ?? "NS") !== "NS");
+  const live = matches.find((m) => LIVE.has(m.status ?? ""));
+  const upcoming = matches
+    .filter((m) => (m.status ?? "NS") === "NS" && datetime(m) > Date.now())
+    .sort((a, b) => datetime(a) - datetime(b));
 
-  // Next matches to follow.
-  const top3 = matches
-    .filter((m) => (m.status ?? "NS") === "NS" && datetime(m) > Date.now() - 2 * 3600_000)
-    .sort((a, b) => datetime(a) - datetime(b))
-    .slice(0, 3);
+  // Feature: the opener countdown before kickoff → a live match → the next match.
+  const mode: "opening" | "live" | "next" | null = !anyStarted && opener
+    ? "opening"
+    : live
+      ? "live"
+      : upcoming[0]
+        ? "next"
+        : null;
+  const featured = mode === "opening" ? opener : mode === "live" ? live! : upcoming[0] ?? null;
 
-  if (!opening) return null;
+  const countdown = useCountdown(
+    (mode === "opening" || mode === "next") && featured ? datetime(featured) : null
+  );
+
+  // Next matches to follow (excluding the one already featured).
+  const top3 = upcoming.filter((m) => m.id !== featured?.id).slice(0, 3);
+
+  if (!featured) return null;
+
+  const heroLabel =
+    mode === "live"
+      ? "Match en direct"
+      : mode === "next"
+        ? "Prochain match"
+        : "Ouverture de la Coupe du Monde 2026";
 
   return (
     <section className="space-y-3">
@@ -79,23 +102,37 @@ export default function PremiumSpotlight({ matches }: { matches: Match[] }) {
         <div className="relative flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1 min-w-0">
             <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--accent)]">
-              <Timer size={12} /> Ouverture de la Coupe du Monde 2026
+              {mode === "live" ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+              ) : (
+                <Timer size={12} />
+              )}
+              {heroLabel}
             </span>
             <div className="mt-1.5 flex items-center gap-2 text-[#f0f0f0]">
-              <span className="text-lg">{opening.homeTeam.flag}</span>
-              <span className="font-bold text-sm">{opening.homeTeam.shortName}</span>
+              <span className="text-lg">{featured.homeTeam.flag}</span>
+              <span className="font-bold text-sm">{featured.homeTeam.shortName}</span>
               <span className="text-[#555] text-xs">vs</span>
-              <span className="font-bold text-sm">{opening.awayTeam.shortName}</span>
-              <span className="text-lg">{opening.awayTeam.flag}</span>
+              <span className="font-bold text-sm">{featured.awayTeam.shortName}</span>
+              <span className="text-lg">{featured.awayTeam.flag}</span>
               <span className="text-[10px] text-[#555] ml-1">
-                {new Date(`${opening.date}T${opening.time || "00:00"}`).toLocaleDateString("fr-FR", {
-                  day: "numeric", month: "long",
-                })}
+                {mode === "live"
+                  ? "En direct"
+                  : new Date(`${featured.date}T${featured.time || "00:00"}`).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                    }) + (mode === "next" && featured.time ? ` · ${featured.time}` : "")}
               </span>
             </div>
-            <div className="mt-2 text-3xl md:text-4xl font-black tabular-nums text-[var(--accent)] text-glow-neon">
-              {countdown}
-            </div>
+            {mode === "live" ? (
+              <div className="mt-2 text-3xl md:text-4xl font-black tabular-nums text-[var(--accent)] text-glow-neon">
+                {featured.score?.home ?? 0} – {featured.score?.away ?? 0}
+              </div>
+            ) : (
+              <div className="mt-2 text-3xl md:text-4xl font-black tabular-nums text-[var(--accent)] text-glow-neon">
+                {countdown}
+              </div>
+            )}
           </div>
 
           {!access ? (
@@ -107,10 +144,10 @@ export default function PremiumSpotlight({ matches }: { matches: Match[] }) {
             </Link>
           ) : (
             <Link
-              href={`/match/${opening.id}`}
+              href={`/match/${featured.id}`}
               className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 font-bold px-5 py-3 text-sm hover:bg-[var(--accent)]/20 transition-all"
             >
-              Voir l&apos;analyse <ArrowRight size={15} />
+              {mode === "live" ? "Suivre le match" : "Voir l'analyse"} <ArrowRight size={15} />
             </Link>
           )}
         </div>

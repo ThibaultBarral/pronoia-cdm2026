@@ -13,6 +13,16 @@ import {
   BankrollData, Bet, BetResult, Playstyle, PLAYSTYLES, computeStats, calcProfit,
 } from "@/lib/bankroll";
 import { loadUserBankroll, saveUserBankroll, deleteUserBankroll } from "@/lib/supabase/bankroll-db";
+import { createClient } from "@/lib/supabase/client";
+
+/** Keep the authoritative profile (auth metadata) in sync so AI analyses adapt. */
+async function syncBettorProfile(playstyle: Playstyle) {
+  try {
+    await createClient().auth.updateUser({ data: { bettor_profile: playstyle } });
+  } catch {
+    /* bankroll playstyle still persisted; non-blocking */
+  }
+}
 
 // ─── Setup screen ─────────────────────────────────────────────────────────────
 
@@ -216,11 +226,14 @@ export default function BankrollPage() {
 
   function handleSetup(amount: number, playstyle: Playstyle) {
     persist({ initialAmount: amount, playstyle, bets: [] });
+    syncBettorProfile(playstyle);
   }
 
   function handleSetPlaystyle(playstyle: Playstyle) {
     if (!data) return;
     persist({ ...data, playstyle });
+    // Authoritative source for the AI recommendation + personalised stake.
+    syncBettorProfile(playstyle);
   }
 
   function handleAddBet(bet: Bet) {
@@ -413,22 +426,47 @@ export default function BankrollPage() {
                     </div>
                   </div>
 
-                  {/* Playstyle picker — shown if not set yet */}
-                  {!data.playstyle && (
-                    <div className="rounded-2xl border border-[#ffd700]/20 bg-[#ffd700]/5 p-4">
-                      <p className="text-xs font-semibold text-[#ffd700] mb-3">
-                        🎮 Choisis ton style de jeu — Copafever adaptera ses recommandations
+                  {/* Style de pari — toujours modifiable (les analyses & mises s'y adaptent) */}
+                  <div
+                    className={`rounded-2xl border p-4 ${
+                      data.playstyle
+                        ? "border-[#141414] bg-[#0d0d0d]"
+                        : "border-[#ffd700]/20 bg-[#ffd700]/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p
+                        className={`text-xs font-semibold ${
+                          data.playstyle ? "text-[#888]" : "text-[#ffd700]"
+                        }`}
+                      >
+                        🎮 Mon style de pari
                       </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {PLAYSTYLES.map((ps) => (
+                      <span className="text-[10px] text-[#444]">Analyses & mises adaptées</span>
+                    </div>
+                    <p className="text-[11px] text-[#555] mb-3">
+                      Ta bankroll grandit ? Ajuste ton style — l&apos;IA suit (type de pari,
+                      audace et mise conseillée).
+                    </p>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                      {PLAYSTYLES.map((ps) => {
+                        const active = data.playstyle === ps.id;
+                        return (
                           <button
                             key={ps.id}
                             onClick={() => handleSetPlaystyle(ps.id)}
-                            className="text-left rounded-xl border border-[#141414] bg-[#0d0d0d] p-3 hover:bg-[#111] hover:border-[#222] transition-all"
+                            className={`text-left rounded-xl border p-3 transition-all ${
+                              active
+                                ? "border-[var(--accent)]/40 bg-[var(--accent)]/5"
+                                : "border-[#141414] bg-[#0d0d0d] hover:bg-[#111] hover:border-[#222]"
+                            }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-base">{ps.emoji}</span>
                               <span className="text-xs font-bold text-[#f0f0f0]">{ps.label}</span>
+                              {active && (
+                                <span className="ml-auto text-[10px] text-[var(--accent)] font-bold">✓</span>
+                              )}
                             </div>
                             <span
                               className="text-[10px] font-medium px-1.5 py-0.5 rounded"
@@ -437,10 +475,10 @@ export default function BankrollPage() {
                               {ps.stakeRange} bankroll
                             </span>
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
 
                   {tab === "overview" ? (
                     <>

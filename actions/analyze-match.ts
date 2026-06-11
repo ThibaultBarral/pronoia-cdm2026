@@ -5,8 +5,10 @@ import { requireAnalysisAccess } from "@/lib/ai-guard";
 import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
+import { getBettorProfile, bettorProfilePromptContext } from "@/lib/bettor-profile";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
+import type { Playstyle } from "@/lib/bankroll";
 import type { MatchAnalysisData } from "@/lib/analysis-schema";
 
 type Result = { ok: true; data: MatchAnalysisData } | { ok: false; error: string };
@@ -91,11 +93,11 @@ CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
 - Niveau de confiance global : ${pred.confidence}`;
 }
 
-async function generate(match: Match): Promise<MatchAnalysisData> {
+async function generate(match: Match, profile: Playstyle | null): Promise<MatchAnalysisData> {
   const pred = predictMatch(match);
   const text = await callClaudeJson<ClaudeMatchText>({
     system: SYSTEM_PROMPT,
-    user: buildPrompt(match, pred),
+    user: buildPrompt(match, pred) + bettorProfilePromptContext(profile),
     maxTokens: 1500,
   });
 
@@ -124,14 +126,16 @@ export async function analyzeMatch(match: Match): Promise<Result> {
   const guard = await requireAnalysisAccess();
   if ("error" in guard) return { ok: false, error: guard.error };
 
-  // Re-key by the number of finished WC matches → the analysis recomputes (with
-  // fresh form) whenever a match finishes, not just once a day.
+  // Re-key by finished WC matches (fresh form after each match) AND by the
+  // caller's bettor profile → the recommendation adapts to their play style.
+  // Each (match, day, results, profile) is still shared across same-profile users.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}`;
+  const profile = await getBettorProfile().catch(() => null);
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:${profile ?? "none"}`;
 
   try {
-    const data = await getCachedOrFetch(key, 86400, () => generate(match));
+    const data = await getCachedOrFetch(key, 86400, () => generate(match, profile));
     await saveAnalysis(guard.userId, {
       kind: "match",
       target: match.id,
