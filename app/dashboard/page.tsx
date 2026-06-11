@@ -25,10 +25,20 @@ export default function DashboardPage() {
   const [showBetForm, setShowBetForm] = useState(false);
 
   useEffect(() => {
-    getMatchesAction().then((m) => {
-      setMatches(m);
-      setLoading(false);
-    });
+    let active = true;
+    const load = () =>
+      getMatchesAction().then((m) => {
+        if (!active) return;
+        setMatches(m);
+        setLoading(false);
+      });
+    load();
+    // Poll so live scores / finished results update without a manual reload.
+    const id = setInterval(load, 60_000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
   }, []);
 
   const filtered = matches

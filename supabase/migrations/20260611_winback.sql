@@ -8,6 +8,7 @@ ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS winback_popup_seen_at timesta
 
 -- Count a distinct visit DAY for the calling user, at most once per Europe/Paris
 -- day. Returns the (possibly unchanged) visit_days. Creates the row on first use.
+
 CREATE OR REPLACE FUNCTION record_visit()
 RETURNS int
 LANGUAGE plpgsql

@@ -4,6 +4,7 @@ import type { Team } from "@/lib/types";
 import { requireAnalysisAccess } from "@/lib/ai-guard";
 import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
+import { getWcFinishedCount } from "@/lib/data-service";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { getTeamSimulation, type TeamSimResult } from "@/lib/simulation";
 import type { TeamAnalysisData } from "@/lib/analysis-schema";
@@ -75,8 +76,10 @@ export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
   const guard = await requireAnalysisAccess();
   if ("error" in guard) return { ok: false, error: guard.error };
 
+  // Re-key by finished WC matches so the team analysis refreshes as results land.
   const day = new Date().toISOString().slice(0, 10);
-  const key = `analysis:team:${slug}:${day}`;
+  const finished = await getWcFinishedCount().catch(() => 0);
+  const key = `analysis:team:${slug}:${day}:wc${finished}`;
 
   try {
     // Shared daily cache → one Claude call per team per day, reused by everyone.

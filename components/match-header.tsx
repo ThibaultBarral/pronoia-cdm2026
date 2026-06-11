@@ -13,6 +13,12 @@ export default function MatchHeader({ match }: { match: Match }) {
     year: "numeric",
   });
 
+  const live = match.status === "1H" || match.status === "2H" || match.status === "HT";
+  const finished =
+    match.status === "FT" || match.status === "AET" || match.status === "PEN";
+  const started =
+    (live || finished) && match.score?.home != null && match.score?.away != null;
+
   return (
     <div className="relative overflow-hidden rounded-2xl glass p-6 md:p-8">
       {/* Background glow */}
@@ -60,10 +66,40 @@ export default function MatchHeader({ match }: { match: Match }) {
           </Link>
 
           <div className="flex flex-col items-center gap-2">
-            <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center">
-              <span className="text-lg font-black text-[#888]">VS</span>
-            </div>
-            <span className="text-[var(--accent)] text-sm font-bold">{match.time}</span>
+            {started ? (
+              <>
+                <div className="px-4 py-2 rounded-2xl glass flex items-center gap-2.5">
+                  <span className="text-3xl md:text-4xl font-black tabular-nums text-[#f0f0f0]">
+                    {match.score!.home}
+                  </span>
+                  <span className="text-xl text-[#555]">–</span>
+                  <span className="text-3xl md:text-4xl font-black tabular-nums text-[#f0f0f0]">
+                    {match.score!.away}
+                  </span>
+                </div>
+                {live ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#22c55e]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+                    {match.status === "HT" ? "Mi-temps" : "En direct"}
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-[#888]">
+                    {match.status === "AET"
+                      ? "Terminé (a.p.)"
+                      : match.status === "PEN"
+                        ? "Terminé (t.a.b.)"
+                        : "Terminé"}
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center">
+                  <span className="text-lg font-black text-[#888]">VS</span>
+                </div>
+                <span className="text-[var(--accent)] text-sm font-bold">{match.time}</span>
+              </>
+            )}
           </div>
 
           <Link

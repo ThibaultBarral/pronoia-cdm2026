@@ -265,6 +265,59 @@ function mapH2H(fixtures: ApiFixtureResponse[]): H2HMatch[] {
   });
 }
 
+// ─── Live WC fixtures (status + score), short-cached so scores update ─────────
+
+const WC_FINISHED = new Set(["FT", "AET", "PEN"]);
+
+/**
+ * All WC 2026 fixtures from API-Football, shared-cached for only 60s so live
+ * scores and finished results surface quickly (one API call serves everyone).
+ */
+async function getWcFixtures(): Promise<ApiFixtureResponse[]> {
+  if (!hasApiKey()) return [];
+  return getCachedOrFetch(`fixtures:wc${WC_SEASON}:live`, 60, () => fetchFixtures()).catch(
+    () => [] as ApiFixtureResponse[]
+  );
+}
+
+/** How many WC matches have finished — drives cache keys so analyses recompute. */
+export async function getWcFinishedCount(): Promise<number> {
+  const fx = await getWcFixtures();
+  return fx.reduce((n, f) => n + (WC_FINISHED.has(f.fixture.status.short) ? 1 : 0), 0);
+}
+
+function findWcFixture(
+  fx: ApiFixtureResponse[],
+  idA: number,
+  idB: number
+): ApiFixtureResponse | null {
+  return (
+    fx.find((f) => {
+      const h = f.teams.home.id;
+      const a = f.teams.away.id;
+      return (h === idA && a === idB) || (h === idB && a === idA);
+    }) ?? null
+  );
+}
+
+interface LiveResult {
+  status: Match["status"];
+  score: { home: number | null; away: number | null };
+  apiFixtureId: number;
+}
+
+/** Map an API fixture to live status + score ORIENTED to our `homeApiId`. */
+function orientResult(f: ApiFixtureResponse, homeApiId: number): LiveResult {
+  const apiHomeIsOurHome = f.teams.home.id === homeApiId;
+  const gh = f.goals.home;
+  const ga = f.goals.away;
+  return {
+    status: mapStatus(f.fixture.status.short),
+    score: apiHomeIsOurHome ? { home: gh, away: ga } : { home: ga, away: gh },
+    apiFixtureId: f.fixture.id,
+  };
+}
+
 // ─── Team builder from OpenFootball + API-Football ────────────────────────────
 
 async function buildTeam(
@@ -311,8 +364,9 @@ async function buildTeam(
   const [squadRes, coachRes, formRes] = await Promise.allSettled([
     getCachedOrFetch(`squad:${teamId}`, 86400, () => fetchSquad(teamId)),
     getCachedOrFetch(`coach:${teamId}`, 604800, () => fetchCoach(teamId)),
-    // Real recent matches across all competitions (cached 12h)
-    getCachedOrFetch(`recent:${teamId}`, 43200, () => fetchRecentMatches(teamId, 10)).catch(
+    // Real recent matches across all competitions — cached 1h so the form
+    // reflects newly played World Cup matches within the hour.
+    getCachedOrFetch(`recent:${teamId}`, 3600, () => fetchRecentMatches(teamId, 10)).catch(
       () => [] as ApiFixtureResponse[]
     ),
   ]);
@@ -351,7 +405,7 @@ async function buildTeam(
 // ─── getMatches — all 72 WC 2026 group-stage matches ─────────────────────────
 
 export async function getMatches(): Promise<Match[]> {
-  const fixtures = await fetchOpenFootball();
+  const [fixtures, wc] = await Promise.all([fetchOpenFootball(), getWcFixtures()]);
 
   if (!fixtures.length) {
     console.warn("[data-service] OpenFootball empty — using mock");
@@ -362,6 +416,11 @@ export async function getMatches(): Promise<Match[]> {
     const group = (f.group ?? "").replace("Group ", "");
     const meta1 = getTeamMeta(f.team1);
     const meta2 = getTeamMeta(f.team2);
+
+    // Real-time status + score from API-Football (oriented to team1 = home).
+    const apiFx =
+      meta1.apiId && meta2.apiId ? findWcFixture(wc, meta1.apiId, meta2.apiId) : null;
+    const live = apiFx ? orientResult(apiFx, meta1.apiId) : null;
 
     const makeShell = (name: string, meta: ReturnType<typeof getTeamMeta>): Team => {
       const p = getTeamProfile(name);
@@ -409,8 +468,14 @@ export async function getMatches(): Promise<Match[]> {
       round: "Phase de groupes",
       h2h: [],
       odds: [],
-      status: "NS",
-      score: f.score ? { home: f.score.ft[0], away: f.score.ft[1] } : { home: null, away: null },
+      apiFixtureId: live?.apiFixtureId,
+      status: live?.status ?? "NS",
+      score:
+        live && live.score.home != null
+          ? live.score
+          : f.score
+            ? { home: f.score.ft[0], away: f.score.ft[1] }
+            : { home: null, away: null },
     };
   });
 }
@@ -462,11 +527,14 @@ export async function getMatchData(id: string): Promise<Match | null> {
 
   if (hasApiKey() && meta1.apiId && meta2.apiId) {
     // Resolve this match's API-Football fixture → unlocks odds + live score.
-    const apiFixture = await resolveApiFixture(meta1.apiId, meta2.apiId);
+    // Short-cached (60s) + oriented to OUR home team so the score isn't flipped.
+    const wc = await getWcFixtures();
+    const apiFixture = findWcFixture(wc, meta1.apiId, meta2.apiId);
     if (apiFixture) {
-      apiFixtureId = apiFixture.fixture.id;
-      liveStatus = mapStatus(apiFixture.fixture.status.short);
-      liveScore = { home: apiFixture.goals.home, away: apiFixture.goals.away };
+      const live = orientResult(apiFixture, meta1.apiId);
+      apiFixtureId = live.apiFixtureId;
+      liveStatus = live.status;
+      liveScore = live.score;
     }
 
     const [h2hRes, oddsRes] = await Promise.allSettled([
@@ -529,22 +597,3 @@ function mapStatus(short: string): Match["status"] {
   }
 }
 
-/** Find the WC 2026 API-Football fixture for a team pair (cached fixtures list). */
-async function resolveApiFixture(
-  idA: number,
-  idB: number
-): Promise<ApiFixtureResponse | null> {
-  const fixtures = await getCachedOrFetch(
-    `fixtures:wc${WC_SEASON}`,
-    43200,
-    () => fetchFixtures()
-  ).catch(() => [] as ApiFixtureResponse[]);
-
-  return (
-    fixtures.find((f) => {
-      const h = f.teams.home.id;
-      const a = f.teams.away.id;
-      return (h === idA && a === idB) || (h === idB && a === idA);
-    }) ?? null
-  );
-}

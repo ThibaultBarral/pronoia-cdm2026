@@ -4,6 +4,7 @@ import type { Match } from "@/lib/types";
 import { requireAnalysisAccess } from "@/lib/ai-guard";
 import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
+import { getWcFinishedCount } from "@/lib/data-service";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
 import type { MatchAnalysisData } from "@/lib/analysis-schema";
@@ -118,8 +119,11 @@ export async function analyzeMatch(match: Match): Promise<Result> {
   const guard = await requireAnalysisAccess();
   if ("error" in guard) return { ok: false, error: guard.error };
 
+  // Re-key by the number of finished WC matches → the analysis recomputes (with
+  // fresh form) whenever a match finishes, not just once a day.
   const day = new Date().toISOString().slice(0, 10);
-  const key = `analysis:match:${match.id}:${day}`;
+  const finished = await getWcFinishedCount().catch(() => 0);
+  const key = `analysis:match:${match.id}:${day}:wc${finished}`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match));

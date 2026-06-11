@@ -234,11 +234,11 @@ export async function fetchSquad(teamId: number): Promise<ApiSquadResponse | nul
 }
 
 /**
- * Seasons accessible on the API-Football free plan, newest first.
- * The `last` parameter and seasons ≥ 2025 are paywalled, but full-season
- * fixture lists for 2022-2024 are available — we derive recent form from those.
+ * Seasons we derive recent form from, newest first. 2026 surfaces the freshly
+ * played World Cup 2026 results (so form/analyses react to the tournament as it
+ * unfolds); 2024 carries the qualifiers / Nations League up to late 2025.
  */
-export const RECENT_SEASONS = [2024, 2023] as const;
+export const RECENT_SEASONS = [2026, 2024, 2023] as const;
 
 /** All fixtures for a team in a given season (all competitions) — cached 12h */
 export async function fetchTeamSeasonFixtures(

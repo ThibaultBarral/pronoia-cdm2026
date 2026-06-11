@@ -44,7 +44,7 @@ const COUNTRY_NAME: Record<string, string> = {
   Mexique: "Mexique",
 };
 
-export const revalidate = 1800; // re-fetch every 30min
+export const revalidate = 60; // re-fetch every 60s so live scores/results stay fresh
 
 export default async function MatchPage({ params }: PageProps) {
   const { id } = await params;
