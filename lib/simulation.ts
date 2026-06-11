@@ -26,6 +26,8 @@ import { getTeamProfile } from "./team-data";
 import { getElo } from "./elo";
 import { getKnockoutBracket } from "./wc-bracket";
 import { marketTitleProbs } from "./outright-odds";
+import { getTeamMeta } from "./team-ids";
+import { getPlayedWcResults, getWcFinishedCount } from "./data-service";
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 
@@ -228,14 +230,28 @@ interface Counters {
 }
 
 async function compute(): Promise<TeamSimResult[]> {
-  const [groups, bracket] = await Promise.all([
+  const [groups, bracket, played] = await Promise.all([
     getGroups(),
     getKnockoutBracket(),
+    getPlayedWcResults().catch(() => []),
   ]);
 
   const teams: GroupTeam[] = groups.flatMap((g) => g.teams);
   const elo = new Map(teams.map((t) => [t.nameEn, getElo(t.nameEn)]));
   const eloOf = (n: string) => elo.get(n) ?? getElo(n);
+
+  // Real finished results, keyed by sorted API-id pair → fixes those group
+  // matches to reality so standings & all probabilities track the live tournament.
+  const apiIdOf = (name: string) => getTeamMeta(name).apiId;
+  const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+  const realByPair = new Map<string, { homeApiId: number; gh: number; ga: number }>();
+  for (const r of played) {
+    realByPair.set(pairKey(r.homeApiId, r.awayApiId), {
+      homeApiId: r.homeApiId,
+      gh: r.goalsHome,
+      ga: r.goalsAway,
+    });
+  }
 
   // Memoise pairwise W/D so the inner MC loop stays cheap.
   const wdCache = new Map<string, { w: number; d: number }>();
@@ -288,6 +304,24 @@ async function compute(): Promise<TeamSimResult[]> {
         for (let j = i + 1; j < ts.length; j++) {
           const A = ts[i];
           const B = ts[j];
+
+          // Already played? Fix it to the real result (deterministic every iter).
+          const idA = apiIdOf(A);
+          const idB = apiIdOf(B);
+          const real = idA && idB ? realByPair.get(pairKey(idA, idB)) : undefined;
+          if (real) {
+            const aGoals = real.homeApiId === idA ? real.gh : real.ga;
+            const bGoals = real.homeApiId === idA ? real.ga : real.gh;
+            if (aGoals > bGoals) pts[A] += 3;
+            else if (aGoals === bGoals) {
+              pts[A]++;
+              pts[B]++;
+            } else pts[B] += 3;
+            gd[A] += aGoals - bGoals;
+            gd[B] += bGoals - aGoals;
+            continue;
+          }
+
           const { w, d } = wd(A, B);
           const r = rand();
           if (r < w) {
@@ -433,7 +467,10 @@ function koWin(
 
 /** Full simulation for all 48 teams, sorted by title probability. */
 export async function getSimulation(): Promise<TeamSimResult[]> {
-  return getCachedOrFetch("simulation:wc2026:v2", 86400, compute);
+  // Re-key by finished matches → the simulation re-runs (conditioned on the
+  // latest real results) after every match, instead of once a day.
+  const finished = await getWcFinishedCount().catch(() => 0);
+  return getCachedOrFetch(`simulation:wc2026:v3:wc${finished}`, 86400, compute);
 }
 
 /** Simulation result for one team by slug. */

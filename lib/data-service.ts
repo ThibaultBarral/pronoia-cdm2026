@@ -286,6 +286,34 @@ export async function getWcFinishedCount(): Promise<number> {
   return fx.reduce((n, f) => n + (WC_FINISHED.has(f.fixture.status.short) ? 1 : 0), 0);
 }
 
+export interface PlayedResult {
+  homeApiId: number;
+  awayApiId: number;
+  goalsHome: number;
+  goalsAway: number;
+}
+
+/**
+ * All FINISHED WC 2026 matches with their real score (by API team id). Used to
+ * condition the simulation on actual results (live group standings + % recompute).
+ */
+export async function getPlayedWcResults(): Promise<PlayedResult[]> {
+  const fx = await getWcFixtures();
+  return fx
+    .filter(
+      (f) =>
+        WC_FINISHED.has(f.fixture.status.short) &&
+        f.goals.home != null &&
+        f.goals.away != null
+    )
+    .map((f) => ({
+      homeApiId: f.teams.home.id,
+      awayApiId: f.teams.away.id,
+      goalsHome: f.goals.home as number,
+      goalsAway: f.goals.away as number,
+    }));
+}
+
 function findWcFixture(
   fx: ApiFixtureResponse[],
   idA: number,

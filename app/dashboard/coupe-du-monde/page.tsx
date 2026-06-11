@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const KICKOFF = "2026-06-11T19:00:00Z";
 
 // Revalidate hourly; heavy data (groups/sim/bracket) is itself cached daily.
-export const revalidate = 3600;
+export const revalidate = 120; // refresh ~2min so the live-conditioned sim surfaces fast
 
 export default async function CoupeDuMondePage() {
   const [groups, allTeams, sim, favorites, bracket] = await Promise.all([
