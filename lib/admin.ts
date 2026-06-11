@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { FREE_ANALYSES_LIMIT, type Plan } from "@/lib/plans";
 import { WINBACK_MIN_VISIT_DAYS } from "@/lib/winback";
 import { ACQUISITION_CHANNELS, isRealChannel } from "@/lib/acquisition";
+import { NO_SUB_REASONS, isRealNoSubReason } from "@/lib/no-sub-survey";
 
 const WHOP_COMPANY_ID = "biz_2exftzpAHl23k9";
 
@@ -26,6 +27,7 @@ export interface AdminUserRow {
   revenue: number; // CA réel Whop (€), payé − remboursé
   acquisitionChannel: string | null; // "tiktok" | … | "skip" | null
   acquisitionDetail: string | null; // précision libre saisie par l'utilisateur
+  noSubReason: string | null; // raison de non-abonnement | "skip" | null
 }
 
 /** True if the currently authenticated user is an admin (app_metadata only). */
@@ -123,6 +125,7 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
         revenue: membershipId ? revenue.byMembership.get(membershipId) ?? 0 : 0,
         acquisitionChannel: (meta.acquisition_channel as string | null) ?? null,
         acquisitionDetail: (meta.acquisition_detail as string | null) ?? null,
+        noSubReason: (meta.no_sub_reason as string | null) ?? null,
       };
     })
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
@@ -175,6 +178,9 @@ export interface AdminStats {
   // Win-back (KICKOFF20)
   winbackShown: number; // pop-ups affichées (winback_popup_seen_at non null)
   winbackEligible: number; // non-abonnés actuellement éligibles (pas encore vue)
+  // "Pourquoi pas d'abonnement ?"
+  noSubBreakdown: { id: string; label: string; emoji: string; count: number }[];
+  noSubAnswered: number; // utilisateurs ayant donné une vraie raison
 }
 
 const PLAN_ORDER: Plan[] = ["free", "pass_cdm", "weekly", "monthly", "lifetime"];
@@ -254,6 +260,17 @@ export function computeAdminStats(
       u.freeAnalysesUsed >= FREE_ANALYSES_LIMIT,
   ).length;
 
+  // "Pourquoi pas d'abonnement ?" — answered reasons, desc by count.
+  const noSubBreakdown = NO_SUB_REASONS.map((r) => ({
+    id: r.id,
+    label: r.label,
+    emoji: r.emoji,
+    count: users.filter((u) => u.noSubReason === r.id).length,
+  }))
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count);
+  const noSubAnswered = users.filter((u) => isRealNoSubReason(u.noSubReason)).length;
+
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
   return {
@@ -280,6 +297,8 @@ export function computeAdminStats(
     acquisitionAnswered,
     winbackShown,
     winbackEligible,
+    noSubBreakdown,
+    noSubAnswered,
   };
 }
 
