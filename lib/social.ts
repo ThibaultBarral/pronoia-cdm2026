@@ -9,8 +9,8 @@ export interface SocialLink {
 }
 
 export const SOCIAL_LINKS: SocialLink[] = [
-  { id: "twitter", label: "X (Twitter)", href: "https://x.com/copafever" },
-  { id: "instagram", label: "Instagram", href: "https://instagram.com/copafever" },
-  { id: "youtube", label: "YouTube", href: "https://youtube.com/@copafever" },
-  { id: "tiktok", label: "TikTok", href: "https://tiktok.com/@copafever" },
+  { id: "twitter", label: "X (Twitter)", href: "https://x.com/0xCopa" },
+  { id: "instagram", label: "Instagram", href: "https://www.instagram.com/0xcopa" },
+  { id: "youtube", label: "YouTube", href: "https://youtube.com/@0xcopa" },
+  { id: "tiktok", label: "TikTok", href: "https://www.tiktok.com/@0xcopa" },
 ];
