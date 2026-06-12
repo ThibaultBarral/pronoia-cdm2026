@@ -9,4 +9,6 @@ export const FEATURE = {
   lockedNav: process.env.NEXT_PUBLIC_FEATURE_LOCKED_NAV !== "false",
   /** 2-step onboarding: segmentation → pricing (Feature 3). */
   onboardingV2: process.env.NEXT_PUBLIC_FEATURE_ONBOARDING_V2 !== "false",
+  /** Celebration modal + social-proof toasts (Feature 5). */
+  socialProof: process.env.NEXT_PUBLIC_FEATURE_SOCIAL_PROOF !== "false",
 };

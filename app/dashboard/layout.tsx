@@ -6,6 +6,7 @@ import AcquisitionSurvey from "@/components/acquisition-survey";
 import WinbackPopup from "@/components/winback-popup";
 import NoSubSurvey from "@/components/no-sub-survey";
 import PremiumNudge from "@/components/dashboard/premium-nudge";
+import SocialProofGate from "@/components/social-proof/social-proof-gate";
 
 export const metadata: Metadata = {
   title: "Dashboard — Copafever CDM 2026",
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <WinbackPopup />
       <NoSubSurvey />
       <PremiumNudge />
+      <SocialProofGate />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
 import { getBettorProfile, bettorProfilePromptContext } from "@/lib/bettor-profile";
+import { logMatchPrediction } from "@/lib/predictions";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
 import type { Playstyle } from "@/lib/bankroll";
@@ -144,6 +145,8 @@ export async function analyzeMatch(match: Match): Promise<Result> {
       awayFlag: match.awayTeam.flag,
       data,
     });
+    // Track record: log the IA's structured pick for this match (idempotent).
+    await logMatchPrediction(match);
     return { ok: true, data };
   } catch (err) {
     console.error("[analyze-match] error:", err);

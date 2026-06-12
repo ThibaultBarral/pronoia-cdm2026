@@ -306,6 +306,25 @@ export async function getMatchOddsMarkets(apiFixtureId: number): Promise<MatchOd
   return { win, ou25: extractOverUnder(resp), btts: extractBtts(resp) };
 }
 
+/**
+ * Final score of a finished WC match by team API ids, oriented so `homeGoals`
+ * belongs to `homeApiId`. Null if the match isn't finished / not found. Used to
+ * auto-settle predictions.
+ */
+export async function getFinishedScore(
+  homeApiId: number,
+  awayApiId: number
+): Promise<{ homeGoals: number; awayGoals: number } | null> {
+  if (!homeApiId || !awayApiId) return null;
+  const wc = await getWcFixtures();
+  const f = findWcFixture(wc, homeApiId, awayApiId);
+  if (!f || !WC_FINISHED.has(f.fixture.status.short)) return null;
+  if (f.goals.home == null || f.goals.away == null) return null;
+  return f.teams.home.id === homeApiId
+    ? { homeGoals: f.goals.home, awayGoals: f.goals.away }
+    : { homeGoals: f.goals.away, awayGoals: f.goals.home };
+}
+
 /** How many WC matches have finished — drives cache keys so analyses recompute. */
 export async function getWcFinishedCount(): Promise<number> {
   const fx = await getWcFixtures();
