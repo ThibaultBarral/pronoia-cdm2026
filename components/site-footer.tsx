@@ -8,6 +8,8 @@ const NAV_COLUMNS: { title: string; links: { label: string; href: string }[] }[]
     links: [
       { label: "Comment ça marche", href: "/#how-it-works" },
       { label: "Tarifs", href: "/#tarifs" },
+      { label: "Combiné du jour", href: "/combine-du-jour" },
+      { label: "Track record", href: "/track-record" },
       { label: "Matchs", href: "/#matches" },
       { label: "FAQ", href: "/#faq" },
     ],

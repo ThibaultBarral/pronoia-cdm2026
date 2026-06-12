@@ -60,3 +60,48 @@ export async function getTrackRecordStats(): Promise<TrackRecordStats> {
     return EMPTY;
   }
 }
+
+export interface TrackRow {
+  id: string;
+  matchLabel: string;
+  homeFlag: string | null;
+  awayFlag: string | null;
+  market: string;
+  selection: string;
+  odds: number;
+  confidence: string | null;
+  status: string;
+  resultNote: string | null;
+  phase: string | null;
+  date: string | null;
+}
+
+/** Full chronological list (settled first, recent first) — misses included. */
+export async function getTrackRecordList(limit = 300): Promise<TrackRow[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("verified_predictions")
+      .select("id, match_label, home_flag, away_flag, market, selection, odds, confidence, status, result_note, phase, match_date, settled_at, created_at")
+      .order("settled_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    return (data ?? []).map((r): TrackRow => ({
+      id: r.id as string,
+      matchLabel: (r.match_label as string | null) ?? "",
+      homeFlag: (r.home_flag as string | null) ?? null,
+      awayFlag: (r.away_flag as string | null) ?? null,
+      market: (r.market as string | null) ?? "",
+      selection: (r.selection as string | null) ?? "",
+      odds: Number(r.odds) || 0,
+      confidence: (r.confidence as string | null) ?? null,
+      status: (r.status as string) ?? "pending",
+      resultNote: (r.result_note as string | null) ?? null,
+      phase: (r.phase as string | null) ?? null,
+      date: (r.match_date as string | null) ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}

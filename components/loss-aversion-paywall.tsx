@@ -204,8 +204,14 @@ export default function LossAversionPaywall({ match }: { match: Match }) {
           </div>
         </div>
 
+        <div className="text-center mt-2">
+          <Link href="/track-record" className="text-[11px] font-bold text-[var(--accent)] hover:underline">
+            Voir tout le track record →
+          </Link>
+        </div>
+
         {/* Mentions légales */}
-        <p className="text-[10px] text-[#5a6472] text-center mt-4 leading-relaxed">
+        <p className="text-[10px] text-[#5a6472] text-center mt-3 leading-relaxed">
           Analyses à titre informatif · simulation sur cotes réelles · 18+ · Jouer comporte des
           risques · joueurs-info-service.fr · 09 74 75 13 13
         </p>
