@@ -7,4 +7,6 @@ export const FEATURE = {
   lossAversion: process.env.NEXT_PUBLIC_FEATURE_LOSS_AVERSION !== "false",
   /** Free-analysis counter + locked nav teasers (Feature 2). */
   lockedNav: process.env.NEXT_PUBLIC_FEATURE_LOCKED_NAV !== "false",
+  /** 2-step onboarding: segmentation → pricing (Feature 3). */
+  onboardingV2: process.env.NEXT_PUBLIC_FEATURE_ONBOARDING_V2 !== "false",
 };
