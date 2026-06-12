@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SOCIAL_LINKS } from "@/lib/social";
+import { SOCIAL_LINKS, CONTACT_EMAIL } from "@/lib/social";
 import { SocialIcon } from "@/components/social-icons";
 
 const NAV_COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
@@ -41,6 +41,12 @@ export default function SiteFooter() {
             <p className="text-xs text-[#5a6472] leading-relaxed max-w-xs mb-4">
               L&apos;assistant de paris propulsé par l&apos;IA : analyses, value bets et suivi de
               bankroll pour la Coupe du Monde 2026 et toutes les compétitions à venir.
+            </p>
+            <p className="text-xs text-[#5a6472] mb-4">
+              Contact :{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--accent)] hover:underline">
+                {CONTACT_EMAIL}
+              </a>
             </p>
             <div className="flex items-center gap-2">
               {SOCIAL_LINKS.map((s) => (

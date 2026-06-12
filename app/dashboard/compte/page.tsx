@@ -5,6 +5,7 @@ import AccountClient from "@/components/account/account-client";
 import { createClient } from "@/lib/supabase/server";
 import { getSubscription } from "@/lib/ai-guard";
 import { planName } from "@/lib/plans";
+import { CONTACT_EMAIL } from "@/lib/social";
 
 export const metadata: Metadata = {
   title: "Mon compte — Copafever",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@copafever.com";
+const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? CONTACT_EMAIL;
 
 export default async function ComptePage() {
   const supabase = await createClient();

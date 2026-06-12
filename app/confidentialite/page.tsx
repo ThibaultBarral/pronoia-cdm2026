@@ -22,8 +22,8 @@ export default function ConfidentialitePage() {
       <p>
         Le responsable du traitement est [Nom de l&apos;éditeur / société], [adresse]. Pour toute
         question relative à vos données :{" "}
-        <a href="mailto:[email de contact]" className="text-[var(--accent)] underline">
-          [email de contact]
+        <a href="mailto:copafever@gmail.com" className="text-[var(--accent)] underline">
+          copafever@gmail.com
         </a>
         .
       </p>

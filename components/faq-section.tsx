@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
 import { FAQ } from "@/lib/faq";
+import { CONTACT_EMAIL } from "@/lib/social";
 
 export default function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
@@ -68,7 +69,7 @@ export default function FaqSection() {
 
       <p className="text-center text-xs text-[var(--text-muted)] mt-8">
         Une autre question ?{" "}
-        <a href="mailto:support@copafever.com" className="text-[var(--accent)] hover:underline">
+        <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--accent)] hover:underline">
           Écris-nous
         </a>
         .

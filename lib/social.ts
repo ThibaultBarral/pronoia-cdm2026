@@ -1,6 +1,8 @@
+/** Public contact e-mail — single source of truth (FAQ, support, legal pages). */
+export const CONTACT_EMAIL = "copafever@gmail.com";
+
 /**
  * Social links — single source of truth (footer, navbar, JSON-LD sameAs).
- * ⚠️ Replace these with the real handles/URLs when they're live.
  */
 export interface SocialLink {
   id: "twitter" | "instagram" | "youtube" | "tiktok";

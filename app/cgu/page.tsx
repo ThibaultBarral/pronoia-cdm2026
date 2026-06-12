@@ -23,8 +23,8 @@ export default function CGUPage() {
         Copafever (ci-après « le Service ») est édité par [Nom de l&apos;éditeur / société],
         [forme juridique et capital le cas échéant], dont le siège est situé [adresse], immatriculée
         sous le numéro [SIREN/RCS]. Directeur de la publication : [nom]. Contact :{" "}
-        <a href="mailto:[email de contact]" className="text-[var(--accent)] underline">
-          [email de contact]
+        <a href="mailto:copafever@gmail.com" className="text-[var(--accent)] underline">
+          copafever@gmail.com
         </a>
         . Hébergement : Vercel Inc. et Supabase.
       </p>
