@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Bot, Sparkles, RefreshCw, AlertCircle, Lock, Gauge,
+  Bot, Sparkles, RefreshCw, AlertCircle, Gauge,
   Coins, Target, TrendingUp, Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { recommendStake, parseOdds } from "@/lib/staking";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
+import LossAversionPaywall from "@/components/loss-aversion-paywall";
 import {
   DISCLAIMER, type Confidence, type MatchAnalysisData,
 } from "@/lib/analysis-schema";
@@ -131,8 +132,8 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
             return;
           }
           if (result.error === PAYWALL_REQUIRED) {
+            // paywall_view is fired (enriched with missed_amount) by the paywall.
             setLocked(true);
-            trackEvent("paywall_view", { source: "match_analysis", match_id: match.id });
             return;
           }
           setError(result.error ?? "Erreur inconnue");
@@ -164,33 +165,8 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
       </div>
 
       <div className="p-5">
-        {/* Locked */}
-        {locked && (
-          <div className="relative overflow-hidden rounded-xl border border-[var(--accent)]/15 bg-gradient-to-b from-[var(--accent)]/[0.04] to-transparent py-9 px-5">
-            <div className="absolute inset-0 px-6 pt-6 space-y-2.5 opacity-[0.12] blur-[3px] pointer-events-none select-none" aria-hidden>
-              {["w-3/4", "w-full", "w-5/6", "w-2/3", "w-full", "w-1/2"].map((w, i) => (
-                <div key={i} className={`h-2.5 rounded-full bg-[#9aa] ${w}`} />
-              ))}
-            </div>
-            <div className="relative flex flex-col items-center gap-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
-                <Lock size={24} className="text-[var(--accent)]" />
-              </div>
-              <div>
-                <p className="text-[#f0f0f0] font-bold text-base mb-1">Analyse IA Premium</p>
-                <p className="text-xs text-[#888] max-w-xs leading-relaxed mx-auto">
-                  Probabilités, value bets détectés et recommandation de pari sur ce match.
-                </p>
-              </div>
-              <Link
-                href="/dashboard/pricing"
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[#06231a] font-bold px-6 py-2.5 text-sm glow-neon transition-all hover:scale-105"
-              >
-                <Sparkles size={15} /> Passer Premium
-              </Link>
-            </div>
-          </div>
-        )}
+        {/* Locked — loss-aversion paywall (Feature 1), with simple-card fallback */}
+        {locked && <LossAversionPaywall match={match} />}
 
         {/* Empty */}
         {!data && !isPending && !error && !locked && (

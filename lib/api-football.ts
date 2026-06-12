@@ -418,3 +418,50 @@ export function extractOdds(oddsResponse: ApiOddsResponse | null): SimpleOdds[] 
 
   return results;
 }
+
+// ─── Extra markets (Over/Under, BTTS) for the loss-aversion ticket ────────────
+
+/** All bookmaker markets for a fixture (Match Winner + O/U + BTTS …) — 30min. */
+export async function fetchOddsAll(fixtureId: number): Promise<ApiOddsResponse | null> {
+  const results = await apiFetch<ApiOddsResponse>(`/odds?fixture=${fixtureId}`, 1800);
+  return results[0] ?? null;
+}
+
+/** Find the first bookmaker (by priority) that quotes a given bet id. */
+function findBet(resp: ApiOddsResponse | null, betId: number, betName: string) {
+  if (!resp) return null;
+  for (const priority of BOOKMAKER_PRIORITY) {
+    const bk = resp.bookmakers.find((b) => b.id === priority.id);
+    const bet = bk?.bets.find((x) => x.id === betId || x.name === betName);
+    if (bet) return bet;
+  }
+  // Fallback: any bookmaker quoting it.
+  for (const bk of resp.bookmakers) {
+    const bet = bk.bets.find((x) => x.id === betId || x.name === betName);
+    if (bet) return bet;
+  }
+  return null;
+}
+
+/** Real Over/Under odds for a line (default 2.5). Null if unquoted. */
+export function extractOverUnder(
+  resp: ApiOddsResponse | null,
+  line = "2.5"
+): { over: number; under: number } | null {
+  const bet = findBet(resp, 5, "Goals Over/Under");
+  if (!bet) return null;
+  const over = parseFloat(bet.values.find((v) => v.value === `Over ${line}`)?.odd ?? "0");
+  const under = parseFloat(bet.values.find((v) => v.value === `Under ${line}`)?.odd ?? "0");
+  return over > 0 && under > 0 ? { over, under } : null;
+}
+
+/** Real Both-Teams-To-Score odds. Null if unquoted. */
+export function extractBtts(
+  resp: ApiOddsResponse | null
+): { yes: number; no: number } | null {
+  const bet = findBet(resp, 8, "Both Teams Score");
+  if (!bet) return null;
+  const yes = parseFloat(bet.values.find((v) => v.value === "Yes")?.odd ?? "0");
+  const no = parseFloat(bet.values.find((v) => v.value === "No")?.odd ?? "0");
+  return yes > 0 && no > 0 ? { yes, no } : null;
+}

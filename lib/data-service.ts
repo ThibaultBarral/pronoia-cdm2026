@@ -20,7 +20,10 @@ import {
   fetchH2H,
   fetchFixtures,
   fetchOdds,
+  fetchOddsAll,
   extractOdds,
+  extractOverUnder,
+  extractBtts,
   WC_LEAGUE,
   WC_SEASON,
 } from "./api-football";
@@ -278,6 +281,29 @@ async function getWcFixtures(): Promise<ApiFixtureResponse[]> {
   return getCachedOrFetch(`fixtures:wc${WC_SEASON}:live`, 60, () => fetchFixtures()).catch(
     () => [] as ApiFixtureResponse[]
   );
+}
+
+export interface MatchOddsMarkets {
+  win: { home: number; draw: number; away: number; bookmaker: string } | null;
+  ou25: { over: number; under: number } | null;
+  btts: { yes: number; no: number } | null;
+}
+
+/**
+ * Real bookmaker odds for the three ticket markets (1X2, Over/Under 2.5, BTTS),
+ * shared-cached 30min. Used by the loss-aversion paywall. Missing markets stay
+ * null — we never invent a price.
+ */
+export async function getMatchOddsMarkets(apiFixtureId: number): Promise<MatchOddsMarkets> {
+  if (!hasApiKey() || !apiFixtureId) return { win: null, ou25: null, btts: null };
+  const resp = await getCachedOrFetch(`odds-all:${apiFixtureId}`, 1800, () =>
+    fetchOddsAll(apiFixtureId)
+  ).catch(() => null);
+  const simple = extractOdds(resp);
+  const win = simple[0]
+    ? { home: simple[0].home, draw: simple[0].draw, away: simple[0].away, bookmaker: simple[0].bookmaker }
+    : null;
+  return { win, ou25: extractOverUnder(resp), btts: extractBtts(resp) };
 }
 
 /** How many WC matches have finished — drives cache keys so analyses recompute. */
