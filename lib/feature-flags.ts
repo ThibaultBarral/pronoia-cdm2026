@@ -11,4 +11,6 @@ export const FEATURE = {
   onboardingV2: process.env.NEXT_PUBLIC_FEATURE_ONBOARDING_V2 !== "false",
   /** Celebration modal + social-proof toasts (Feature 5). */
   socialProof: process.env.NEXT_PUBLIC_FEATURE_SOCIAL_PROOF !== "false",
+  /** Combo of the day + odds ticker (Feature 7). */
+  combo: process.env.NEXT_PUBLIC_FEATURE_COMBO !== "false",
 };

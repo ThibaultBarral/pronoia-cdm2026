@@ -22,23 +22,22 @@ function parisDate(iso: string | null): string {
   }).format(new Date(iso));
 }
 
-/**
- * Log the IA's main structured pick for a match as a `pending` verified
- * prediction (one per match, real odds). Idempotent. Fire-and-forget safe.
- */
-export async function logMatchPrediction(match: Match): Promise<void> {
+export interface TopPick {
+  market: string;
+  selection: string;
+  side: PickSide;
+  odd: number;
+  conf: number;
+  confLabel: string;
+}
+
+/** The IA's single highest-confidence structured pick for a match, at real odds. */
+export async function computeTopPick(match: Match): Promise<TopPick | null> {
+  if (!match.apiFixtureId) return null;
   try {
-    if (!match.apiFixtureId) return;
     const pred = predictMatch(match);
     const odds = await getMatchOddsMarkets(match.apiFixtureId);
-
-    const cands: {
-      market: string;
-      selection: string;
-      side: PickSide;
-      odd: number;
-      conf: number;
-    }[] = [];
+    const cands: Omit<TopPick, "confLabel">[] = [];
 
     if (odds.win) {
       const { home, away } = pred.probabilities;
@@ -62,10 +61,18 @@ export async function logMatchPrediction(match: Match): Promise<void> {
         cands.push({ market: "BTTS", selection: "Les deux marquent : Non", side: "btts_no", odd: odds.btts.no, conf: 100 - yes });
     }
 
-    if (!cands.length) return;
+    if (!cands.length) return null;
     cands.sort((a, b) => b.conf - a.conf);
     const top = cands[0];
+    return { ...top, confLabel: confLabel(top.conf) };
+  } catch {
+    return null;
+  }
+}
 
+/** Upsert a pick as a `pending` verified prediction (one per match). Idempotent. */
+export async function upsertPrediction(match: Match, pick: TopPick): Promise<void> {
+  try {
     const admin = createAdminClient();
     await admin.from("verified_predictions").upsert(
       {
@@ -73,11 +80,11 @@ export async function logMatchPrediction(match: Match): Promise<void> {
         match_label: `${match.homeTeam.shortName} - ${match.awayTeam.shortName}`,
         home_flag: match.homeTeam.flag,
         away_flag: match.awayTeam.flag,
-        market: top.market,
-        selection: top.selection,
-        pick_side: top.side,
-        odds: top.odd,
-        confidence: confLabel(top.conf),
+        market: pick.market,
+        selection: pick.selection,
+        pick_side: pick.side,
+        odds: pick.odd,
+        confidence: pick.confLabel,
         status: "pending",
         phase: match.round,
         match_date: match.date,
@@ -87,8 +94,14 @@ export async function logMatchPrediction(match: Match): Promise<void> {
       { onConflict: "match_id", ignoreDuplicates: true }
     );
   } catch {
-    /* never block the analysis on logging */
+    /* never block on logging */
   }
+}
+
+/** Compute + log the IA's main pick for a match (used by the analysis hook). */
+export async function logMatchPrediction(match: Match): Promise<void> {
+  const pick = await computeTopPick(match);
+  if (pick) await upsertPrediction(match, pick);
 }
 
 function evaluate(side: PickSide, hg: number, ag: number): "won" | "lost" {

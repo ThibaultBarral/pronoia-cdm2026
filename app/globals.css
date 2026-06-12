@@ -240,3 +240,15 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Odds ticker marquee (Feature 7) */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-ticker {
+  animation: ticker-scroll 45s linear infinite;
+}
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
