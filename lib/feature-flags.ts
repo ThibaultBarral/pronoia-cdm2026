@@ -5,4 +5,6 @@
 export const FEATURE = {
   /** Loss-aversion paywall on the match analysis (Feature 1). */
   lossAversion: process.env.NEXT_PUBLIC_FEATURE_LOSS_AVERSION !== "false",
+  /** Free-analysis counter + locked nav teasers (Feature 2). */
+  lockedNav: process.env.NEXT_PUBLIC_FEATURE_LOCKED_NAV !== "false",
 };

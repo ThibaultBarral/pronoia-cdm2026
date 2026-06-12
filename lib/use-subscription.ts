@@ -8,6 +8,8 @@ export interface ClientSub {
   plan: Plan;
   access: boolean;
   label: string | null;
+  /** Discovery analyses already consumed (free tier). */
+  freeAnalysesUsed: number;
 }
 
 /**
@@ -25,7 +27,7 @@ export function useSubscription(): ClientSub | null {
       if (!user || cancelled) return;
       supabase
         .from("subscriptions")
-        .select("plan, status, current_period_end, trial_end, vip")
+        .select("plan, status, current_period_end, trial_end, vip, free_analyses_used")
         .eq("user_id", user.id)
         .maybeSingle()
         .then(({ data }) => {
@@ -40,7 +42,12 @@ export function useSubscription(): ClientSub | null {
               currentPeriodEnd: (data?.current_period_end as string | null) ?? null,
               trialEnd: (data?.trial_end as string | null) ?? null,
             });
-          setSub({ plan, access, label: vip ? "Accès VIP" : access ? planName(plan) : null });
+          setSub({
+            plan,
+            access,
+            label: vip ? "Accès VIP" : access ? planName(plan) : null,
+            freeAnalysesUsed: (data?.free_analyses_used as number | null) ?? 0,
+          });
         });
     });
 
