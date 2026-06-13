@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X as Close, Gift } from "lucide-react";
 import { SocialIcon } from "@/components/social-icons";
+import { logAppEvent } from "@/actions/log-event";
 import { trackEvent } from "@/lib/analytics";
 
 /**
@@ -39,7 +40,10 @@ export default function ContactFab() {
 
   function toggle() {
     setOpen((v) => {
-      if (!v) trackEvent("contact_open");
+      if (!v) {
+        trackEvent("contact_open");
+        logAppEvent("contact_open");
+      }
       return !v;
     });
   }
@@ -67,7 +71,10 @@ export default function ContactFab() {
                 href={c.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent("contact_click", { channel: c.id })}
+                onClick={() => {
+                  trackEvent("contact_click", { channel: c.id });
+                  logAppEvent("contact_click", { channel: c.id });
+                }}
                 className="flex items-center gap-2.5 rounded-xl glass px-3 py-2.5 text-sm font-bold text-[#e6e9ee] hover:bg-white/[0.07] hover:text-[var(--accent)] transition-colors"
               >
                 <SocialIcon id={c.id} size={17} />

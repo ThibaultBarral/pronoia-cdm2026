@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Gift, Clock } from "lucide-react";
 import { getWelcomeOffer } from "@/actions/welcome-offer";
 import { createCheckout } from "@/actions/create-checkout";
+import { logAppEvent } from "@/actions/log-event";
 import { WELCOME_DISCOUNT_PCT, WELCOME_TARGET_PLAN } from "@/lib/welcome-offer";
 import { trackEvent } from "@/lib/analytics";
 
@@ -48,6 +49,7 @@ export default function WelcomeOffer({ source }: { source: "analysis" | "paywall
       if (!active || !o.eligible) return;
       setOffer({ code: o.code, expiresAt: o.expiresAt });
       trackEvent("welcome_offer_view", { source });
+      logAppEvent("welcome_offer_view", { source });
     });
     return () => {
       active = false;
@@ -57,6 +59,7 @@ export default function WelcomeOffer({ source }: { source: "analysis" | "paywall
   function unlock() {
     if (!offer) return;
     trackEvent("welcome_offer_click", { source, code: offer.code });
+    logAppEvent("welcome_offer_click", { source });
     startCheckout(async () => {
       const res = await createCheckout(WELCOME_TARGET_PLAN, offer.code);
       if (res.ok) window.location.href = res.url;

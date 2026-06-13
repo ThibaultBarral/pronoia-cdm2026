@@ -4,8 +4,9 @@ import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminControls from "@/components/admin/admin-controls";
 import FreeAccessControls from "@/components/admin/free-access-controls";
 import AdminDashboard from "@/components/admin/admin-dashboard";
+import EventFunnelCard from "@/components/admin/event-funnel-card";
 import UsersTable from "@/components/admin/users-table";
-import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
+import { isAdmin, getAdminData, computeAdminStats, getAppEventStats } from "@/lib/admin";
 
 export const metadata: Metadata = { title: "Admin — Copafever", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -13,7 +14,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   if (!(await isAdmin())) notFound();
 
-  const { users, totalRevenue } = await getAdminData();
+  const [{ users, totalRevenue }, eventStats] = await Promise.all([
+    getAdminData(),
+    getAppEventStats(7),
+  ]);
   const stats = computeAdminStats(users, totalRevenue);
 
   return (
@@ -45,6 +49,9 @@ export default async function AdminPage() {
 
           {/* Analytics dashboard */}
           <AdminDashboard stats={stats} />
+
+          {/* Conversion funnel (welcome offer + contact widget) */}
+          <EventFunnelCard stats={eventStats} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
             <AdminControls />

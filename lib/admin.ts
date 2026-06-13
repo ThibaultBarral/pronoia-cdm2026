@@ -328,6 +328,62 @@ export async function setAdmin(email: string, value: boolean): Promise<{ ok: boo
   return { ok: true };
 }
 
+// ─── Conversion-funnel events (app_events) ────────────────────────────────────
+
+export interface EventStats {
+  days: number;
+  welcomeView: number;
+  welcomeClick: number;
+  contactOpen: number;
+  contactClick: number;
+  contactByChannel: { channel: string; count: number }[];
+}
+
+/**
+ * Aggregate the in-app funnel events over the last N days (welcome offer +
+ * contact widget). Admin only; fail-safe — returns zeros if the table doesn't
+ * exist yet (migration not applied) or on any error.
+ */
+export async function getAppEventStats(days = 7): Promise<EventStats> {
+  const empty: EventStats = {
+    days, welcomeView: 0, welcomeClick: 0, contactOpen: 0, contactClick: 0, contactByChannel: [],
+  };
+  if (!(await isAdmin())) return empty;
+  try {
+    const admin = createAdminClient();
+    const since = new Date(Date.now() - days * 86_400_000).toISOString();
+    const { data } = await admin
+      .from("app_events")
+      .select("name, props")
+      .gte("created_at", since)
+      .limit(20000);
+
+    const rows = (data ?? []) as { name: string; props: Record<string, unknown> | null }[];
+    const count = (n: string) => rows.filter((r) => r.name === n).length;
+
+    const channels = new Map<string, number>();
+    for (const r of rows) {
+      if (r.name !== "contact_click") continue;
+      const ch = String(r.props?.channel ?? "?");
+      channels.set(ch, (channels.get(ch) ?? 0) + 1);
+    }
+
+    return {
+      days,
+      welcomeView: count("welcome_offer_view"),
+      welcomeClick: count("welcome_offer_click"),
+      contactOpen: count("contact_open"),
+      contactClick: count("contact_click"),
+      contactByChannel: [...channels.entries()]
+        .map(([channel, c]) => ({ channel, count: c }))
+        .sort((a, b) => b.count - a.count),
+    };
+  } catch (err) {
+    console.warn("[admin] getAppEventStats error:", err);
+    return empty;
+  }
+}
+
 /**
  * Grant/revoke free VIP access (a comp) by email. Independent from the admin
  * role and from paid plans: sets subscriptions.vip. Admin only.
