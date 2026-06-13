@@ -63,7 +63,7 @@ export default function ContactFab() {
     >
       {/* Expanded panel */}
       {open && (
-        <div className="w-60 rounded-2xl glass-strong p-3 shadow-2xl animate-fade-in-up">
+        <div className="w-60 rounded-2xl border border-white/10 bg-[#0f1216] p-3 shadow-2xl shadow-black/70 animate-fade-in-up">
           <div className="flex items-center gap-1.5 mb-1 text-[var(--accent)]">
             <Gift size={14} />
             <span className="text-xs font-black uppercase tracking-wide">Un code promo&nbsp;?</span>
@@ -82,7 +82,7 @@ export default function ContactFab() {
                   trackEvent("contact_click", { channel: c.id });
                   logAppEvent("contact_click", { channel: c.id });
                 }}
-                className="flex items-center gap-2.5 rounded-xl glass px-3 py-2.5 text-sm font-bold text-[#e6e9ee] hover:bg-white/[0.07] hover:text-[var(--accent)] transition-colors"
+                className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm font-bold text-[#e6e9ee] hover:bg-white/[0.09] hover:text-[var(--accent)] transition-colors"
               >
                 <SocialIcon id={c.id} size={17} />
                 {c.label}
