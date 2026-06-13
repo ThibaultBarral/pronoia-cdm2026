@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Bot, Sparkles, RefreshCw, AlertCircle, Gauge,
-  Coins, Target, TrendingUp, Wallet,
+  Coins, Target, TrendingUp, Wallet, Sliders,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
@@ -79,6 +79,9 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
   // Live bankroll + bettor profile → personalised € stake on the recommendation.
   const [bankroll, setBankroll] = useState<{ amount: number; playstyle?: Playstyle } | null>(null);
   const [bankrollReady, setBankrollReady] = useState(false);
+  // Which profile's recommendation is being previewed (null → follow the user's
+  // saved profile). Lets users compare play styles without changing their default.
+  const [activeProfile, setActiveProfile] = useState<Playstyle | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -113,16 +116,21 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
   const h = match.homeTeam;
   const a = match.awayTeam;
 
-  const rec = data?.recommendation;
+  // The profile being previewed defaults to the user's saved profile, then to
+  // the canonical value pick. Per-profile recs are absent on older analyses.
+  const profileRecs = data?.recommendationsByProfile;
+  const effectiveProfile: Playstyle = activeProfile ?? bankroll?.playstyle ?? "opportunist";
+  const rec = profileRecs?.[effectiveProfile] ?? data?.recommendation;
   const stakeAdvice =
     rec && bankroll && bankroll.amount > 0
-      ? recommendStake(bankroll.amount, bankroll.playstyle, rec.confidence, parseOdds(rec.odds))
+      ? recommendStake(bankroll.amount, effectiveProfile, rec.confidence, parseOdds(rec.odds))
       : null;
 
   function handleGenerate() {
     setData(null);
     setError(null);
     setLocked(false);
+    setActiveProfile(null);
     trackEvent("analysis_start", { match_id: match.id });
     startTransition(async () => {
       try {
@@ -339,23 +347,58 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
               </div>
             </div>
 
-            {/* Recommendation */}
-            <div
-              className={`rounded-2xl p-4 ${
-                data.recommendation.valueTier === "none"
-                  ? "glass border border-[#ef4444]/20"
-                  : data.recommendation.valueTier === "marginal"
-                    ? "glass border border-[#ffd700]/25"
-                    : "glass-neon glow-neon"
-              }`}
-            >
+            {/* Recommendation — with a per-profile toggle (preview only, never
+                changes the user's saved profile). */}
+            {rec && (
+            <div>
+              {profileRecs && (
+                <div className="mb-2.5">
+                  <div className="flex items-center gap-1.5 mb-2 text-[10px] font-black uppercase tracking-wide text-[var(--text-muted)]">
+                    <Sliders size={12} className="text-[var(--accent)]" /> Voir selon ton style de pari
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PLAYSTYLES.map((ps) => {
+                      const isActive = ps.id === effectiveProfile;
+                      return (
+                        <button
+                          key={ps.id}
+                          onClick={() => setActiveProfile(ps.id)}
+                          aria-pressed={isActive}
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                            isActive
+                              ? "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40"
+                              : "glass text-[var(--text-muted)] border border-transparent hover:text-[#cdd3db] hover:bg-white/[0.06]"
+                          }`}
+                        >
+                          <span>{ps.emoji}</span> {ps.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {bankroll?.playstyle && effectiveProfile !== bankroll.playstyle && (
+                    <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
+                      Aperçu — ton profil reste «&nbsp;{PLAYSTYLE_LABEL[bankroll.playstyle]}&nbsp;».
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div
+                className={`rounded-2xl p-4 ${
+                  rec.valueTier === "none"
+                    ? "glass border border-[#ef4444]/20"
+                    : rec.valueTier === "marginal"
+                      ? "glass border border-[#ffd700]/25"
+                      : "glass-neon glow-neon"
+                }`}
+              >
               <div className="flex items-center gap-1.5 text-[var(--accent)] mb-2">
                 <Coins size={15} />
                 <span className="text-xs font-black uppercase tracking-wide">Notre recommandation</span>
               </div>
 
               {(() => {
-                const tier = data.recommendation.valueTier;
+                const tier = rec.valueTier;
                 if (!tier) return null;
                 const b = valueBadge(tier);
                 const cls =
@@ -372,38 +415,38 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
               })()}
 
               <div className="text-base font-black text-[#f0f0f0]">
-                {data.recommendation.bet}
-                {data.recommendation.odds && data.recommendation.valueTier !== "none" && (
+                {rec.bet}
+                {rec.odds && rec.valueTier !== "none" && (
                   <span className="text-[var(--accent)]">
-                    {" "}— cote {data.recommendation.odds}
-                    {data.recommendation.bookmaker ? ` (${data.recommendation.bookmaker})` : ""}
+                    {" "}— cote {rec.odds}
+                    {rec.bookmaker ? ` (${rec.bookmaker})` : ""}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#aaa] mt-1.5 leading-relaxed">{data.recommendation.rationale}</p>
+              <p className="text-xs text-[#aaa] mt-1.5 leading-relaxed">{rec.rationale}</p>
 
               {/* Pédagogie value : cote mini vs cote actuelle */}
-              {data.recommendation.coteMin != null && data.recommendation.odds && (
+              {rec.coteMin != null && rec.odds && (
                 <p className="text-[11px] text-[var(--text-muted)] mt-2">
                   Cote min. pour value :{" "}
-                  <span className="font-bold text-[#cdd3db]">{fmtCote(data.recommendation.coteMin)}</span>{" "}
-                  · Cote actuelle : <span className="font-bold text-[#cdd3db]">{data.recommendation.odds}</span>
+                  <span className="font-bold text-[#cdd3db]">{fmtCote(rec.coteMin)}</span>{" "}
+                  · Cote actuelle : <span className="font-bold text-[#cdd3db]">{rec.odds}</span>
                 </p>
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
                 <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] font-bold">
-                  Confiance : {data.recommendation.confidence}
+                  Confiance : {rec.confidence}
                 </span>
-                {(!stakeAdvice || data.recommendation.valueTier === "none") && (
+                {(!stakeAdvice || rec.valueTier === "none") && (
                   <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
-                    Mise indicative : {data.recommendation.stake}
+                    Mise indicative : {rec.stake}
                   </span>
                 )}
               </div>
 
               {/* Personalised € stake — never for a no-value bet (don't encourage it) */}
-              {stakeAdvice && data.recommendation.valueTier !== "none" ? (
+              {stakeAdvice && rec.valueTier !== "none" ? (
                 <div className="mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-3.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--accent)] mb-1.5">
                     <Wallet size={12} /> Mise conseillée pour toi
@@ -423,7 +466,7 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
                     </div>
                   )}
                   <p className="mt-2 text-[10px] text-[#5a6472] leading-relaxed">
-                    Calculé sur ta bankroll actuelle, ton profil {bankroll?.playstyle ? `« ${PLAYSTYLE_LABEL[bankroll.playstyle]} »` : ""} et la confiance du pari · plafonné à 5% pour ta sécurité.
+                    Calculé sur ta bankroll actuelle, le profil «&nbsp;{PLAYSTYLE_LABEL[effectiveProfile]}&nbsp;» et la confiance du pari · plafonné à 5% pour ta sécurité.
                   </p>
                 </div>
               ) : bankrollReady && (!bankroll || bankroll.amount <= 0) ? (
@@ -437,7 +480,9 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
                   </span>
                 </Link>
               ) : null}
+              </div>
             </div>
+            )}
 
             <p className="text-[10px] text-[var(--text-muted)] text-center">{DISCLAIMER}</p>
 

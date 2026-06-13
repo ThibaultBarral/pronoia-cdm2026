@@ -8,9 +8,30 @@
  * no server imports.
  */
 
+import type { Playstyle } from "./bankroll";
+
 export type Confidence = "Faible" | "Moyen" | "Élevé" | "Très élevé";
 
 // ─── Match analysis ───────────────────────────────────────────────────────────
+
+/** The actionable bet recommendation (CopaFever's paris angle). */
+export interface BetRecommendation {
+  bet: string;
+  odds?: string;
+  bookmaker?: string;
+  confidence: Confidence;
+  /** e.g. "1 à 3% de ta bankroll". */
+  stake: string;
+  rationale: string;
+  /** Expected-value verdict (set by the engine, not the LLM). */
+  ev?: number;
+  /** Minimum odds for value = 1 / model probability. */
+  coteMin?: number;
+  /** value · marginal · none. */
+  valueTier?: "value" | "marginal" | "none";
+  /** Model probability of the recommended bet (%). */
+  probaModele?: number;
+}
 
 export interface MatchAnalysisData {
   /** Plain-language quick summary (2-3 sentences). */
@@ -33,24 +54,14 @@ export interface MatchAnalysisData {
   expectedGoals: { home: number; away: number };
   /** Over/under & both-teams-to-score (%). */
   markets: { over25: number; under25: number; bttsYes: number; bttsNo: number };
-  /** The actionable bet recommendation (CopaFever's paris angle). */
-  recommendation: {
-    bet: string;
-    odds?: string;
-    bookmaker?: string;
-    confidence: Confidence;
-    /** e.g. "1 à 3% de ta bankroll". */
-    stake: string;
-    rationale: string;
-    /** Expected-value verdict (set by the engine, not the LLM). */
-    ev?: number;
-    /** Minimum odds for value = 1 / model probability. */
-    coteMin?: number;
-    /** value · marginal · none. */
-    valueTier?: "value" | "marginal" | "none";
-    /** Model probability of the recommended bet (%). */
-    probaModele?: number;
-  };
+  /** The default bet recommendation (canonical best-EV value pick). */
+  recommendation: BetRecommendation;
+  /**
+   * One recommendation per bettor profile — lets the UI toggle between play
+   * styles (prudent → audacieux) without re-running the analysis. Absent on
+   * older cached/stored analyses (fall back to `recommendation`).
+   */
+  recommendationsByProfile?: Partial<Record<Playstyle, BetRecommendation>>;
 }
 
 // ─── Team analysis ────────────────────────────────────────────────────────────
