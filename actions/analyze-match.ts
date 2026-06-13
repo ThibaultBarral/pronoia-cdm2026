@@ -7,6 +7,8 @@ import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
 import { getBettorProfile, bettorProfilePromptContext } from "@/lib/bettor-profile";
 import { logMatchPrediction } from "@/lib/predictions";
+import { selectValueBet, type ValueBet } from "@/lib/value-bet";
+import { fmtCote } from "@/lib/value";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
 import type { Playstyle } from "@/lib/bankroll";
@@ -43,16 +45,16 @@ Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte 
   "keyStrengths": [{"team": "home", "points": ["force 1", "force 2"]}, {"team": "away", "points": ["force 1"]}],
   "factors": [{"label": "ex. Supériorité offensive", "kind": "pos|neg|neutral"}],
   "recommendation": {
-    "bet": "le pari conseillé en mots simples",
-    "odds": "cote si disponible dans les cotes fournies, sinon omettre",
-    "bookmaker": "bookmaker si cote fournie, sinon omettre",
+    "bet": "reprends le pari du VERDICT VALUE fourni",
+    "odds": "la cote du verdict",
     "confidence": "Faible|Moyen|Élevé|Très élevé",
-    "stake": "1 à 3% de ta cagnotte",
-    "rationale": "1-2 phrases : pourquoi ce pari a de la valeur, en clair"
+    "stake": "selon le verdict",
+    "rationale": "1-2 phrases qui expliquent le verdict de value en clair"
   }
 }
 
-RÈGLES : 2 à 3 secondaryScenarios, 3 à 5 factors, "home"=équipe à domicile/1ère citée. Base-toi UNIQUEMENT sur les données et chiffres fournis. Si les cotes manquent, baisse la confiance et n'invente pas de cote.`;
+RÈGLES : 2 à 3 secondaryScenarios, 3 à 5 factors, "home"=équipe à domicile/1ère citée. Base-toi UNIQUEMENT sur les données et chiffres fournis.
+RÈGLE VALUE (capitale) : la RECOMMANDATION est imposée par le VERDICT VALUE de notre moteur. Ne propose JAMAIS un autre pari, ne contredis pas l'EV. Si l'EV est ≤ 0 ("Pas de value"), explique honnêtement qu'aucun pari n'a de valeur au prix actuel et conseille de NE PAS miser — n'écris JAMAIS "value", "bon pari" ou "ça sent la value" dans ce cas. Une probabilité de victoire élevée n'est PAS une value si la cote est trop basse. Seul ton "rationale" est conservé (le moteur réécrit bet/odds/confidence/stake).`;
 
 function buildPrompt(match: Match, pred: MatchPrediction): string {
   const { homeTeam: h, awayTeam: a } = match;
@@ -94,19 +96,65 @@ CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
 - Niveau de confiance global : ${pred.confidence}`;
 }
 
+const TIER_LABEL = { value: "VALUE", marginal: "value marginale", none: "PAS DE VALUE" } as const;
+
+function valueVerdictPrompt(vb: ValueBet | null): string {
+  if (!vb) return "\n\nVERDICT VALUE : cotes indisponibles — reste prudent, ne conseille pas de pari ferme.";
+  const evPct = `${vb.ev >= 0 ? "+" : ""}${(vb.ev * 100).toFixed(1)}%`;
+  return `\n\nVERDICT VALUE (calculé par notre moteur — NE LE CONTREDIS JAMAIS) :
+- Meilleur pari à valeur : ${vb.selection} (${vb.market}) @ ${fmtCote(vb.cote)}
+- Proba modèle : ${Math.round(vb.proba * 100)}% · Cote mini pour value : ${fmtCote(vb.coteMin)} · EV : ${evPct} → ${TIER_LABEL[vb.tier]}
+→ Rédige le "rationale" en cohérence STRICTE avec ce verdict (2 phrases max).`;
+}
+
+/** Build the final recommendation from the engine's value verdict + Claude's text. */
+function buildRecommendation(vb: ValueBet | null, rationale: string): MatchAnalysisData["recommendation"] {
+  if (!vb) {
+    return {
+      bet: "Aucun pari à valeur (cotes indisponibles)",
+      confidence: "Faible",
+      stake: "Ne pas jouer",
+      rationale: rationale || "Cotes indisponibles : pas de recommandation de pari fiable sur ce match.",
+      valueTier: "none",
+    };
+  }
+  const stake =
+    vb.tier === "none"
+      ? "Ne pas jouer ce pari (pas de value)"
+      : vb.tier === "marginal"
+        ? "Mise prudente : 1% max"
+        : "1 à 3% de ta bankroll";
+  return {
+    bet: vb.tier === "none" ? "Aucun pari à valeur sur ce match" : `${vb.selection} (${vb.market})`,
+    odds: fmtCote(vb.cote),
+    bookmaker: vb.bookmaker,
+    confidence: vb.confidence,
+    stake,
+    rationale,
+    ev: Math.round(vb.ev * 1000) / 1000,
+    coteMin: Math.round(vb.coteMin * 100) / 100,
+    valueTier: vb.tier,
+    probaModele: Math.round(vb.proba * 100),
+  };
+}
+
 async function generate(match: Match, profile: Playstyle | null): Promise<MatchAnalysisData> {
   const pred = predictMatch(match);
+  const valueBet = await selectValueBet(match).catch(() => null);
   const text = await callClaudeJson<ClaudeMatchText>({
     system: SYSTEM_PROMPT,
-    user: buildPrompt(match, pred) + bettorProfilePromptContext(profile),
+    user: buildPrompt(match, pred) + valueVerdictPrompt(valueBet) + bettorProfilePromptContext(profile),
     maxTokens: 1500,
   });
 
-  // Merge Claude's narrative with our grounded numbers.
+  // Confidence reflects the BET's expected value (not just the win probability).
+  const confidence = valueBet ? valueBet.confidence : pred.confidence;
+
+  // Merge Claude's narrative with our grounded numbers + the engine's value verdict.
   return {
     summary: text.summary,
     scenario: text.scenario,
-    confidence: pred.confidence,
+    confidence,
     probabilities: pred.probabilities,
     secondaryScenarios: text.secondaryScenarios ?? [],
     keyStrengths: text.keyStrengths ?? [],
@@ -114,7 +162,7 @@ async function generate(match: Match, profile: Playstyle | null): Promise<MatchA
     comparison: pred.comparison,
     expectedGoals: pred.expectedGoals,
     markets: pred.markets,
-    recommendation: text.recommendation,
+    recommendation: buildRecommendation(valueBet, text.recommendation?.rationale ?? ""),
   };
 }
 
@@ -133,7 +181,7 @@ export async function analyzeMatch(match: Match): Promise<Result> {
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
   const profile = await getBettorProfile().catch(() => null);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:${profile ?? "none"}`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:${profile ?? "none"}:ev2`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, profile));

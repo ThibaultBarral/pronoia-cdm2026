@@ -42,6 +42,14 @@ export interface MatchAnalysisData {
     /** e.g. "1 à 3% de ta bankroll". */
     stake: string;
     rationale: string;
+    /** Expected-value verdict (set by the engine, not the LLM). */
+    ev?: number;
+    /** Minimum odds for value = 1 / model probability. */
+    coteMin?: number;
+    /** value · marginal · none. */
+    valueTier?: "value" | "marginal" | "none";
+    /** Model probability of the recommended bet (%). */
+    probaModele?: number;
   };
 }
 

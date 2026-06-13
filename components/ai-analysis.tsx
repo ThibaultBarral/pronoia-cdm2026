@@ -19,6 +19,7 @@ import { recommendStake, parseOdds } from "@/lib/staking";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
+import { valueBadge, fmtCote } from "@/lib/value";
 import {
   DISCLAIMER, type Confidence, type MatchAnalysisData,
 } from "@/lib/analysis-schema";
@@ -339,14 +340,40 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
             </div>
 
             {/* Recommendation */}
-            <div className="rounded-2xl glass-neon glow-neon p-4">
+            <div
+              className={`rounded-2xl p-4 ${
+                data.recommendation.valueTier === "none"
+                  ? "glass border border-[#ef4444]/20"
+                  : data.recommendation.valueTier === "marginal"
+                    ? "glass border border-[#ffd700]/25"
+                    : "glass-neon glow-neon"
+              }`}
+            >
               <div className="flex items-center gap-1.5 text-[var(--accent)] mb-2">
                 <Coins size={15} />
                 <span className="text-xs font-black uppercase tracking-wide">Notre recommandation</span>
               </div>
+
+              {(() => {
+                const tier = data.recommendation.valueTier;
+                if (!tier) return null;
+                const b = valueBadge(tier);
+                const cls =
+                  b.tone === "ok"
+                    ? "bg-[var(--accent)]/12 text-[var(--accent)]"
+                    : b.tone === "warn"
+                      ? "bg-[#ffd700]/12 text-[#ffd700]"
+                      : "bg-[#ef4444]/12 text-[#ef4444]";
+                return (
+                  <span className={`inline-block text-[11px] font-black px-2.5 py-1 rounded-full mb-2 ${cls}`}>
+                    {b.label}
+                  </span>
+                );
+              })()}
+
               <div className="text-base font-black text-[#f0f0f0]">
                 {data.recommendation.bet}
-                {data.recommendation.odds && (
+                {data.recommendation.odds && data.recommendation.valueTier !== "none" && (
                   <span className="text-[var(--accent)]">
                     {" "}— cote {data.recommendation.odds}
                     {data.recommendation.bookmaker ? ` (${data.recommendation.bookmaker})` : ""}
@@ -354,19 +381,29 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
                 )}
               </div>
               <p className="text-xs text-[#aaa] mt-1.5 leading-relaxed">{data.recommendation.rationale}</p>
+
+              {/* Pédagogie value : cote mini vs cote actuelle */}
+              {data.recommendation.coteMin != null && data.recommendation.odds && (
+                <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                  Cote min. pour value :{" "}
+                  <span className="font-bold text-[#cdd3db]">{fmtCote(data.recommendation.coteMin)}</span>{" "}
+                  · Cote actuelle : <span className="font-bold text-[#cdd3db]">{data.recommendation.odds}</span>
+                </p>
+              )}
+
               <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
                 <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] font-bold">
                   Confiance : {data.recommendation.confidence}
                 </span>
-                {!stakeAdvice && (
+                {(!stakeAdvice || data.recommendation.valueTier === "none") && (
                   <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
                     Mise indicative : {data.recommendation.stake}
                   </span>
                 )}
               </div>
 
-              {/* Personalised € stake from the user's live bankroll + profile */}
-              {stakeAdvice ? (
+              {/* Personalised € stake — never for a no-value bet (don't encourage it) */}
+              {stakeAdvice && data.recommendation.valueTier !== "none" ? (
                 <div className="mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-3.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--accent)] mb-1.5">
                     <Wallet size={12} /> Mise conseillée pour toi
