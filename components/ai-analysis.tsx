@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -70,7 +70,16 @@ function CompareRow({ label, home, away }: { label: string; home: number; away: 
   );
 }
 
-export default function AIAnalysis({ match, isAdmin = false }: { match: Match; isAdmin?: boolean }) {
+export default function AIAnalysis({
+  match,
+  isAdmin = false,
+  autoStart = false,
+}: {
+  match: Match;
+  isAdmin?: boolean;
+  /** Fire the analysis automatically on mount (e.g. right after onboarding). */
+  autoStart?: boolean;
+}) {
   const router = useRouter();
   const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +91,16 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
   // Which profile's recommendation is being previewed (null → follow the user's
   // saved profile). Lets users compare play styles without changing their default.
   const [activeProfile, setActiveProfile] = useState<Playstyle | null>(null);
+
+  // Auto-launch once when arriving from onboarding (?welcome=1) → instant value.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStart && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      handleGenerate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   useEffect(() => {
     let active = true;
@@ -174,6 +193,17 @@ export default function AIAnalysis({ match, isAdmin = false }: { match: Match; i
       </div>
 
       <div className="p-5">
+        {/* Welcome banner — first analysis offered right after onboarding. */}
+        {autoStart && !locked && (
+          <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] px-3.5 py-2.5">
+            <Sparkles size={15} className="text-[var(--accent)] shrink-0" />
+            <p className="text-xs text-[#cdd3db] leading-snug">
+              <span className="font-bold text-[var(--accent)]">Bienvenue&nbsp;!</span> Voici ta
+              première analyse, offerte. Découvre comment on lit le match et le pari conseillé.
+            </p>
+          </div>
+        )}
+
         {/* Locked — loss-aversion paywall (Feature 1), with simple-card fallback */}
         {locked && <LossAversionPaywall match={match} />}
 

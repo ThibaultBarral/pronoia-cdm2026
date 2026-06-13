@@ -12,6 +12,7 @@ import { PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
 import { SEGMENTS, type Segment } from "@/lib/onboarding";
 import { VISIBLE_OFFERS, type PaidPlan } from "@/lib/plans";
 import { createCheckout } from "@/actions/create-checkout";
+import { getFeaturedMatchId } from "@/actions/get-matches";
 import { useSubscription } from "@/lib/use-subscription";
 import { FEATURE } from "@/lib/feature-flags";
 import { trackEvent } from "@/lib/analytics";
@@ -38,6 +39,7 @@ function OnboardingV2() {
   const [saving, startSave] = useTransition();
   const [pending, setPending] = useState<PaidPlan | null>(null);
   const [checkingOut, startCheckout] = useTransition();
+  const [entering, startEnter] = useTransition();
 
   useEffect(() => {
     if (step === 2) trackEvent("onboarding_pricing_view", { segment: segment?.id });
@@ -75,10 +77,16 @@ function OnboardingV2() {
     });
   }
 
+  // Land the new user straight inside a match analysis (auto-generated) rather
+  // than the dashboard → they hit the "aha moment" in seconds. Falls back to the
+  // dashboard if no featured match is available.
   function continueFree() {
     trackEvent("onboarding_free_continue", { segment: segment?.id });
-    router.refresh();
-    router.push("/dashboard");
+    startEnter(async () => {
+      const id = await getFeaturedMatchId().catch(() => null);
+      router.refresh();
+      router.push(id ? `/match/${id}?welcome=1` : "/dashboard");
+    });
   }
 
   const isMember = sub?.access ?? false;
@@ -163,9 +171,10 @@ function OnboardingV2() {
               <p className="text-sm text-[var(--text-muted)] mt-2">Profite de tes analyses illimitées.</p>
               <button
                 onClick={continueFree}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] text-[#06231a] font-bold px-6 py-3 text-sm glow-neon"
+                disabled={entering}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] text-[#06231a] font-bold px-6 py-3 text-sm glow-neon disabled:opacity-60"
               >
-                Accéder à l&apos;app <ArrowRight size={15} />
+                {entering ? "Chargement…" : <>Voir une analyse <ArrowRight size={15} /></>}
               </button>
             </div>
           ) : (
@@ -257,8 +266,12 @@ function OnboardingV2() {
               </div>
 
               <div className="text-center mt-6">
-                <button onClick={continueFree} className="text-xs text-[#5a6472] hover:text-[#9aa3b2] transition-colors underline">
-                  Continuer en version gratuite
+                <button
+                  onClick={continueFree}
+                  disabled={entering}
+                  className="text-xs text-[#5a6472] hover:text-[#9aa3b2] transition-colors underline disabled:opacity-60"
+                >
+                  {entering ? "Chargement…" : "Essayer une analyse gratuite"}
                 </button>
               </div>
 

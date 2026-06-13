@@ -18,6 +18,7 @@ const FINISHED = new Set(["FT", "AET", "PEN"]);
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ welcome?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -54,8 +55,9 @@ const COUNTRY_NAME: Record<string, string> = {
 
 export const revalidate = 60; // re-fetch every 60s so live scores/results stay fresh
 
-export default async function MatchPage({ params }: PageProps) {
+export default async function MatchPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { welcome } = await searchParams;
   const supabase = await createClient();
   const [match, { data: { user } }] = await Promise.all([
     getMatchData(id),
@@ -180,7 +182,7 @@ export default async function MatchPage({ params }: PageProps) {
           {finished ? (
             <MatchResult match={match} />
           ) : (
-            <AIAnalysis match={match} isAdmin={admin} />
+            <AIAnalysis match={match} isAdmin={admin} autoStart={welcome === "1"} />
           )}
         </div>
       </div>
