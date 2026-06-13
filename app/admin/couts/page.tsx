@@ -19,6 +19,8 @@ const dayShort = (iso: string) => {
   const d = new Date(iso + "T00:00:00Z");
   return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
 };
+const timeFr = (iso: string) =>
+  new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -34,7 +36,11 @@ export default async function AdminCostsPage() {
   if (!(await isAdmin())) notFound();
 
   const d = await getCostDashboard();
-  const maxDay = Math.max(...d.byDay.map((x) => x.cost), 0.0001);
+
+  // 14-day chart series is precomputed server-side (real cost when available).
+  const chart = d.chart14d;
+  const maxDay = Math.max(...chart.map((x) => x.cost), 0.0001);
+  const costLabel = d.realAvailable ? "réel (Anthropic)" : "estimé (tokens)";
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
@@ -47,16 +53,30 @@ export default async function AdminCostsPage() {
           <header className="mb-6">
             <h1 className="text-2xl md:text-3xl font-black text-[#f0f0f0]">Coûts &amp; rentabilité</h1>
             <p className="text-sm text-[var(--text-muted)] mt-1.5">
-              Ce que l&apos;IA coûte en vrai (tokens Anthropic → $), combien il reste de crédit, et si
-              Copafever est rentable. Le coût est compté par génération réelle (une analyse en cache
-              ne coûte rien : un seul appel sert tout le monde).
+              Ce que l&apos;IA coûte en vrai, qui consomme les crédits, combien il en reste, et si
+              Copafever est rentable. Le coût par utilisateur vient de notre logging (une analyse en
+              cache ne coûte rien : un seul appel sert tout le monde).
             </p>
           </header>
+
+          {/* Admin-key status */}
+          {d.realAvailable ? (
+            <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/[0.06] px-4 py-2.5 text-xs text-[var(--accent)] mb-6">
+              ✓ Connecté à l&apos;API Admin Anthropic — les montants ci-dessous sont le coût <strong>réel facturé</strong>.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-xs text-amber-300/90 mb-6 leading-relaxed">
+              ⚠️ Coût <strong>estimé</strong> à partir des tokens. Pour le coût <strong>réel</strong> facturé
+              par Anthropic, crée une clé Admin (console.anthropic.com → Settings → Admin keys,
+              <code className="mx-1 text-[11px]">sk-ant-admin…</code>) et ajoute-la dans Vercel sous
+              <code className="mx-1 text-[11px]">ANTHROPIC_ADMIN_KEY</code>.
+            </div>
+          )}
 
           {/* ── Rentabilité ─────────────────────────────────────────────── */}
           <section className="rounded-2xl glass p-5 mb-6">
             <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] font-semibold mb-3">
-              Rentabilité (depuis le début)
+              Rentabilité — coût {costLabel}
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
@@ -75,7 +95,7 @@ export default async function AdminCostsPage() {
               </div>
             </div>
             <p className="text-[11px] text-[#5a6472] mt-3 text-center">
-              Coût IA converti $→€ à un taux indicatif (~0,92). Le CA vient des paiements Whop encaissés.
+              Coût IA converti $→€ à un taux indicatif (~0,92). CA = paiements Whop encaissés.
             </p>
           </section>
 
@@ -87,7 +107,7 @@ export default async function AdminCostsPage() {
               </div>
               {d.balanceAt && (
                 <div className="text-[11px] text-[#5a6472]">
-                  relevé le {new Date(d.balanceAt).toLocaleDateString("fr-FR")}
+                  solde relevé le {new Date(d.balanceAt).toLocaleDateString("fr-FR")}
                 </div>
               )}
             </div>
@@ -99,12 +119,16 @@ export default async function AdminCostsPage() {
                     {usd(d.remainingUsd)}
                   </div>
                   <div className="text-[11px] text-[#5a6472] mt-0.5">
-                    relevé {usd(d.balanceUsd ?? 0)} − {usd(d.costSinceCheckpointUsd)} consommés depuis
+                    {usd(d.balanceUsd ?? 0)} − {usd(d.realAvailable ? d.realCostSinceCheckpointUsd : d.costSinceCheckpointUsd)} consommés
+                    {d.remainingBasis ? ` (${d.remainingBasis})` : ""}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-[var(--text-muted)]">Conso / jour (7j)</div>
-                  <div className="text-2xl font-black text-[#f0f0f0] mt-1">{usd(d.dailyBurnUsd)}</div>
+                  <div className="text-[11px] text-[var(--text-muted)]">Conso / jour</div>
+                  <div className="text-2xl font-black text-[#f0f0f0] mt-1">
+                    {usd(d.realAvailable ? d.realCost7dUsd / 7 : d.dailyBurnUsd)}
+                  </div>
+                  <div className="text-[11px] text-[#5a6472] mt-0.5">moyenne 7j ({costLabel})</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-[var(--text-muted)]">Autonomie</div>
@@ -118,39 +142,50 @@ export default async function AdminCostsPage() {
               </div>
             ) : (
               <p className="text-sm text-[var(--text-muted)] mb-4">
-                Aucun solde renseigné. Va sur console.anthropic.com (Plans &amp; Billing), relève ton
-                crédit restant et entre-le ci-dessous pour suivre l&apos;autonomie.
+                Aucun solde renseigné. Relève ton crédit restant sur console.anthropic.com (Plans &amp;
+                Billing) et entre-le ci-dessous pour suivre l&apos;autonomie.
               </p>
             )}
             <CreditCheckpointForm />
           </section>
 
-          {/* ── KPIs coûts ──────────────────────────────────────────────── */}
+          {/* ── KPIs coût ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <Kpi label="Coût total" value={usd(d.totalCostUsd)} sub={`${intFr(d.totalGenerations)} générations`} />
-            <Kpi label="Aujourd'hui" value={usd(d.costTodayUsd)} />
-            <Kpi label="7 derniers jours" value={usd(d.cost7dUsd)} />
-            <Kpi label="30 derniers jours" value={usd(d.cost30dUsd)} />
-            <Kpi label="Coût / génération" value={usd(d.avgCostPerGenUsd)} />
-            <Kpi label="Conso / jour" value={usd(d.dailyBurnUsd)} sub="moyenne 7j" />
-            <Kpi label="Projeté / mois" value={usd(d.projectedMonthlyUsd)} sub="au rythme actuel" />
+            {d.realAvailable ? (
+              <>
+                <Kpi label="Coût réel 7j" value={usd(d.realCost7dUsd)} sub="facturé Anthropic" />
+                <Kpi label="Coût réel 30j" value={usd(d.realCost30dUsd)} sub="facturé Anthropic" />
+                <Kpi label="Estimé 7j (tokens)" value={usd(d.cost7dUsd)} sub="notre calcul" />
+                <Kpi label="Aujourd'hui (estimé)" value={usd(d.costTodayUsd)} sub="nos tokens" />
+              </>
+            ) : (
+              <>
+                <Kpi label="Coût total" value={usd(d.totalCostUsd)} sub={`${intFr(d.totalGenerations)} générations`} />
+                <Kpi label="Aujourd'hui" value={usd(d.costTodayUsd)} />
+                <Kpi label="7 derniers jours" value={usd(d.cost7dUsd)} />
+                <Kpi label="30 derniers jours" value={usd(d.cost30dUsd)} />
+              </>
+            )}
+            <Kpi label="Coût / génération" value={usd(d.avgCostPerGenUsd)} sub="estimé" />
+            <Kpi label="Projeté / mois" value={usd(d.realAvailable ? (d.realCost7dUsd / 7) * 30 : d.projectedMonthlyUsd)} sub="au rythme actuel" />
+            <Kpi label="Générations" value={intFr(d.totalGenerations)} sub="appels réels (hors cache)" />
             <Kpi label="Tokens cumulés" value={intFr(d.totalTokens)} />
           </div>
 
           {!d.hasData ? (
             <p className="text-sm text-[var(--text-muted)] rounded-2xl glass p-5">
-              Aucune génération enregistrée pour l&apos;instant. Dès qu&apos;une analyse, un chat ou une
-              lecture de ticket lance un vrai appel Claude, le coût apparaîtra ici.
+              Aucune donnée pour l&apos;instant. Dès qu&apos;une analyse, un chat ou une lecture de
+              ticket lance un vrai appel Claude, le coût apparaîtra ici.
             </p>
           ) : (
             <>
               {/* ── Coût par jour (14 j) ──────────────────────────────── */}
               <section className="rounded-2xl glass p-5 mb-6">
                 <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] font-semibold mb-4">
-                  Coût par jour (14 derniers jours)
+                  Coût par jour — 14 derniers jours ({costLabel})
                 </div>
                 <div className="flex items-end gap-1.5 h-32">
-                  {d.byDay.map((x) => (
+                  {chart.map((x) => (
                     <div key={x.date} className="flex-1 flex flex-col items-center gap-1 min-w-0">
                       <div className="w-full flex items-end justify-center h-full">
                         <div
@@ -169,9 +204,10 @@ export default async function AdminCostsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                 <section className="rounded-2xl glass p-5">
                   <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] font-semibold mb-3">
-                    Coût par type
+                    Coût par type (estimé · générations)
                   </div>
                   <div className="space-y-2">
+                    {d.byKind.length === 0 && <p className="text-sm text-[#5a6472]">—</p>}
                     {d.byKind.map((k) => (
                       <div key={k.kind} className="flex items-center justify-between text-sm">
                         <span className="text-[#f0f0f0]">{k.label}</span>
@@ -184,14 +220,18 @@ export default async function AdminCostsPage() {
                 </section>
                 <section className="rounded-2xl glass p-5">
                   <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] font-semibold mb-3">
-                    Coût par modèle
+                    Coût par modèle ({costLabel})
                   </div>
                   <div className="space-y-2">
-                    {d.byModel.map((m) => (
+                    {(d.realAvailable ? d.realByModel : d.byModel).length === 0 && (
+                      <p className="text-sm text-[#5a6472]">—</p>
+                    )}
+                    {(d.realAvailable ? d.realByModel : d.byModel).map((m) => (
                       <div key={m.model} className="flex items-center justify-between text-sm">
                         <span className="text-[#f0f0f0] font-mono text-xs">{m.model}</span>
                         <span className="text-[var(--text-muted)]">
-                          {usd(m.cost)} <span className="text-[#5a6472]">· {intFr(m.count)}</span>
+                          {usd(m.cost)}
+                          {!d.realAvailable && <span className="text-[#5a6472]"> · {intFr(m.count)}</span>}
                         </span>
                       </div>
                     ))}
@@ -203,19 +243,43 @@ export default async function AdminCostsPage() {
               {d.topConsumers.length > 0 && (
                 <section className="rounded-2xl glass p-5 mb-6">
                   <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] font-semibold mb-3">
-                    Utilisateurs les plus consommateurs
+                    Qui consomme le plus de crédits
                   </div>
                   <div className="space-y-2">
                     {d.topConsumers.map((u) => (
                       <div key={u.userId} className="flex items-center justify-between text-sm gap-3">
                         <span className="text-[#f0f0f0] truncate min-w-0">
                           {u.name || u.email || u.userId.slice(0, 8)}
-                          {u.name && u.email && (
-                            <span className="text-[#5a6472] ml-1.5 text-xs">{u.email}</span>
-                          )}
+                          {u.name && u.email && <span className="text-[#5a6472] ml-1.5 text-xs">{u.email}</span>}
                         </span>
                         <span className="text-[var(--text-muted)] whitespace-nowrap">
                           {usd(u.cost)} <span className="text-[#5a6472]">· {intFr(u.count)} gén.</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-[#5a6472] mt-3">
+                    Coût attribué à l&apos;utilisateur qui a déclenché la génération (le 1er à demander
+                    une analyse non cachée). Les suivants la lisent depuis le cache, sans coût.
+                  </p>
+                </section>
+              )}
+
+              {/* ── Dernières requêtes ────────────────────────────────── */}
+              {d.recentActivity.length > 0 && (
+                <section className="rounded-2xl glass p-5 mb-6">
+                  <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] font-semibold mb-3">
+                    Dernières requêtes (qui · quoi · quand · coût)
+                  </div>
+                  <div className="space-y-1.5">
+                    {d.recentActivity.map((a, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 text-sm py-0.5">
+                        <span className="text-[#f0f0f0] truncate min-w-0">
+                          {a.who ?? "—"}
+                          <span className="text-[#5a6472] ml-2 text-xs">{a.label}</span>
+                        </span>
+                        <span className="text-[var(--text-muted)] whitespace-nowrap text-xs">
+                          {usd(a.costUsd)} <span className="text-[#5a6472]">· {timeFr(a.at)}</span>
                         </span>
                       </div>
                     ))}
@@ -226,9 +290,9 @@ export default async function AdminCostsPage() {
           )}
 
           <p className="text-[11px] text-[#5a6472] mt-4">
-            Les coûts sont estimés à partir des tokens réellement facturés par Anthropic (entrée /
-            sortie / cache) et des tarifs par modèle. Le « reste estimé » se recale chaque fois que tu
-            saisis le solde réel relevé sur la console Anthropic.
+            Coût « réel » = montant facturé par Anthropic (API Admin Cost Report). Coût « estimé » =
+            tokens loggés × tarifs par modèle. L&apos;attribution par utilisateur vient de notre
+            logging : Anthropic ne connaît pas tes utilisateurs, seulement ta clé API.
           </p>
         </main>
       </div>

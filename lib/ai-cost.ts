@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin, getWhopRevenueTotal } from "@/lib/admin";
+import { getAnthropicCost } from "@/lib/anthropic-admin";
 
 /** Anthropic token usage as returned on `message.usage`. */
 export interface ClaudeUsage {
@@ -85,6 +86,13 @@ export interface CostByKind { kind: string; label: string; cost: number; count: 
 export interface CostByDay { date: string; cost: number }
 export interface CostByModel { model: string; cost: number; count: number }
 export interface TopConsumer { userId: string; email: string | null; name: string | null; cost: number; count: number }
+export interface ActivityRow {
+  at: string;
+  kind: string;
+  label: string;
+  who: string | null; // email / pseudo, or null when unattributed
+  costUsd: number;
+}
 
 export interface CostDashboard {
   hasData: boolean;
@@ -102,13 +110,23 @@ export interface CostDashboard {
   // Breakdowns
   byKind: CostByKind[];
   byModel: CostByModel[];
-  byDay: CostByDay[]; // last 14 days, oldest → newest
+  byDay: CostByDay[]; // last 14 days, oldest → newest (estimate)
+  chart14d: CostByDay[]; // last 14 days for the chart — real if available, else estimate
   topConsumers: TopConsumer[];
+  recentActivity: ActivityRow[]; // last ~25 generations (who / what / when / cost)
+  // Real billed cost from Anthropic's Admin API (the official $, not estimated)
+  realAvailable: boolean;
+  realCost7dUsd: number;
+  realCost30dUsd: number;
+  realCostSinceCheckpointUsd: number;
+  realByDay: CostByDay[]; // since the window start, ascending
+  realByModel: CostByModel[];
   // Credit balance estimate
   balanceUsd: number | null; // latest checkpoint reading
   balanceAt: string | null;
-  costSinceCheckpointUsd: number;
-  remainingUsd: number | null;
+  costSinceCheckpointUsd: number; // our estimate (fallback when real unavailable)
+  remainingUsd: number | null; // balance − (real if available else estimate) since checkpoint
+  remainingBasis: "réel" | "estimé" | null;
   daysUntilEmpty: number | null;
   // Profitability (revenue from Whop is in EUR; cost converted approximately)
   revenueEur: number;
@@ -142,11 +160,20 @@ const EMPTY: CostDashboard = {
   byKind: [],
   byModel: [],
   byDay: [],
+  chart14d: [],
   topConsumers: [],
+  recentActivity: [],
+  realAvailable: false,
+  realCost7dUsd: 0,
+  realCost30dUsd: 0,
+  realCostSinceCheckpointUsd: 0,
+  realByDay: [],
+  realByModel: [],
   balanceUsd: null,
   balanceAt: null,
   costSinceCheckpointUsd: 0,
   remainingUsd: null,
+  remainingBasis: null,
   daysUntilEmpty: null,
   revenueEur: 0,
   totalCostEur: 0,
@@ -243,7 +270,7 @@ export async function getCostDashboard(): Promise<CostDashboard> {
   const dailyBurnUsd = cost7dUsd / 7;
   const projectedMonthlyUsd = dailyBurnUsd * 30;
 
-  // Top consumers (by $ cost), resolve emails for the top few only.
+  // Cost + request count per user (for "who consumes credits").
   const userMap = new Map<string, { cost: number; count: number }>();
   for (const r of logs) {
     if (!r.user_id) continue;
@@ -252,43 +279,103 @@ export async function getCostDashboard(): Promise<CostDashboard> {
     u.count += 1;
     userMap.set(r.user_id, u);
   }
-  const topIds = [...userMap.entries()]
-    .sort((a, b) => b[1].cost - a[1].cost)
-    .slice(0, 8);
+  const topIds = [...userMap.entries()].sort((a, b) => b[1].cost - a[1].cost).slice(0, 8);
 
-  let topConsumers: TopConsumer[] = [];
-  if (topIds.length) {
+  // Latest checkpoint (real balance reading), used to anchor the estimate.
+  const balanceUsd = ckRes.data ? Number(ckRes.data.balance_usd) : null;
+  const balanceAt = ckRes.data ? (ckRes.data.created_at as string) : null;
+
+  // Real billed cost from Anthropic's Admin API, over a window covering both the
+  // checkpoint and the last 30 days (whichever starts earlier).
+  const windowStartMs = Math.min(
+    now - 31 * DAY,
+    balanceAt ? new Date(balanceAt).getTime() : now,
+  );
+  const real = await getAnthropicCost(new Date(windowStartMs).toISOString(), new Date(now).toISOString());
+
+  const realInWindow = (days: number) =>
+    real.byDay
+      .filter((d) => now - new Date(d.date + "T00:00:00Z").getTime() < days * DAY)
+      .reduce((s, d) => s + d.cost, 0);
+  const realCost7dUsd = real.available ? realInWindow(7) : 0;
+  const realCost30dUsd = real.available ? realInWindow(30) : 0;
+  const realCostSinceCheckpointUsd =
+    real.available && balanceAt
+      ? real.byDay
+          .filter((d) => d.date >= balanceAt.slice(0, 10))
+          .reduce((s, d) => s + d.cost, 0)
+      : 0;
+
+  // Resolve emails for the top consumers + the recent-activity feed in one call.
+  const recentRows = logs.slice(0, 25);
+  const idsToResolve = new Set<string>([
+    ...topIds.map(([id]) => id),
+    ...recentRows.map((r) => r.user_id).filter((x): x is string => Boolean(x)),
+  ]);
+  const byId = new Map<string, { email: string | null; name: string | null }>();
+  if (idsToResolve.size) {
     const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const byId = new Map((list?.users ?? []).map((u) => [u.id, u]));
-    topConsumers = topIds.map(([userId, v]) => {
-      const u = byId.get(userId);
-      const meta = u?.user_metadata ?? {};
+    for (const u of list?.users ?? []) {
+      const meta = u.user_metadata ?? {};
       const name =
         (meta.pseudo as string | undefined) ||
         (meta.full_name as string | undefined) ||
         (meta.name as string | undefined) ||
         null;
-      return { userId, email: u?.email ?? null, name, cost: v.cost, count: v.count };
-    });
+      byId.set(u.id, { email: u.email ?? null, name });
+    }
   }
+  const who = (id: string | null): string | null => {
+    if (!id) return null;
+    const u = byId.get(id);
+    return u ? u.name || u.email || id.slice(0, 8) : id.slice(0, 8);
+  };
 
-  // Credit balance estimate from the latest checkpoint.
-  const balanceUsd = ckRes.data ? Number(ckRes.data.balance_usd) : null;
-  const balanceAt = ckRes.data ? (ckRes.data.created_at as string) : null;
+  const topConsumers: TopConsumer[] = topIds.map(([userId, v]) => {
+    const u = byId.get(userId);
+    return { userId, email: u?.email ?? null, name: u?.name ?? null, cost: round4(v.cost), count: v.count };
+  });
+
+  const recentActivity: ActivityRow[] = recentRows.map((r) => ({
+    at: r.created_at,
+    kind: r.kind,
+    label: KIND_LABEL[r.kind as AiKind] ?? r.kind,
+    who: who(r.user_id),
+    costUsd: round4(Number(r.cost_usd)),
+  }));
+
+  // Remaining credit: balance − real spend since checkpoint (fallback to our
+  // token estimate when the Admin API isn't configured).
   const costSinceCheckpointUsd = balanceAt
     ? logs
         .filter((r) => new Date(r.created_at).getTime() >= new Date(balanceAt).getTime())
         .reduce((s, r) => s + Number(r.cost_usd), 0)
     : 0;
-  const remainingUsd = balanceUsd != null ? balanceUsd - costSinceCheckpointUsd : null;
+  const spentSince = real.available ? realCostSinceCheckpointUsd : costSinceCheckpointUsd;
+  const remainingUsd = balanceUsd != null ? balanceUsd - spentSince : null;
+  const remainingBasis: "réel" | "estimé" | null =
+    balanceUsd == null ? null : real.available ? "réel" : "estimé";
+  // Burn rate prefers the real 7-day spend when available.
+  const burnUsd = real.available ? realCost7dUsd / 7 : dailyBurnUsd;
   const daysUntilEmpty =
-    remainingUsd != null && dailyBurnUsd > 0 ? Math.floor(remainingUsd / dailyBurnUsd) : null;
+    remainingUsd != null && burnUsd > 0 ? Math.floor(remainingUsd / burnUsd) : null;
 
-  // Profitability — revenue is EUR (Whop), cost converted USD→EUR (approx).
-  const totalCostEur = totalCostUsd * EUR_PER_USD;
+  // 14-day chart series — real daily cost when available, else our estimate.
+  const realDayMap = new Map(real.byDay.map((x) => [x.date, x.cost]));
+  const estDayMap = new Map(byDay.map((x) => [x.date, x.cost]));
+  const chart14d: CostByDay[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const date = new Date(now - i * DAY).toISOString().slice(0, 10);
+    const cost = real.available ? realDayMap.get(date) ?? 0 : estDayMap.get(date) ?? 0;
+    chart14d.push({ date, cost: round4(cost) });
+  }
+
+  // Profitability — revenue is EUR (Whop); cost prefers real, converted USD→EUR.
+  const costBasisUsd = real.available ? real.totalUsd : totalCostUsd;
+  const totalCostEur = costBasisUsd * EUR_PER_USD;
 
   return {
-    hasData: totalGenerations > 0,
+    hasData: totalGenerations > 0 || real.available,
     totalGenerations,
     totalTokens,
     totalCostUsd: round4(totalCostUsd),
@@ -301,11 +388,20 @@ export async function getCostDashboard(): Promise<CostDashboard> {
     byKind: byKind.map((k) => ({ ...k, cost: round4(k.cost) })),
     byModel: byModel.map((m) => ({ ...m, cost: round4(m.cost) })),
     byDay,
-    topConsumers: topConsumers.map((c) => ({ ...c, cost: round4(c.cost) })),
+    chart14d,
+    topConsumers,
+    recentActivity,
+    realAvailable: real.available,
+    realCost7dUsd: round4(realCost7dUsd),
+    realCost30dUsd: round4(realCost30dUsd),
+    realCostSinceCheckpointUsd: round4(realCostSinceCheckpointUsd),
+    realByDay: real.byDay,
+    realByModel: real.byModel.map((m) => ({ model: m.model, cost: m.cost, count: 0 })),
     balanceUsd,
     balanceAt,
     costSinceCheckpointUsd: round4(costSinceCheckpointUsd),
     remainingUsd: remainingUsd != null ? round2(remainingUsd) : null,
+    remainingBasis,
     daysUntilEmpty,
     revenueEur: round2(revenueEur),
     totalCostEur: round2(totalCostEur),
