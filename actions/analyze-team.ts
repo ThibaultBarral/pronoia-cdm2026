@@ -63,12 +63,14 @@ ${squad}
 ${simStr}`;
 }
 
-async function generate(team: Team, slug: string): Promise<TeamAnalysisData> {
+async function generate(team: Team, slug: string, userId: string): Promise<TeamAnalysisData> {
   const sim = await getTeamSimulation(slug);
   return callClaudeJson<TeamAnalysisData>({
     system: SYSTEM_PROMPT,
     user: buildPrompt(team, sim),
     maxTokens: 1400,
+    kind: "team",
+    userId,
   });
 }
 
@@ -84,7 +86,7 @@ export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
 
   try {
     // Shared daily cache → one Claude call per team per day, reused by everyone.
-    const data = await getCachedOrFetch(key, 86400, () => generate(team, slug));
+    const data = await getCachedOrFetch(key, 86400, () => generate(team, slug, access.userId));
     // Success → only now do we consume the free credit + record usage.
     await commitAnalysisUsage(access.isFree);
     await saveAnalysis(access.userId, {

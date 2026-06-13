@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Match } from "@/lib/types";
 import { getSubscription } from "@/lib/ai-guard";
+import { logAiUsage } from "@/lib/ai-cost";
 import { hasFeature, PAYWALL_REQUIRED, AUTH_REQUIRED } from "@/lib/plans";
 
 type Result = { ok: true; answer: string } | { ok: false; error: string };
@@ -40,14 +41,16 @@ export async function askMatchQuestion(match: Match, question: string): Promise<
 
   try {
     const client = new Anthropic({ apiKey });
+    const model = "claude-sonnet-4-5";
     const msg = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model,
       max_tokens: 400,
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [
         { role: "user", content: `${context(match)}\n\nQUESTION : ${q}` },
       ],
     });
+    await logAiUsage({ kind: "chat", model, usage: msg.usage });
     const answer = msg.content
       .filter((b): b is Anthropic.TextBlock => b.type === "text")
       .map((b) => b.text)

@@ -1,6 +1,7 @@
 import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
+import { logAiUsage, type AiKind } from "@/lib/ai-cost";
 
 /**
  * Call Claude and parse a JSON object from the response.
@@ -8,26 +9,37 @@ import Anthropic from "@anthropic-ai/sdk";
  * The system prompt is sent with an ephemeral cache_control block (reused across
  * calls of the same kind → ~90% savings on system tokens). Non-streaming: we
  * want the full object to validate/cache/persist before rendering.
+ *
+ * This runs on a cache MISS only (callers wrap it in getCachedOrFetch), so the
+ * token usage we log here is the true money cost of a real generation.
  */
 export async function callClaudeJson<T>(opts: {
   system: string;
   user: string;
   maxTokens?: number;
   model?: string;
+  kind?: AiKind;
+  userId?: string | null;
 }): Promise<T> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Clé API Anthropic manquante.");
 
   const client = new Anthropic({ apiKey });
+  const model = opts.model ?? "claude-sonnet-4-5";
 
   const msg = await client.messages.create({
-    model: opts.model ?? "claude-sonnet-4-5",
+    model,
     max_tokens: opts.maxTokens ?? 1500,
     system: [
       { type: "text", text: opts.system, cache_control: { type: "ephemeral" } },
     ],
     messages: [{ role: "user", content: opts.user }],
   });
+
+  // Record token usage + computed cost (best-effort, never throws).
+  if (opts.kind) {
+    await logAiUsage({ kind: opts.kind, model, usage: msg.usage, userId: opts.userId });
+  }
 
   const text = msg.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")

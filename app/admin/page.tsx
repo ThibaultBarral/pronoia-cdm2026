@@ -28,12 +28,18 @@ export default async function AdminPage() {
             </p>
           </header>
 
-          <div className="mb-6">
+          <div className="mb-6 flex flex-wrap gap-2.5">
             <a
               href="/admin/predictions"
               className="inline-flex items-center gap-2 rounded-xl glass px-4 py-2.5 text-sm font-bold text-[var(--accent)] hover:bg-white/[0.05] transition-colors"
             >
               🎯 Prédictions vérifiées (track record) →
+            </a>
+            <a
+              href="/admin/couts"
+              className="inline-flex items-center gap-2 rounded-xl glass px-4 py-2.5 text-sm font-bold text-[var(--accent)] hover:bg-white/[0.05] transition-colors"
+            >
+              💸 Coûts &amp; rentabilité (IA) →
             </a>
           </div>
 

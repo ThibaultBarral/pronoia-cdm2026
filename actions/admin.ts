@@ -1,6 +1,7 @@
 "use server";
 
 import { setAdmin, setFreeAccess } from "@/lib/admin";
+import { recordCreditCheckpoint } from "@/lib/ai-cost";
 
 /** Grant/revoke admin by email. Guarded server-side (setAdmin checks isAdmin). */
 export async function setAdminAction(
@@ -16,4 +17,12 @@ export async function setFreeAccessAction(
   value: boolean
 ): Promise<{ ok: boolean; error?: string }> {
   return setFreeAccess(email, value);
+}
+
+/** Record a real Anthropic credit-balance reading. Guarded server-side. */
+export async function recordCreditCheckpointAction(
+  balanceUsd: number,
+  note?: string
+): Promise<{ ok: boolean; error?: string }> {
+  return recordCreditCheckpoint(balanceUsd, note);
 }

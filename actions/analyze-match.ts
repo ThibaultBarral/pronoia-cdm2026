@@ -138,13 +138,19 @@ function buildRecommendation(vb: ValueBet | null, rationale: string): MatchAnaly
   };
 }
 
-async function generate(match: Match, profile: Playstyle | null): Promise<MatchAnalysisData> {
+async function generate(
+  match: Match,
+  profile: Playstyle | null,
+  userId: string,
+): Promise<MatchAnalysisData> {
   const pred = predictMatch(match);
   const valueBet = await selectValueBet(match).catch(() => null);
   const text = await callClaudeJson<ClaudeMatchText>({
     system: SYSTEM_PROMPT,
     user: buildPrompt(match, pred) + valueVerdictPrompt(valueBet) + bettorProfilePromptContext(profile),
     maxTokens: 1500,
+    kind: "match",
+    userId,
   });
 
   // Confidence reflects the BET's expected value (not just the win probability).
@@ -185,7 +191,7 @@ export async function analyzeMatch(match: Match): Promise<Result> {
   const key = `analysis:match:${match.id}:${day}:wc${finished}:${profile ?? "none"}:ev2`;
 
   try {
-    const data = await getCachedOrFetch(key, 86400, () => generate(match, profile));
+    const data = await getCachedOrFetch(key, 86400, () => generate(match, profile, access.userId));
     // Success → only now do we consume the free credit + record usage.
     await commitAnalysisUsage(access.isFree);
     await saveAnalysis(access.userId, {

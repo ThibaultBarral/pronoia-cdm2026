@@ -84,6 +84,11 @@ async function fetchWhopRevenue(): Promise<{ total: number; byMembership: Map<st
   return { total, byMembership };
 }
 
+/** Total real Whop revenue (€), payé − remboursé. For the costs dashboard. */
+export async function getWhopRevenueTotal(): Promise<number> {
+  return (await fetchWhopRevenue()).total;
+}
+
 /** All users + subscription/usage stats + real Whop revenue. Admin only. */
 export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalRevenue: number }> {
   if (!(await isAdmin())) return { users: [], totalRevenue: 0 };

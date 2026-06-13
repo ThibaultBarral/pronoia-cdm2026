@@ -2,6 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { requireAnalysisAccess } from "@/lib/ai-guard";
+import { logAiUsage } from "@/lib/ai-cost";
 import { validateImages } from "@/lib/validate-images";
 
 export interface ParsedBet {
@@ -56,11 +57,13 @@ export async function analyzeBetImages(
   if (!apiKey) return { ok: false, error: "Clé API Anthropic manquante." };
 
   const client = new Anthropic({ apiKey });
+  const userId = "userId" in guard ? guard.userId : null;
+  const model = "claude-sonnet-4-6";
 
   const results = await Promise.allSettled(
     images.map(async (img) => {
       const res = await client.messages.create({
-        model: "claude-sonnet-4-6",
+        model,
         max_tokens: 512,
         messages: [
           {
@@ -79,6 +82,8 @@ export async function analyzeBetImages(
           },
         ],
       });
+
+      await logAiUsage({ kind: "bets", model, usage: res.usage, userId });
 
       const text = res.content[0].type === "text" ? res.content[0].text.trim() : "";
       const cleaned = text.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
