@@ -60,39 +60,54 @@ const toBet = (s: Scored, bookmaker?: string): ValueBet => ({
 });
 
 /**
+ * A recommended bet must be PLAUSIBLE — even the boldest profile never headlines
+ * a longshot. Below this model probability a "+EV" pick is just a lottery ticket
+ * (e.g. a 15%-likely underdog at long odds) and erodes trust, so it's excluded
+ * from every profile's headline recommendation.
+ */
+const MIN_RECO_PROBA = 0.3;
+
+/**
  * Pick the candidate that best fits a bettor profile's RISK APPETITE — never the
- * stake, always the bet TYPE/boldness. EV stays a guard (we don't push a clearly
- * negative-EV longshot): when a profile finds no fitting pick, it falls back to
- * the best-EV one (which honestly reports its tier, "none" included).
+ * stake, always the bet TYPE/boldness. Two guards keep recommendations sane:
+ *  - PLAUSIBILITY: only bets with proba ≥ 30% can be the headline pick.
+ *  - EV: we never push a clearly negative-EV bet (fallback to the best-EV one,
+ *    which honestly reports its tier, "none" included).
  *  - safe        → l'issue la plus probable (faible variance).
  *  - balanced    → la meilleure value parmi les paris solides (proba ≥ 40%).
- *  - opportunist → la value pure (meilleur EV, quitte à être pointu).
- *  - aggressive  → le plus gros gain potentiel parmi les paris à value (cote max).
+ *  - opportunist → la meilleure value parmi les paris plausibles.
+ *  - aggressive  → le plus gros gain potentiel parmi les paris plausibles à value.
  */
 function pickForProfile(scored: Scored[], profile: Playstyle): Scored {
   const byEv = [...scored].sort((a, b) => b.v.ev - a.v.ev);
   const bestEv = byEv[0];
+  // Plausible candidates only (fall back to all if a match is wide open).
+  const plausible = scored.filter((s) => s.c.proba >= MIN_RECO_PROBA);
+  const pool = plausible.length ? plausible : scored;
+  const poolByEv = [...pool].sort((a, b) => b.v.ev - a.v.ev);
 
   switch (profile) {
     case "safe": {
+      // Highest probability wins (lowest variance) — already plausible by nature.
       return [...scored].sort(
         (a, b) => b.c.proba - a.c.proba || b.v.ev - a.v.ev,
       )[0];
     }
     case "balanced": {
-      const solid = byEv.filter((s) => s.c.proba >= 0.4);
-      return solid[0] ?? bestEv;
+      const solid = poolByEv.filter((s) => s.c.proba >= 0.4);
+      return solid[0] ?? poolByEv[0] ?? bestEv;
     }
     case "aggressive": {
-      const withValue = scored.filter((s) => s.v.ev >= 0);
+      // Boldest = biggest odds, but only among plausible bets that still hold value.
+      const withValue = pool.filter((s) => s.v.ev >= 0);
       if (withValue.length) {
         return [...withValue].sort((a, b) => b.c.cote - a.c.cote)[0];
       }
-      return bestEv;
+      return poolByEv[0] ?? bestEv;
     }
     case "opportunist":
     default:
-      return bestEv;
+      return poolByEv[0] ?? bestEv;
   }
 }
 

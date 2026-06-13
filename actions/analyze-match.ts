@@ -197,7 +197,7 @@ export async function analyzeMatch(match: Match): Promise<Result> {
   // shared across all users — the UI toggles between profiles client-side.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles1`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles2`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId));

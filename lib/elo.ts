@@ -51,6 +51,10 @@ export const REAL_ELO: Record<string, number> = {
   Panama: 1620,
   Scotland: 1720,
   Sweden: 1760,
+  // Lower-ranked WC entrants whose FIFA-rank-derived Elo overrated them (the
+  // derivation floor is too generous for weak sides) → real eloratings.net values.
+  Qatar: 1500,
+  "New Zealand": 1490,
 };
 
 /** Elo for a team — real value if known, else estimated from its FIFA rank. */
