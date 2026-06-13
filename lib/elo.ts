@@ -52,8 +52,14 @@ export const REAL_ELO: Record<string, number> = {
   Scotland: 1720,
   Sweden: 1760,
   // Lower-ranked WC entrants whose FIFA-rank-derived Elo overrated them (the
-  // derivation floor is too generous for weak sides) → real eloratings.net values.
-  Qatar: 1500,
+  // derivation is too generous for weak sides whose FIFA rank flatters them) →
+  // real eloratings.net values (snapshot 2026-06). Keeps the per-match favourite
+  // and the displayed win probabilities credible (no 15%-likely "value" upsets).
+  Qatar: 1500,        // FIFA #55 → derived 1642 (≈ −140 too high)
+  Iraq: 1560,         // FIFA #57 → derived 1629
+  Uzbekistan: 1630,   // FIFA #50 → derived 1674
+  Jordan: 1545,       // FIFA #63 → derived 1591
+  "Saudi Arabia": 1610,
   "New Zealand": 1490,
 };
 
