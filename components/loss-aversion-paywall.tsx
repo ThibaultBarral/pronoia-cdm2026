@@ -8,6 +8,7 @@ import { getPaywallTeaser, type PaywallTeaser } from "@/actions/paywall-teaser";
 import { createCheckout } from "@/actions/create-checkout";
 import { trackEvent } from "@/lib/analytics";
 import { FEATURE } from "@/lib/feature-flags";
+import WelcomeOffer from "@/components/welcome-offer";
 import type { PaidPlan } from "@/lib/plans";
 
 function eur(n: number): string {
@@ -91,6 +92,11 @@ export default function LossAversionPaywall({ match }: { match: Match }) {
       <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-32 bg-[#ffd700]/10 blur-3xl pointer-events-none" />
 
       <div className="relative p-5 sm:p-6">
+        {/* First-session welcome discount (self-hides when not eligible). */}
+        <div className="mb-5 empty:mb-0">
+          <WelcomeOffer source="paywall" />
+        </div>
+
         {/* Hero — montant simulé */}
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-widest text-[#ff9d5c] font-bold mb-1">

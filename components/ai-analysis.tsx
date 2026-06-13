@@ -19,6 +19,7 @@ import { recommendStake, parseOdds } from "@/lib/staking";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
+import WelcomeOffer from "@/components/welcome-offer";
 import { valueBadge, fmtCote } from "@/lib/value";
 import {
   DISCLAIMER, type Confidence, type MatchAnalysisData,
@@ -513,6 +514,9 @@ export default function AIAnalysis({
               </div>
             </div>
             )}
+
+            {/* First-session welcome discount (self-hides for subscribers / outside window). */}
+            <WelcomeOffer source="analysis" />
 
             <p className="text-[10px] text-[var(--text-muted)] text-center">{DISCLAIMER}</p>
 
