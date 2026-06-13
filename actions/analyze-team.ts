@@ -1,7 +1,7 @@
 "use server";
 
 import type { Team } from "@/lib/types";
-import { requireAnalysisAccess } from "@/lib/ai-guard";
+import { getAnalysisAccess, commitAnalysisUsage } from "@/lib/ai-guard";
 import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
@@ -73,8 +73,9 @@ async function generate(team: Team, slug: string): Promise<TeamAnalysisData> {
 }
 
 export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
-  const guard = await requireAnalysisAccess();
-  if ("error" in guard) return { ok: false, error: guard.error };
+  // Check access WITHOUT consuming the free analysis (committed only on success).
+  const access = await getAnalysisAccess();
+  if ("error" in access) return { ok: false, error: access.error };
 
   // Re-key by finished WC matches so the team analysis refreshes as results land.
   const day = new Date().toISOString().slice(0, 10);
@@ -84,8 +85,9 @@ export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
   try {
     // Shared daily cache → one Claude call per team per day, reused by everyone.
     const data = await getCachedOrFetch(key, 86400, () => generate(team, slug));
-    // Record in this user's history (best-effort).
-    await saveAnalysis(guard.userId, {
+    // Success → only now do we consume the free credit + record usage.
+    await commitAnalysisUsage(access.isFree);
+    await saveAnalysis(access.userId, {
       kind: "team",
       target: slug,
       title: team.name,
@@ -95,6 +97,6 @@ export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
     return { ok: true, data };
   } catch (err) {
     console.error("[analyze-team] error:", err);
-    return { ok: false, error: err instanceof Error ? err.message : "Erreur lors de l'analyse." };
+    return { ok: false, error: "L'analyse est momentanément indisponible. Réessaie dans un instant." };
   }
 }

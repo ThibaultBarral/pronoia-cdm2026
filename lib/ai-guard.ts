@@ -99,3 +99,55 @@ export async function requireAnalysisAccess(): Promise<
   }
   return { error: PAYWALL_REQUIRED };
 }
+
+/**
+ * Like requireAnalysisAccess but does NOT consume the free analysis — only
+ * checks eligibility. The credit is committed separately, AFTER a successful
+ * generation (commitAnalysisUsage), so a failed Claude call never burns a
+ * visitor's discovery analysis.
+ */
+export async function getAnalysisAccess(): Promise<
+  { userId: string; isFree: boolean } | { error: string }
+> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: AUTH_REQUIRED };
+
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("plan, status, current_period_end, trial_end, vip, free_analyses_used")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const state = {
+    plan: (data?.plan as Plan) ?? "free",
+    status: (data?.status as SubStatus | null) ?? null,
+    currentPeriodEnd: (data?.current_period_end as string | null) ?? null,
+    trialEnd: (data?.trial_end as string | null) ?? null,
+  };
+
+  if (Boolean(data?.vip) || hasAccess(state)) {
+    return { userId: user.id, isFree: false };
+  }
+
+  const used = (data?.free_analyses_used as number | null) ?? 0;
+  if (used < FREE_ANALYSES_LIMIT) return { userId: user.id, isFree: true };
+
+  return { error: PAYWALL_REQUIRED };
+}
+
+/**
+ * Commit usage AFTER a successful analysis: consume the free credit (free users
+ * only, race-safe RPC) and bump the analytics counter. Best-effort.
+ */
+export async function commitAnalysisUsage(isFree: boolean): Promise<void> {
+  try {
+    const supabase = await createClient();
+    if (isFree) {
+      await supabase.rpc("use_free_analysis", { p_limit: FREE_ANALYSES_LIMIT });
+    }
+    await supabase.rpc("record_analysis");
+  } catch (err) {
+    console.error("[ai-guard] commitAnalysisUsage error:", err);
+  }
+}

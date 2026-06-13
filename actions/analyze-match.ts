@@ -1,7 +1,7 @@
 "use server";
 
 import type { Match } from "@/lib/types";
-import { requireAnalysisAccess } from "@/lib/ai-guard";
+import { getAnalysisAccess, commitAnalysisUsage } from "@/lib/ai-guard";
 import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
@@ -172,8 +172,9 @@ export async function analyzeMatch(match: Match): Promise<Result> {
     return { ok: false, error: "Ce match est terminé — l'analyse pré-match n'est plus disponible." };
   }
 
-  const guard = await requireAnalysisAccess();
-  if ("error" in guard) return { ok: false, error: guard.error };
+  // Check access WITHOUT consuming the free analysis (committed only on success).
+  const access = await getAnalysisAccess();
+  if ("error" in access) return { ok: false, error: access.error };
 
   // Re-key by finished WC matches (fresh form after each match) AND by the
   // caller's bettor profile → the recommendation adapts to their play style.
@@ -185,7 +186,9 @@ export async function analyzeMatch(match: Match): Promise<Result> {
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, profile));
-    await saveAnalysis(guard.userId, {
+    // Success → only now do we consume the free credit + record usage.
+    await commitAnalysisUsage(access.isFree);
+    await saveAnalysis(access.userId, {
       kind: "match",
       target: match.id,
       title: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
@@ -197,7 +200,9 @@ export async function analyzeMatch(match: Match): Promise<Result> {
     await logMatchPrediction(match);
     return { ok: true, data };
   } catch (err) {
+    // The Claude/data call failed → the free analysis is NOT consumed, the user
+    // can retry. Show a clean message (never the raw provider error).
     console.error("[analyze-match] error:", err);
-    return { ok: false, error: err instanceof Error ? err.message : "Erreur lors de l'analyse." };
+    return { ok: false, error: "L'analyse est momentanément indisponible. Réessaie dans un instant." };
   }
 }
