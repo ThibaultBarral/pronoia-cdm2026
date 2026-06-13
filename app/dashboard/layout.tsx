@@ -5,7 +5,6 @@ import PWAInstallGuide from "@/components/pwa-install-guide";
 import AcquisitionSurvey from "@/components/acquisition-survey";
 import WinbackPopup from "@/components/winback-popup";
 import NoSubSurvey from "@/components/no-sub-survey";
-import PremiumNudge from "@/components/dashboard/premium-nudge";
 import SocialProofGate from "@/components/social-proof/social-proof-gate";
 
 export const metadata: Metadata = {
@@ -26,7 +25,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <AcquisitionSurvey />
       <WinbackPopup />
       <NoSubSurvey />
-      <PremiumNudge />
       <SocialProofGate />
     </div>
   );

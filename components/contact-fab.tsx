@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { MessageCircle, X as Close, Gift } from "lucide-react";
 import { SocialIcon } from "@/components/social-icons";
 import { logAppEvent } from "@/actions/log-event";
@@ -22,6 +23,9 @@ const CHANNELS = [
 export default function ContactFab() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  // Mobile only has a bottom nav on the dashboard subtree → lift the bubble above
+  // it there; elsewhere it can sit low. Desktop has no bottom nav at all.
+  const onDashboard = (usePathname() ?? "").startsWith("/dashboard");
 
   // Close on outside-click / Escape.
   useEffect(() => {
@@ -51,8 +55,11 @@ export default function ContactFab() {
   return (
     <div
       ref={ref}
-      className="fixed right-4 z-[60] flex flex-col items-end gap-2"
-      style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+      className={`fixed right-4 z-[60] flex flex-col items-end gap-2 md:bottom-[calc(1rem+env(safe-area-inset-bottom))] ${
+        onDashboard
+          ? "bottom-[calc(5rem+env(safe-area-inset-bottom))]"
+          : "bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+      }`}
     >
       {/* Expanded panel */}
       {open && (
