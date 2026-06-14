@@ -36,6 +36,19 @@ export function confidenceFromEv(ev: number): Confidence {
   return "Faible";
 }
 
+/**
+ * Probability → confidence, for "banker" picks (the Prudent profile) where the
+ * point is winning often, not the EV. A likely outcome is a confident pick even
+ * at a short price — the opposite stance of confidenceFromEv (which is right for
+ * value bets). Used only for the probability-based recommendation.
+ */
+export function confidenceFromProba(p: number): Confidence {
+  if (p >= 0.65) return "Très élevé";
+  if (p >= 0.55) return "Élevé";
+  if (p >= 0.45) return "Moyen";
+  return "Faible";
+}
+
 export function calculateValue(proba: number, cote: number): ValueResult {
   const p = Math.max(0, Math.min(1, Number.isFinite(proba) ? proba : 0));
   const c = Number.isFinite(cote) && cote > 0 ? cote : 0;

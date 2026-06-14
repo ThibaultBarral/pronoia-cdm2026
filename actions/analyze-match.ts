@@ -7,7 +7,7 @@ import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
 import { logMatchPrediction } from "@/lib/predictions";
 import { selectValueBetsByProfile, type ValueBet } from "@/lib/value-bet";
-import { fmtCote } from "@/lib/value";
+import { fmtCote, confidenceFromProba } from "@/lib/value";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
 import { PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
@@ -108,7 +108,11 @@ ${lines}`;
 }
 
 /** Build the final recommendation from the engine's value verdict + Claude's text. */
-function buildRecommendation(vb: ValueBet | null, rationale: string): BetRecommendation {
+function buildRecommendation(
+  vb: ValueBet | null,
+  rationale: string,
+  profile: Playstyle,
+): BetRecommendation {
   if (!vb) {
     return {
       bet: "Aucun pari à valeur (cotes indisponibles)",
@@ -116,8 +120,28 @@ function buildRecommendation(vb: ValueBet | null, rationale: string): BetRecomme
       stake: "Ne pas jouer",
       rationale: rationale || "Cotes indisponibles : pas de recommandation de pari fiable sur ce match.",
       valueTier: "none",
+      basis: "value",
     };
   }
+
+  // Prudent = a "banker": the most likely outcome, proposed even without value,
+  // framed honestly on PROBABILITY (not a fake +EV claim).
+  if (profile === "safe") {
+    return {
+      bet: `${vb.selection} (${vb.market})`,
+      odds: fmtCote(vb.cote),
+      bookmaker: vb.bookmaker,
+      confidence: confidenceFromProba(vb.proba),
+      stake: "Mise prudente : 1 à 2% de ta bankroll",
+      rationale,
+      ev: Math.round(vb.ev * 1000) / 1000,
+      coteMin: Math.round(vb.coteMin * 100) / 100,
+      valueTier: vb.tier,
+      probaModele: Math.round(vb.proba * 100),
+      basis: "probability",
+    };
+  }
+
   const stake =
     vb.tier === "none"
       ? "Ne pas jouer ce pari (pas de value)"
@@ -125,7 +149,9 @@ function buildRecommendation(vb: ValueBet | null, rationale: string): BetRecomme
         ? "Mise prudente : 1% max"
         : "1 à 3% de ta bankroll";
   return {
-    bet: vb.tier === "none" ? "Aucun pari à valeur sur ce match" : `${vb.selection} (${vb.market})`,
+    // Always name the distinct pick (variety across profiles); the value badge +
+    // stake stay honest about whether it's actually worth playing.
+    bet: `${vb.selection} (${vb.market})`,
     odds: fmtCote(vb.cote),
     bookmaker: vb.bookmaker,
     confidence: vb.confidence,
@@ -135,6 +161,7 @@ function buildRecommendation(vb: ValueBet | null, rationale: string): BetRecomme
     coteMin: Math.round(vb.coteMin * 100) / 100,
     valueTier: vb.tier,
     probaModele: Math.round(vb.proba * 100),
+    basis: "value",
   };
 }
 
@@ -156,7 +183,7 @@ async function generate(match: Match, userId: string): Promise<MatchAnalysisData
   const recommendationsByProfile = Object.fromEntries(
     PROFILE_IDS.map((p) => [
       p,
-      buildRecommendation(bets[p], text.recommendations?.[p]?.rationale ?? ""),
+      buildRecommendation(bets[p], text.recommendations?.[p]?.rationale ?? "", p),
     ]),
   ) as Record<Playstyle, BetRecommendation>;
 
@@ -197,7 +224,7 @@ export async function analyzeMatch(match: Match): Promise<Result> {
   // shared across all users — the UI toggles between profiles client-side.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles2`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles3`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId));

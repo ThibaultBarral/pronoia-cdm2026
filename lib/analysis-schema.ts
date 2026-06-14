@@ -31,6 +31,13 @@ export interface BetRecommendation {
   valueTier?: "value" | "marginal" | "none";
   /** Model probability of the recommended bet (%). */
   probaModele?: number;
+  /**
+   * How this pick was selected:
+   * - "value" (default): chosen for its expected value (+EV) — the value profiles.
+   * - "probability": the most likely outcome (a "banker") — the Prudent profile,
+   *   which always proposes a bet even without value, framed honestly as such.
+   */
+  basis?: "value" | "probability";
 }
 
 export interface MatchAnalysisData {

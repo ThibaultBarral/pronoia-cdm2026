@@ -141,6 +141,9 @@ export default function AIAnalysis({
   const profileRecs = data?.recommendationsByProfile;
   const effectiveProfile: Playstyle = activeProfile ?? bankroll?.playstyle ?? "opportunist";
   const rec = profileRecs?.[effectiveProfile] ?? data?.recommendation;
+  // "Banker" = the Prudent pick: the most likely outcome, proposed even without
+  // value → shown as a probability-based pick, never as "no value / don't bet".
+  const isBanker = rec?.basis === "probability";
   const stakeAdvice =
     rec && bankroll && bankroll.amount > 0
       ? recommendStake(bankroll.amount, effectiveProfile, rec.confidence, parseOdds(rec.odds))
@@ -416,11 +419,13 @@ export default function AIAnalysis({
 
               <div
                 className={`rounded-2xl p-4 ${
-                  rec.valueTier === "none"
-                    ? "glass border border-[#ef4444]/20"
-                    : rec.valueTier === "marginal"
-                      ? "glass border border-[#ffd700]/25"
-                      : "glass-neon glow-neon"
+                  isBanker
+                    ? "glass border border-[var(--accent)]/25"
+                    : rec.valueTier === "none"
+                      ? "glass border border-[#ef4444]/20"
+                      : rec.valueTier === "marginal"
+                        ? "glass border border-[#ffd700]/25"
+                        : "glass-neon glow-neon"
                 }`}
               >
               <div className="flex items-center gap-1.5 text-[var(--accent)] mb-2">
@@ -428,7 +433,11 @@ export default function AIAnalysis({
                 <span className="text-xs font-black uppercase tracking-wide">Notre recommandation</span>
               </div>
 
-              {(() => {
+              {isBanker ? (
+                <span className="inline-block text-[11px] font-black px-2.5 py-1 rounded-full mb-2 bg-[var(--accent)]/12 text-[var(--accent)]">
+                  🛡️ Le pari le plus probable
+                </span>
+              ) : (() => {
                 const tier = rec.valueTier;
                 if (!tier) return null;
                 const b = valueBadge(tier);
@@ -447,7 +456,7 @@ export default function AIAnalysis({
 
               <div className="text-base font-black text-[#f0f0f0]">
                 {rec.bet}
-                {rec.odds && rec.valueTier !== "none" && (
+                {rec.odds && (
                   <span className="text-[var(--accent)]">
                     {" "}— cote {rec.odds}
                     {rec.bookmaker ? ` (${rec.bookmaker})` : ""}
@@ -456,28 +465,39 @@ export default function AIAnalysis({
               </div>
               <p className="text-xs text-[#aaa] mt-1.5 leading-relaxed">{rec.rationale}</p>
 
-              {/* Pédagogie value : cote mini vs cote actuelle */}
-              {rec.coteMin != null && rec.odds && (
-                <p className="text-[11px] text-[var(--text-muted)] mt-2">
-                  Cote min. pour value :{" "}
-                  <span className="font-bold text-[#cdd3db]">{fmtCote(rec.coteMin)}</span>{" "}
-                  · Cote actuelle : <span className="font-bold text-[#cdd3db]">{rec.odds}</span>
-                </p>
+              {/* Banker → on montre la probabilité ; value → cote mini vs actuelle */}
+              {isBanker ? (
+                rec.probaModele != null && (
+                  <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                    Probabilité estimée :{" "}
+                    <span className="font-bold text-[#cdd3db]">{rec.probaModele}%</span>
+                    {rec.odds ? <> · Cote : <span className="font-bold text-[#cdd3db]">{rec.odds}</span></> : null}
+                  </p>
+                )
+              ) : (
+                rec.coteMin != null && rec.odds && (
+                  <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                    Cote min. pour value :{" "}
+                    <span className="font-bold text-[#cdd3db]">{fmtCote(rec.coteMin)}</span>{" "}
+                    · Cote actuelle : <span className="font-bold text-[#cdd3db]">{rec.odds}</span>
+                  </p>
+                )
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
                 <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] font-bold">
                   Confiance : {rec.confidence}
                 </span>
-                {(!stakeAdvice || rec.valueTier === "none") && (
+                {(!stakeAdvice || (rec.valueTier === "none" && !isBanker)) && (
                   <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
                     Mise indicative : {rec.stake}
                   </span>
                 )}
               </div>
 
-              {/* Personalised € stake — never for a no-value bet (don't encourage it) */}
-              {stakeAdvice && rec.valueTier !== "none" ? (
+              {/* Personalised € stake — for value bets AND the Prudent banker
+                  (never for a no-value bet in a value profile). */}
+              {stakeAdvice && (rec.valueTier !== "none" || isBanker) ? (
                 <div className="mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-3.5">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--accent)] mb-1.5">
                     <Wallet size={12} /> Mise conseillée pour toi

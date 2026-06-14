@@ -60,54 +60,63 @@ const toBet = (s: Scored, bookmaker?: string): ValueBet => ({
 });
 
 /**
- * A recommended bet must be PLAUSIBLE — even the boldest profile never headlines
- * a longshot. Below this model probability a "+EV" pick is just a lottery ticket
- * (e.g. a 15%-likely underdog at long odds) and erodes trust, so it's excluded
- * from every profile's headline recommendation.
+ * A value pick must be PLAUSIBLE — even the boldest profile never headlines a
+ * longshot. Below this model probability a "+EV" pick is just a lottery ticket
+ * and erodes trust, so it's excluded from the value profiles' picks.
  */
 const MIN_RECO_PROBA = 0.3;
 
+/** A "banker" (Prudent) must still pay something — no sub-1.40 dead-money picks. */
+const MIN_SAFE_ODDS = 1.4;
+
+const keyOf = (s: Scored) => `${s.c.market}|${s.c.selection}`;
+
 /**
- * Pick the candidate that best fits a bettor profile's RISK APPETITE — never the
- * stake, always the bet TYPE/boldness. Two guards keep recommendations sane:
- *  - PLAUSIBILITY: only bets with proba ≥ 30% can be the headline pick.
- *  - EV: we never push a clearly negative-EV bet (fallback to the best-EV one,
- *    which honestly reports its tier, "none" included).
- *  - safe        → l'issue la plus probable (faible variance).
+ * Pick the candidate that best fits a profile's RISK APPETITE — never the stake,
+ * always the bet TYPE/boldness. `used` holds selections already taken by more
+ * conservative profiles, so bolder ones diversify away from them when possible
+ * (this is what makes the 4 profiles show genuinely different bets).
+ *
+ *  - safe        → l'issue la plus probable ET jouable (un "banker"), value ou
+ *                  non : le Prudent propose TOUJOURS un pari.
  *  - balanced    → la meilleure value parmi les paris solides (proba ≥ 40%).
  *  - opportunist → la meilleure value parmi les paris plausibles.
- *  - aggressive  → le plus gros gain potentiel parmi les paris plausibles à value.
+ *  - aggressive  → la plus grosse cote parmi les paris plausibles à value.
  */
-function pickForProfile(scored: Scored[], profile: Playstyle): Scored {
-  const byEv = [...scored].sort((a, b) => b.v.ev - a.v.ev);
-  const bestEv = byEv[0];
-  // Plausible candidates only (fall back to all if a match is wide open).
+function pickForProfile(
+  scored: Scored[],
+  profile: Playstyle,
+  used: Set<string> = new Set(),
+): Scored {
   const plausible = scored.filter((s) => s.c.proba >= MIN_RECO_PROBA);
-  const pool = plausible.length ? plausible : scored;
-  const poolByEv = [...pool].sort((a, b) => b.v.ev - a.v.ev);
+  // Prefer candidates not already taken by a more conservative profile.
+  const prefFresh = (pool: Scored[]) => {
+    const fresh = pool.filter((s) => !used.has(keyOf(s)));
+    return fresh.length ? fresh : pool;
+  };
+  const byEv = (pool: Scored[]) => [...pool].sort((a, b) => b.v.ev - a.v.ev);
+  const byOdds = (pool: Scored[]) => [...pool].sort((a, b) => b.c.cote - a.c.cote);
+  const byProba = (pool: Scored[]) =>
+    [...pool].sort((a, b) => b.c.proba - a.c.proba || b.v.ev - a.v.ev);
 
   switch (profile) {
     case "safe": {
-      // Highest probability wins (lowest variance) — already plausible by nature.
-      return [...scored].sort(
-        (a, b) => b.c.proba - a.c.proba || b.v.ev - a.v.ev,
-      )[0];
+      // Most probable PLAYABLE outcome (a banker), value or not. Picked first, so
+      // it sets the anchor the bolder profiles diversify away from.
+      const playable = scored.filter((s) => s.c.cote >= MIN_SAFE_ODDS);
+      return byProba(playable.length ? playable : scored)[0];
     }
     case "balanced": {
-      const solid = poolByEv.filter((s) => s.c.proba >= 0.4);
-      return solid[0] ?? poolByEv[0] ?? bestEv;
+      const solid = plausible.filter((s) => s.c.proba >= 0.4);
+      return byEv(prefFresh(solid.length ? solid : plausible.length ? plausible : scored))[0];
     }
     case "aggressive": {
-      // Boldest = biggest odds, but only among plausible bets that still hold value.
-      const withValue = pool.filter((s) => s.v.ev >= 0);
-      if (withValue.length) {
-        return [...withValue].sort((a, b) => b.c.cote - a.c.cote)[0];
-      }
-      return poolByEv[0] ?? bestEv;
+      const withValue = plausible.filter((s) => s.v.ev >= 0);
+      return byOdds(prefFresh(withValue.length ? withValue : plausible.length ? plausible : scored))[0];
     }
     case "opportunist":
     default:
-      return poolByEv[0] ?? bestEv;
+      return byEv(prefFresh(plausible.length ? plausible : scored))[0];
   }
 }
 
@@ -123,9 +132,16 @@ export async function selectValueBet(match: Match): Promise<ValueBet | null> {
 }
 
 /**
+ * Fixed conservative→bold order: each profile is picked in turn and remembers
+ * what the previous ones took, so bolder profiles diversify away → 4 different
+ * bets when the match offers enough material.
+ */
+const SELECTION_ORDER: readonly Playstyle[] = ["safe", "balanced", "opportunist", "aggressive"];
+
+/**
  * One value bet PER bettor profile (computed from a single odds fetch). The bet
- * TYPE/boldness adapts to each profile's risk appetite; the engine still grounds
- * every pick in real odds + model probabilities. Null entries when no odds.
+ * TYPE/boldness adapts to each profile's risk appetite, and picks diversify
+ * across profiles (see SELECTION_ORDER). Null entries when no odds.
  */
 export async function selectValueBetsByProfile(
   match: Match,
@@ -133,8 +149,21 @@ export async function selectValueBetsByProfile(
 ): Promise<Record<Playstyle, ValueBet | null>> {
   const { scored, bookmaker } = await scoreCandidates(match);
   const out = {} as Record<Playstyle, ValueBet | null>;
-  for (const p of profiles) {
-    out[p] = scored.length ? toBet(pickForProfile(scored, p), bookmaker) : null;
+  if (!scored.length) {
+    for (const p of profiles) out[p] = null;
+    return out;
+  }
+  const used = new Set<string>();
+  // Pick conservative→bold so diversity is deterministic; only assign requested
+  // profiles, but follow the canonical order for stable, varied results.
+  const ordered = [
+    ...SELECTION_ORDER.filter((p) => profiles.includes(p)),
+    ...profiles.filter((p) => !SELECTION_ORDER.includes(p)),
+  ];
+  for (const p of ordered) {
+    const pick = pickForProfile(scored, p, used);
+    out[p] = toBet(pick, bookmaker);
+    used.add(keyOf(pick));
   }
   return out;
 }
