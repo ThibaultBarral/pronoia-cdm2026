@@ -10,7 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
 import { SEGMENTS, type Segment } from "@/lib/onboarding";
-import { VISIBLE_OFFERS, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, type PaidPlan } from "@/lib/plans";
 import { createCheckout } from "@/actions/create-checkout";
 import { getFeaturedMatchId } from "@/actions/get-matches";
 import { useSubscription } from "@/lib/use-subscription";
@@ -189,7 +189,7 @@ function OnboardingV2() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 items-stretch">
-                {VISIBLE_OFFERS.map((o) => {
+                {visibleOffers().map((o) => {
                   const Icon = PLAN_ICONS[o.plan];
                   const gold = o.plan === "lifetime";
                   const highlight = o.highlight;
@@ -271,7 +271,7 @@ function OnboardingV2() {
                   disabled={entering}
                   className="text-xs text-[#5a6472] hover:text-[#9aa3b2] transition-colors underline disabled:opacity-60"
                 >
-                  {entering ? "Chargement…" : "Essayer une analyse gratuite"}
+                  {entering ? "Chargement…" : "Essayer gratuitement"}
                 </button>
               </div>
 

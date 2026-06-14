@@ -1,8 +1,9 @@
 /**
  * Monetization model (Whop) — single source of truth.
  *
- * Total paywall: signing up is free and grants ONE discovery analysis; every
- * analysis after that requires access (a paid plan or an active trial).
+ * Total paywall: signing up is free and grants a few discovery analyses (see
+ * FREE_ANALYSES_LIMIT); every analysis after that requires access (a paid plan
+ * or an active trial).
  *
  * Display fields are safe for client components. Real Whop plan IDs live in
  * server-only env vars (WHOP_PLAN_*), resolved via planIdForPlan / planForPlanId
@@ -16,10 +17,24 @@ export type PaidPlan = Exclude<Plan, "free">;
 export type SubStatus = "active" | "trialing" | "expired" | "canceled";
 
 /** Number of free discovery analyses a `free` user gets in total (lifetime). */
-export const FREE_ANALYSES_LIMIT = 1;
+export const FREE_ANALYSES_LIMIT: number = 3;
 
 /** Pass CDM is sold as a tournament pass: access through this instant (incl.). */
 export const PASS_CDM_END = "2026-07-19T23:59:59Z";
+
+/**
+ * World Cup first-month intro on the Monthly plan (the "Pass Coupe du Monde").
+ * Auto-applied at checkout until PASS_CDM_END — see actions/create-checkout.ts.
+ * The real discount lives on a Whop coupon with this EXACT code (recommended:
+ * 5 € off the first payment only → 14,99 € becomes 9,99 €, renews at 14,99 €).
+ */
+export const CDM_INTRO_CODE = "COPA33";
+export const CDM_INTRO_PCT = 33;
+
+/** Is the World Cup first-month intro window still open? */
+export function cdmIntroActive(now: number = Date.now()): boolean {
+  return now <= Date.parse(PASS_CDM_END);
+}
 
 export interface Offer {
   plan: PaidPlan;
@@ -152,8 +167,40 @@ export const OFFERS: Offer[] = [
   },
 ];
 
-/** Offers shown in the pricing UI — excludes hidden plans (e.g. Monthly during the WC). */
+/** Offers shown in the pricing UI — excludes hidden plans. */
 export const VISIBLE_OFFERS: Offer[] = OFFERS.filter((o) => !o.hidden);
+
+/**
+ * During the World Cup, the Monthly plan is re-skinned as the "Pass Coupe du
+ * Monde": same recurring 14,99 €/month, but a 9,99 € first month (coupon
+ * CDM_INTRO_CODE auto-applied at checkout). The underlying plan/entitlements are
+ * unchanged — only the display. After PASS_CDM_END it reverts automatically to
+ * the plain Monthly, so there is never a stale "9,99 €" once the coupon expires.
+ */
+const CDM_MONTHLY_SKIN: Partial<Offer> = {
+  name: "Pass Coupe du Monde",
+  priceLabel: "9,99 €",
+  unit: "le 1er mois",
+  anchorPrice: "14,99 €",
+  discountLabel: "-33%",
+  urgencyLabel: "Tarif Coupe du Monde · jusqu'au 19 juillet",
+  badge: "★ COUPE DU MONDE 2026",
+  sublabel:
+    "Suis toute la CDM 2026, puis Ligue 1, PL, Liga, Serie A, Bundesliga, LDC & LDE",
+  note: "Puis 14,99 €/mois · résiliable en 1 clic",
+  ctaLabel: "Suivre la Coupe du Monde — 9,99 €",
+};
+
+/**
+ * Date-aware offers for the UI. Applies the World Cup skin to Monthly while the
+ * intro window is open. Use this in components instead of VISIBLE_OFFERS.
+ */
+export function visibleOffers(now: number = Date.now()): Offer[] {
+  const wc = cdmIntroActive(now);
+  return OFFERS.filter((o) => !o.hidden).map((o) =>
+    wc && o.plan === "monthly" ? { ...o, ...CDM_MONTHLY_SKIN } : o,
+  );
+}
 
 // ── Per-feature entitlements ─────────────────────────────────────────────────
 

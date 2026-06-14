@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { createCheckout } from "@/actions/create-checkout";
 import { restoreSubscription } from "@/actions/restore-subscription";
-import { VISIBLE_OFFERS, planName, type Plan, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, planName, type Plan, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
@@ -122,7 +122,7 @@ export default function PaywallContent({
 
       {/* Offers */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto">
-        {VISIBLE_OFFERS.map((o, i) => {
+        {visibleOffers().map((o, i) => {
           const Icon = ICONS[o.plan];
           const highlight = o.highlight;
           const gold = o.plan === "lifetime";

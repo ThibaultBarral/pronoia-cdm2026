@@ -24,7 +24,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: "Combien ça coûte ?",
-    a: "Tu commences gratuitement avec une analyse offerte. Ensuite : Hebdo à 4,99 €/semaine pour tester, Mensuel à 14,99 €/mois (l'offre la plus complète, tous les outils), ou Accès à vie en paiement unique. L'Accès à vie est à 59 € en tarif de lancement jusqu'au 19 juillet, puis 99 €.",
+    a: "Tu commences gratuitement avec 3 analyses offertes. Ensuite : Hebdo à 4,99 €/semaine pour tester, Mensuel à 14,99 €/mois (l'offre la plus complète, tous les outils), ou Accès à vie en paiement unique. L'Accès à vie est à 59 € en tarif de lancement jusqu'au 19 juillet, puis 99 €.",
   },
   {
     q: "Quelle est la différence entre les offres ?",

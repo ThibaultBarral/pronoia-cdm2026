@@ -43,11 +43,11 @@ export default function CGUPage() {
         L&apos;accès nécessite la création d&apos;un compte via une adresse e-mail (authentification
         gérée par Supabase). L&apos;utilisateur est responsable de la confidentialité de ses
         identifiants et de toute activité réalisée depuis son compte. L&apos;inscription est gratuite
-        et donne droit à une analyse de découverte.
+        et donne droit à trois analyses de découverte.
       </p>
 
       <H>4. Offres et paiement</H>
-      <p>Au-delà de l&apos;analyse de découverte, l&apos;accès aux analyses requiert une offre payante :</p>
+      <p>Au-delà des analyses de découverte, l&apos;accès aux analyses requiert une offre payante :</p>
       <ul className="list-disc pl-5 space-y-1.5">
         <li><strong className="text-[#f0f0f0]">Hebdomadaire</strong> — 4,99 € / semaine, abonnement reconductible.</li>
         <li><strong className="text-[#f0f0f0]">Pass CDM 2026</strong> — 14,99 €, paiement unique sans reconduction, accès à l&apos;ensemble du tournoi jusqu&apos;au 19 juillet 2026 inclus.</li>

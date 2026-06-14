@@ -8,16 +8,17 @@
  * and per-user (no extra DB column needed).
  *
  * ⚠️ The discount only actually applies if a matching coupon exists on Whop.
- * Create a coupon with code WELCOME_CODE (−20% on the Monthly plan) on Whop —
- * same as KICKOFF20. The countdown + UI work regardless; without the coupon the
- * user just pays full price.
+ * This reuses the World Cup intro coupon (CDM_INTRO_CODE) so a new user gets the
+ * SAME −33% first month whether they go through this popup or the normal Monthly
+ * card. The countdown + UI work regardless; without the coupon the user just pays
+ * full price.
  */
-import type { PaidPlan } from "@/lib/plans";
+import { CDM_INTRO_CODE, CDM_INTRO_PCT, type PaidPlan } from "@/lib/plans";
 
-/** Generic, shared welcome code — must match a coupon created on Whop. */
-export const WELCOME_CODE = "COPA20";
+/** Shared welcome code — same coupon as the World Cup first-month intro. */
+export const WELCOME_CODE = CDM_INTRO_CODE;
 /** Discount advertised (display only — the real value lives on the Whop coupon). */
-export const WELCOME_DISCOUNT_PCT = 20;
+export const WELCOME_DISCOUNT_PCT = CDM_INTRO_PCT;
 /** The discount only applies to this plan. */
 export const WELCOME_TARGET_PLAN: PaidPlan = "monthly";
 /** Urgency window (hours) from signup — front-side, decoupled from Whop. */

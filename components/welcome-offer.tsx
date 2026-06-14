@@ -80,9 +80,10 @@ export default function WelcomeOffer({ source }: { source: "analysis" | "paywall
       </div>
 
       <p className="text-sm text-[#e6e9ee] leading-snug">
-        <span className="font-black text-[#ffd700]">−{WELCOME_DISCOUNT_PCT}%</span> sur le Mensuel —
-        analyses <span className="font-semibold text-[#cdd3db]">illimitées</span>. Réservé à ta
-        première session.
+        <span className="font-black text-[#ffd700]">−{WELCOME_DISCOUNT_PCT}%</span> sur ton 1er mois —
+        suis toute la Coupe du Monde, analyses{" "}
+        <span className="font-semibold text-[#cdd3db]">illimitées</span>. Puis 14,99 €/mois,
+        résiliable.
       </p>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">

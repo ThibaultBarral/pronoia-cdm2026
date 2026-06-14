@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Check, Flame, Zap, CalendarDays, Infinity as InfinityIcon, Lock, type LucideIcon,
 } from "lucide-react";
-import { VISIBLE_OFFERS, FREE_ANALYSES_LIMIT, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, FREE_ANALYSES_LIMIT, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 import { trackEvent } from "@/lib/analytics";
 
@@ -41,7 +41,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto">
-          {VISIBLE_OFFERS.map((o, i) => {
+          {visibleOffers().map((o, i) => {
             const Icon = ICONS[o.plan];
             const gold = o.plan === "lifetime";
             const highlight = o.highlight;
