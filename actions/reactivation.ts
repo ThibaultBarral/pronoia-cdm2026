@@ -90,6 +90,8 @@ export async function sendReactivationEmails(): Promise<
 
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
+  // Replies (and "STOP" requests) land here — no mailbox needed on the domain.
+  const replyTo = process.env.RESEND_REPLY_TO || "copafever@gmail.com";
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY manquante (à ajouter sur Vercel)." };
   if (!from) return { ok: false, error: "RESEND_FROM manquante (ex: \"Copafever <hello@copafever.com>\")." };
 
@@ -107,12 +109,13 @@ export async function sendReactivationEmails(): Promise<
       chunk.map((t) => ({
         from,
         to: t.email,
+        replyTo,
         subject:
           t.remaining > 1
             ? `🎁 ${t.remaining} analyses offertes t'attendent sur Copafever`
             : "🎁 Une analyse offerte t'attend sur Copafever",
         html: emailHtml(t.remaining),
-        headers: { "List-Unsubscribe": "<mailto:contact@copafever.com?subject=STOP>" },
+        headers: { "List-Unsubscribe": `<mailto:${replyTo}?subject=STOP>` },
       })),
     );
     if (error) return { ok: false, error: error.message, sent };
