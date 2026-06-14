@@ -187,7 +187,7 @@ const CDM_MONTHLY_SKIN: Partial<Offer> = {
   badge: "★ COUPE DU MONDE 2026",
   sublabel:
     "Suis toute la CDM 2026, puis Ligue 1, PL, Liga, Serie A, Bundesliga, LDC & LDE",
-  note: "Puis 14,99 €/mois · résiliable en 1 clic",
+  note: "Colle le code COPA33 au paiement pour le 1er mois à 9,99 € · puis 14,99 €/mois, résiliable",
   ctaLabel: "Suivre la Coupe du Monde — 9,99 €",
 };
 

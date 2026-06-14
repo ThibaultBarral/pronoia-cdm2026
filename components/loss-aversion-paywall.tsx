@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Lock, Sparkles, Zap, ShieldCheck, TrendingUp, Flame } from "lucide-react";
 import type { Match } from "@/lib/types";
 import { getPaywallTeaser, type PaywallTeaser } from "@/actions/paywall-teaser";
-import { createCheckout } from "@/actions/create-checkout";
+import { startCheckout as beginCheckout } from "@/lib/checkout-client";
 import { trackEvent } from "@/lib/analytics";
 import { FEATURE } from "@/lib/feature-flags";
 import WelcomeOffer from "@/components/welcome-offer";
@@ -70,7 +70,7 @@ export default function LossAversionPaywall({ match }: { match: Match }) {
       match_id: match.id,
     });
     startCheckout(async () => {
-      const res = await createCheckout(plan);
+      const res = await beginCheckout(plan);
       if (res.ok) window.location.href = res.url;
       else window.location.href = `/login?mode=signup&next=/match/${match.id}`;
     });
@@ -85,6 +85,9 @@ export default function LossAversionPaywall({ match }: { match: Match }) {
 
   const t = teaser; // available
   const track = t.track;
+  // Only surface the track record once it's actually compelling — showing
+  // "0% validés" before any match is resolved kills trust (counter-productive).
+  const showTrack = track.total > 0 && track.winRate > 0;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-[#ffd700]/25 bg-gradient-to-b from-[#ffd700]/[0.05] via-[#0d0d0d] to-[#0a0a0a]">
@@ -173,48 +176,42 @@ export default function LossAversionPaywall({ match }: { match: Match }) {
           </button>
         </div>
 
-        {/* Comparatif factuel */}
-        <div className="mt-4 rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/10 px-3.5 py-2.5 text-center">
-          <p className="text-[11px] text-[#cdd3db]">
-            Ailleurs : <span className="text-[#ff9d5c] font-semibold">49 € pour 30 analyses</span> plafonnées.{" "}
-            Ici : <span className="text-[var(--accent)] font-semibold">14,99 €/mois en illimité</span>.
-          </p>
-        </div>
+        {/* Track record — only when it's actually convincing (real win rate). */}
+        {showTrack && (
+          <>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-xl glass px-2 py-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-[var(--accent)]">
+                  <ShieldCheck size={13} />
+                  <span className="text-base font-black tabular-nums">{track.verified}</span>
+                </div>
+                <div className="text-[9px] text-[#5a6472] mt-0.5">prédictions vérifiées</div>
+              </div>
+              <div className="rounded-xl glass px-2 py-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-[#ffd700]">
+                  <TrendingUp size={13} />
+                  <span className="text-base font-black tabular-nums">{track.winRate}%</span>
+                </div>
+                <div className="text-[9px] text-[#5a6472] mt-0.5">de pronos validés</div>
+              </div>
+              <div className="rounded-xl glass px-2 py-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-[var(--accent-soft)]">
+                  <Flame size={13} />
+                  <span className="text-base font-black tabular-nums">
+                    {track.currentStreak > 0 ? `${track.currentStreak} ✅` : "—"}
+                  </span>
+                </div>
+                <div className="text-[9px] text-[#5a6472] mt-0.5">série en cours</div>
+              </div>
+            </div>
 
-        {/* Bloc confiance — données réelles */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-xl glass px-2 py-3 text-center">
-            <div className="flex items-center justify-center gap-1 text-[var(--accent)]">
-              <ShieldCheck size={13} />
-              <span className="text-base font-black tabular-nums">{track.verified}</span>
+            <div className="text-center mt-2">
+              <Link href="/track-record" className="text-[11px] font-bold text-[var(--accent)] hover:underline">
+                Voir tout le track record →
+              </Link>
             </div>
-            <div className="text-[9px] text-[#5a6472] mt-0.5">prédictions vérifiées</div>
-          </div>
-          <div className="rounded-xl glass px-2 py-3 text-center">
-            <div className="flex items-center justify-center gap-1 text-[#ffd700]">
-              <TrendingUp size={13} />
-              <span className="text-base font-black tabular-nums">
-                {track.total > 0 ? `${track.winRate}%` : "—"}
-              </span>
-            </div>
-            <div className="text-[9px] text-[#5a6472] mt-0.5">de pronos validés</div>
-          </div>
-          <div className="rounded-xl glass px-2 py-3 text-center">
-            <div className="flex items-center justify-center gap-1 text-[var(--accent-soft)]">
-              <Flame size={13} />
-              <span className="text-base font-black tabular-nums">
-                {track.currentStreak > 0 ? `${track.currentStreak} ✅` : "—"}
-              </span>
-            </div>
-            <div className="text-[9px] text-[#5a6472] mt-0.5">série en cours</div>
-          </div>
-        </div>
-
-        <div className="text-center mt-2">
-          <Link href="/track-record" className="text-[11px] font-bold text-[var(--accent)] hover:underline">
-            Voir tout le track record →
-          </Link>
-        </div>
+          </>
+        )}
 
         {/* Mentions légales */}
         <p className="text-[10px] text-[#5a6472] text-center mt-3 leading-relaxed">

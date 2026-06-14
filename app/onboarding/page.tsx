@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
 import { SEGMENTS, type Segment } from "@/lib/onboarding";
 import { visibleOffers, type PaidPlan } from "@/lib/plans";
-import { createCheckout } from "@/actions/create-checkout";
+import { startCheckout as beginCheckout } from "@/lib/checkout-client";
 import { getFeaturedMatchId } from "@/actions/get-matches";
 import { useSubscription } from "@/lib/use-subscription";
 import { FEATURE } from "@/lib/feature-flags";
@@ -68,7 +68,7 @@ function OnboardingV2() {
     setError(null);
     setPending(plan);
     startCheckout(async () => {
-      const res = await createCheckout(plan);
+      const res = await beginCheckout(plan);
       if (res.ok) window.location.href = res.url;
       else {
         setError(res.error);

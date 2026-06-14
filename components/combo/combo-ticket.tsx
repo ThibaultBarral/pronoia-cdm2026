@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Lock, Sparkles, Timer, Layers } from "lucide-react";
 import type { DailyCombo } from "@/lib/combo";
-import { createCheckout } from "@/actions/create-checkout";
+import { startCheckout } from "@/lib/checkout-client";
 import { trackEvent } from "@/lib/analytics";
 
 function useCountdown(targetIso: string): string {
@@ -37,7 +37,7 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
   function unlock() {
     trackEvent("combo_unlock_click", { plan: "mensuel" });
     start(async () => {
-      const res = await createCheckout("monthly");
+      const res = await startCheckout("monthly");
       if (res.ok) window.location.href = res.url;
       else window.location.href = "/login?mode=signup&next=/combine-du-jour";
     });

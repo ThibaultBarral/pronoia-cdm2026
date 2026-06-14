@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Lock, Sparkles } from "lucide-react";
 import type { LockedTeaser } from "@/lib/upsell";
-import { createCheckout } from "@/actions/create-checkout";
+import { startCheckout as beginCheckout } from "@/lib/checkout-client";
 import { trackEvent } from "@/lib/analytics";
 import type { PaidPlan } from "@/lib/plans";
 
@@ -26,7 +26,7 @@ export default function UpsellModal({
       item: teaser?.id,
     });
     startCheckout(async () => {
-      const res = await createCheckout(plan);
+      const res = await beginCheckout(plan);
       if (res.ok) window.location.href = res.url;
       else window.location.href = "/dashboard/pricing";
     });

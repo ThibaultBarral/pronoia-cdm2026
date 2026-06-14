@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Gift, Clock } from "lucide-react";
 import { getWelcomeOffer } from "@/actions/welcome-offer";
-import { createCheckout } from "@/actions/create-checkout";
+import { startCheckout as beginCheckout } from "@/lib/checkout-client";
 import { logAppEvent } from "@/actions/log-event";
 import { WELCOME_DISCOUNT_PCT, WELCOME_TARGET_PLAN } from "@/lib/welcome-offer";
 import { trackEvent } from "@/lib/analytics";
@@ -61,7 +61,7 @@ export default function WelcomeOffer({ source }: { source: "analysis" | "paywall
     trackEvent("welcome_offer_click", { source, code: offer.code });
     logAppEvent("welcome_offer_click", { source });
     startCheckout(async () => {
-      const res = await createCheckout(WELCOME_TARGET_PLAN, offer.code);
+      const res = await beginCheckout(WELCOME_TARGET_PLAN, offer.code);
       if (res.ok) window.location.href = res.url;
     });
   }
@@ -80,10 +80,13 @@ export default function WelcomeOffer({ source }: { source: "analysis" | "paywall
       </div>
 
       <p className="text-sm text-[#e6e9ee] leading-snug">
-        <span className="font-black text-[#ffd700]">−{WELCOME_DISCOUNT_PCT}%</span> sur ton 1er mois —
-        suis toute la Coupe du Monde, analyses{" "}
-        <span className="font-semibold text-[#cdd3db]">illimitées</span>. Puis 14,99 €/mois,
-        résiliable.
+        <span className="font-black text-[#ffd700]">9,99 € le 1er mois</span>{" "}
+        <span className="text-[#ffd700]">(−{WELCOME_DISCOUNT_PCT}%)</span> — suis toute la Coupe du
+        Monde, analyses <span className="font-semibold text-[#cdd3db]">illimitées</span>. Puis
+        14,99 €/mois, résiliable.
+      </p>
+      <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+        Colle le code au paiement (déjà copié) pour activer ton tarif.
       </p>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">

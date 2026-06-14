@@ -9,7 +9,7 @@ import {
   RotateCcw, AlertCircle, Settings, Lock, type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { createCheckout } from "@/actions/create-checkout";
+import { startCheckout } from "@/lib/checkout-client";
 import { restoreSubscription } from "@/actions/restore-subscription";
 import { visibleOffers, planName, type Plan, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
@@ -46,7 +46,7 @@ export default function PaywallContent({
     setInfo(null);
     setPending(plan);
     startTransition(async () => {
-      const res = await createCheckout(plan);
+      const res = await startCheckout(plan);
       if (res.ok) window.location.href = res.url;
       else {
         setError(res.error);
