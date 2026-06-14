@@ -66,10 +66,12 @@ export default function ContactFab() {
         <div className="w-60 rounded-2xl border border-white/10 bg-[#0f1216] p-3 shadow-2xl shadow-black/70 animate-fade-in-up">
           <div className="flex items-center gap-1.5 mb-1 text-[var(--accent)]">
             <Gift size={14} />
-            <span className="text-xs font-black uppercase tracking-wide">Un code promo&nbsp;?</span>
+            <span className="text-xs font-black uppercase tracking-wide">Une question ou créateur&nbsp;?</span>
           </div>
           <p className="text-[11px] text-[var(--text-muted)] leading-relaxed mb-2.5">
-            Une question ou tu veux t&apos;abonner&nbsp;? Écris-moi en direct, je réponds vite.
+            Une question, envie de t&apos;abonner, ou tu veux{" "}
+            <span className="text-[var(--accent)] font-semibold">devenir créateur de contenu</span>{" "}
+            (rémunéré) pour Copafever&nbsp;? Écris-moi, je réponds vite.
           </p>
           <div className="flex flex-col gap-1.5">
             {CHANNELS.map((c) => (
