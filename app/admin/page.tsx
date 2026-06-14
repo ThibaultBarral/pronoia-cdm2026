@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminControls from "@/components/admin/admin-controls";
 import FreeAccessControls from "@/components/admin/free-access-controls";
+import ReactivationCard from "@/components/admin/reactivation-card";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import EventFunnelCard from "@/components/admin/event-funnel-card";
 import UsersTable from "@/components/admin/users-table";
@@ -56,6 +57,10 @@ export default async function AdminPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
             <AdminControls />
             <FreeAccessControls />
+          </div>
+
+          <div className="mb-6">
+            <ReactivationCard />
           </div>
 
           {/* Users table — sortable + filterable */}
