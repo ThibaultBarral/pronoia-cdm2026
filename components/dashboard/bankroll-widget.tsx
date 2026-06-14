@@ -172,6 +172,11 @@ interface BankrollWidgetProps {
   onExternalFormClose?: () => void;
 }
 
+/** Once the user skips the first-time setup, don't auto-open it again (they can
+ *  still open it via the "Configure ta bankroll" CTA). Persisted so it survives
+ *  navigation / remounts — fixes the modal re-appearing on every page load. */
+const SETUP_DISMISSED_KEY = "cf_bankroll_setup_dismissed";
+
 export default function BankrollWidget({ externalShowForm, onExternalFormClose }: BankrollWidgetProps) {
   const [data, setData] = useState<BankrollData | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -183,7 +188,10 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
   useEffect(() => {
     loadUserBankroll().then((d) => {
       setData(d);
-      if (!d) setShowSetup(true);
+      const skipped =
+        typeof window !== "undefined" &&
+        localStorage.getItem(SETUP_DISMISSED_KEY) === "1";
+      if (!d && !skipped) setShowSetup(true);
       setMounted(true);
     });
   }, []);
@@ -209,6 +217,7 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
     persist({ name, startDate, initialAmount: amount, bets: [] });
     setShowSetup(false);
     setDismissed(false);
+    try { localStorage.removeItem(SETUP_DISMISSED_KEY); } catch {}
   }
 
   function handleEditSave(name: string, amount: number, startDate: string) {
@@ -252,7 +261,11 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
       {showSetup && !data && (
         <SetupModal
           onSetup={handleSetup}
-          onSkip={() => { setShowSetup(false); setDismissed(true); }}
+          onSkip={() => {
+            setShowSetup(false);
+            setDismissed(true);
+            try { localStorage.setItem(SETUP_DISMISSED_KEY, "1"); } catch {}
+          }}
         />
       )}
 
