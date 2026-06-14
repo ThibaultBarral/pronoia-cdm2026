@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Mail, AlertCircle, Check, Users } from "lucide-react";
-import { previewReactivation, sendReactivationEmails } from "@/actions/reactivation";
+import { previewReactivation, sendReactivationEmails, sendTestReactivation } from "@/actions/reactivation";
 
 export default function ReactivationCard() {
   const [info, setInfo] = useState<string | null>(null);
@@ -25,6 +25,16 @@ export default function ReactivationCard() {
         );
         setConfirming(res.count > 0);
       } else setError(res.error);
+    });
+  }
+
+  function sendTest() {
+    setError(null);
+    setOk(null);
+    startTransition(async () => {
+      const res = await sendTestReactivation();
+      if (res.ok) setOk(`✅ Email de test envoyé à ${res.to} — va voir ta boîte.`);
+      else setError(res.error);
     });
   }
 
@@ -60,6 +70,13 @@ export default function ReactivationCard() {
           className="inline-flex items-center justify-center gap-1.5 rounded-xl glass border border-[var(--accent)]/25 text-[var(--accent)] font-bold text-sm px-4 py-2 hover:bg-white/[0.05] transition-colors disabled:opacity-60"
         >
           <Users size={14} /> {isPending ? "…" : "Aperçu de l'audience"}
+        </button>
+        <button
+          onClick={sendTest}
+          disabled={isPending}
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl glass border border-white/10 text-[#cdd3db] font-bold text-sm px-4 py-2 hover:bg-white/[0.05] transition-colors disabled:opacity-60"
+        >
+          <Mail size={14} /> {isPending ? "…" : "Envoyer un test à mon adresse"}
         </button>
         {confirming && (
           <button

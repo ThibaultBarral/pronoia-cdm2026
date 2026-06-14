@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 import { isAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { FREE_ANALYSES_LIMIT } from "@/lib/plans";
 
 /**
@@ -80,6 +81,36 @@ export async function previewReactivation(): Promise<
   if (!(await isAdmin())) return { ok: false, error: "Non autorisé." };
   const targets = await getTargets();
   return { ok: true, count: targets.length, sample: targets.slice(0, 5).map((t) => t.email) };
+}
+
+/** Send ONE test email (the exact campaign template) to the logged-in admin's
+ *  own address, so they can preview it before the real blast. Doesn't touch the
+ *  audience and isn't logged in app_events. */
+export async function sendTestReactivation(): Promise<
+  { ok: true; to: string } | { ok: false; error: string }
+> {
+  if (!(await isAdmin())) return { ok: false, error: "Non autorisé." };
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  const replyTo = process.env.RESEND_REPLY_TO || "copafever@gmail.com";
+  if (!apiKey) return { ok: false, error: "RESEND_API_KEY manquante (à ajouter sur Vercel)." };
+  if (!from) return { ok: false, error: "RESEND_FROM manquante." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const to = user?.email;
+  if (!to) return { ok: false, error: "Aucune adresse email sur ton compte admin." };
+
+  const resend = new Resend(apiKey);
+  const { error } = await resend.emails.send({
+    from,
+    to,
+    replyTo,
+    subject: "[TEST] 🎁 2 analyses offertes t'attendent sur Copafever",
+    html: emailHtml(2),
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, to };
 }
 
 /** Send the reactivation email to all remaining targets. Admin-only, idempotent. */
