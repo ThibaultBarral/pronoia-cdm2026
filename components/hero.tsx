@@ -171,9 +171,9 @@ export default function Hero() {
           variants={fadeUp} initial="hidden" animate="show" custom={2}
           className="text-[#9aa3b2] text-base md:text-xl max-w-xl mx-auto mb-7 leading-relaxed"
         >
-          L&apos;IA décortique chaque match de la Coupe du Monde 2026 et te dit{" "}
-          <span className="text-[var(--accent)] font-semibold">où parier</span>.
-          Toi, tu encaisses. 💸
+          L&apos;appli qui regarde chaque match à ta place : elle t&apos;explique{" "}
+          <span className="text-[var(--accent)] font-semibold">qui va gagner, sur quoi parier et combien miser</span>{" "}
+          — en français simple, zéro jargon. 💸
         </motion.p>
 
         {/* Animated value loop — Analyse → Bon pari → Encaisse */}

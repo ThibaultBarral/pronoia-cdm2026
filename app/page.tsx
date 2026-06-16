@@ -1,5 +1,7 @@
 import Navbar from "@/components/navbar";
 import Hero from "@/components/hero";
+import TikTokReels from "@/components/landing/tiktok-reels";
+import AskFounder from "@/components/landing/ask-founder";
 import FeaturesSection from "@/components/features-section";
 import PricingSection from "@/components/pricing-section";
 import SocialProof from "@/components/social-proof";
@@ -59,10 +61,12 @@ export default async function HomePage() {
       <Navbar />
       <OddsTicker items={ticker} />
       <Hero />
-      <ComboSection />
+      <TikTokReels />
+      <AskFounder />
       <FeaturesSection />
-      <PricingSection />
+      <ComboSection />
       <SocialProof />
+      <PricingSection />
       <FaqSection />
       <div id="matches" />
       <HomeClient matches={matches} />
