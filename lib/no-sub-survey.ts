@@ -30,8 +30,12 @@ export const NO_SUB_REASONS: NoSubReasonMeta[] = [
   { id: "other", label: "Autre raison", emoji: "✨" },
 ];
 
-/** Min distinct days on the app before we ask (= "after several days"). */
-export const NO_SUB_MIN_VISIT_DAYS = 3;
+/**
+ * Min distinct days on the app before we ask. Kept at 1 so we ask as early as
+ * possible (more answers). Stacking is still avoided because eligibility waits
+ * for the acquisition survey + win-back pop-up to clear first.
+ */
+export const NO_SUB_MIN_VISIT_DAYS = 1;
 
 const LABELS: Record<string, string> = Object.fromEntries(
   NO_SUB_REASONS.map((r) => [r.id, r.label]),

@@ -28,6 +28,7 @@ export interface AdminUserRow {
   acquisitionChannel: string | null; // "tiktok" | … | "skip" | null
   acquisitionDetail: string | null; // précision libre saisie par l'utilisateur
   noSubReason: string | null; // raison de non-abonnement | "skip" | null
+  noSubDetail: string | null; // précision libre saisie par l'utilisateur
 }
 
 /** True if the currently authenticated user is an admin (app_metadata only). */
@@ -131,6 +132,7 @@ export async function getAdminData(): Promise<{ users: AdminUserRow[]; totalReve
         acquisitionChannel: (meta.acquisition_channel as string | null) ?? null,
         acquisitionDetail: (meta.acquisition_detail as string | null) ?? null,
         noSubReason: (meta.no_sub_reason as string | null) ?? null,
+        noSubDetail: (meta.no_sub_detail as string | null) ?? null,
       };
     })
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
@@ -186,6 +188,7 @@ export interface AdminStats {
   // "Pourquoi pas d'abonnement ?"
   noSubBreakdown: { id: string; label: string; emoji: string; count: number }[];
   noSubAnswered: number; // utilisateurs ayant donné une vraie raison
+  noSubDetails: { label: string; emoji: string; detail: string }[]; // verbatims libres
 }
 
 const PLAN_ORDER: Plan[] = ["free", "pass_cdm", "weekly", "monthly", "lifetime"];
@@ -276,6 +279,14 @@ export function computeAdminStats(
     .sort((a, b) => b.count - a.count);
   const noSubAnswered = users.filter((u) => isRealNoSubReason(u.noSubReason)).length;
 
+  // Verbatims libres ("trop cher" → prix suggéré, "autre" → raison, etc.).
+  const noSubDetails = users
+    .filter((u) => isRealNoSubReason(u.noSubReason) && u.noSubDetail?.trim())
+    .map((u) => {
+      const meta = NO_SUB_REASONS.find((r) => r.id === u.noSubReason)!;
+      return { label: meta.label, emoji: meta.emoji, detail: u.noSubDetail!.trim() };
+    });
+
   const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
   return {
@@ -304,6 +315,7 @@ export function computeAdminStats(
     winbackEligible,
     noSubBreakdown,
     noSubAnswered,
+    noSubDetails,
   };
 }
 

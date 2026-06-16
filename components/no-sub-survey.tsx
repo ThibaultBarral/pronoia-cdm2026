@@ -16,6 +16,7 @@ import { trackEvent } from "@/lib/analytics";
 export default function NoSubSurvey() {
   const [show, setShow] = useState(false);
   const [reason, setReason] = useState<NoSubReason | null>(null);
+  const [detail, setDetail] = useState("");
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -31,7 +32,14 @@ export default function NoSubSurvey() {
   function save(value: NoSubReason | "skip") {
     startTransition(async () => {
       const supabase = createClient();
-      await supabase.auth.updateUser({ data: { no_sub_reason: value } });
+      await supabase.auth.updateUser({
+        data: {
+          no_sub_reason: value,
+          ...(value !== "skip" && detail.trim()
+            ? { no_sub_detail: detail.trim() }
+            : {}),
+        },
+      });
       if (value !== "skip") trackEvent("no_sub_reason", { reason: value });
       setShow(false);
     });
@@ -87,6 +95,25 @@ export default function NoSubSurvey() {
                 );
               })}
             </div>
+
+            {reason && (
+              <motion.input
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                type="text"
+                value={detail}
+                onChange={(e) => setDetail(e.target.value)}
+                maxLength={120}
+                placeholder={
+                  reason === "too_expensive"
+                    ? "Quel prix te semblerait juste ? (facultatif)"
+                    : reason === "other"
+                      ? "Précise ta raison (facultatif)…"
+                      : "Dis-nous en plus (facultatif)…"
+                }
+                className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-sm text-[#c0c0c0] placeholder-[#444] focus:outline-none focus:border-[var(--accent)]/30 transition-colors mb-4"
+              />
+            )}
 
             <button
               type="button"

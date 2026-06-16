@@ -250,6 +250,22 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
             })}
           </div>
         )}
+
+        {stats.noSubDetails.length > 0 && (
+          <div className="mt-4 border-t border-white/5 pt-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5a6472] mb-2">
+              Réponses libres
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {stats.noSubDetails.map((d, i) => (
+                <li key={i} className="text-[11px] text-[#9aa3b2] leading-snug">
+                  <span className="text-[#5a6472]">{d.emoji} {d.label} —</span>{" "}
+                  <span className="text-[#e0e0e0]">«&nbsp;{d.detail}&nbsp;»</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
