@@ -73,11 +73,9 @@ function CompareRow({ label, home, away }: { label: string; home: number; away: 
 
 export default function AIAnalysis({
   match,
-  isAdmin = false,
   autoStart = false,
 }: {
   match: Match;
-  isAdmin?: boolean;
   /** Fire the analysis automatically on mount (e.g. right after onboarding). */
   autoStart?: boolean;
 }) {
@@ -542,12 +540,10 @@ export default function AIAnalysis({
 
             {/* Ask AI + regenerate */}
             <div className="pt-4 border-t border-[#1a1a1a] flex flex-col sm:flex-row items-center justify-center gap-3">
-              {isAdmin && (
-                <ShareAnalysisButton
-                  matchId={match.id}
-                  title={`${match.homeTeam.name} vs ${match.awayTeam.name}`}
-                />
-              )}
+              <ShareAnalysisButton
+                matchId={match.id}
+                title={`${match.homeTeam.name} vs ${match.awayTeam.name}`}
+              />
               <AskAiModal match={match} />
               <Button
                 variant="outline"

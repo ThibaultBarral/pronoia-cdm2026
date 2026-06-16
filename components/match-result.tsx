@@ -2,13 +2,23 @@ import Link from "next/link";
 import { Flag, ChevronRight } from "lucide-react";
 import type { Match } from "@/lib/types";
 import { teamSlug } from "@/lib/data-service";
+import ShareAnalysisButton from "@/components/share-analysis-button";
 
 /**
  * Shown instead of the pre-match AI analysis once a match is finished — a
  * pre-match prediction / value-bet read is pointless after kickoff. Surfaces the
  * result and redirects to where analysis still adds value (teams + next matches).
+ *
+ * `canShare` (signed-in users) reveals the 9:16 résultat card — real score +
+ * IA call ✅/✗ + track record — to repost the prediction's outcome.
  */
-export default function MatchResult({ match }: { match: Match }) {
+export default function MatchResult({
+  match,
+  canShare = false,
+}: {
+  match: Match;
+  canShare?: boolean;
+}) {
   const h = match.score?.home ?? 0;
   const a = match.score?.away ?? 0;
   const winner = h > a ? match.homeTeam : a > h ? match.awayTeam : null;
@@ -51,6 +61,16 @@ export default function MatchResult({ match }: { match: Match }) {
       >
         Voir les matchs à venir <ChevronRight size={14} />
       </Link>
+
+      {canShare && (
+        <div className="mt-6 pt-5 border-t border-[#1a1a1a] flex justify-center">
+          <ShareAnalysisButton
+            matchId={match.id}
+            title={`${match.homeTeam.name} vs ${match.awayTeam.name}`}
+            variant="resultat"
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -66,7 +66,6 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
 
   if (!match) notFound();
 
-  const admin = user?.app_metadata?.is_admin === true;
   const finished = FINISHED.has(match.status ?? "");
   // Signed-in users came from the dashboard → send "Retour" back there (not to
   // the public marketing landing, which looks like being logged out).
@@ -180,9 +179,9 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
 
         <div className="animate-fade-in-up delay-400">
           {finished ? (
-            <MatchResult match={match} />
+            <MatchResult match={match} canShare={Boolean(user)} />
           ) : (
-            <AIAnalysis match={match} isAdmin={admin} autoStart={welcome === "1"} />
+            <AIAnalysis match={match} autoStart={welcome === "1"} />
           )}
         </div>
       </div>

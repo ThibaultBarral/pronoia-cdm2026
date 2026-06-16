@@ -4,16 +4,22 @@ import { useState } from "react";
 import { Share2, Download, AlertCircle } from "lucide-react";
 
 /**
- * Admin-only: export the match analysis as a 9:16 image and share it.
- * On mobile (supported browsers) it opens the native share sheet (Instagram /
- * TikTok / X / Stories). On desktop it downloads the PNG to post manually.
+ * Export the match analysis as a 9:16 image and share it. Available to any
+ * signed-in user who generated the analysis. On mobile (supported browsers) it
+ * opens the native share sheet (Instagram / TikTok / X / Stories). On desktop it
+ * downloads the PNG to post manually.
+ *
+ * `variant` forces the card style; by default the route auto-detects it from the
+ * match status (finished → résultat, otherwise → pronostic).
  */
 export default function ShareAnalysisButton({
   matchId,
   title,
+  variant,
 }: {
   matchId: string;
   title: string;
+  variant?: "prono" | "resultat";
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +28,8 @@ export default function ShareAnalysisButton({
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`/match/${matchId}/share`);
+      const url = variant ? `/match/${matchId}/share?v=${variant}` : `/match/${matchId}/share`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Image indisponible. Régénère l'analyse puis réessaie.");
       const blob = await res.blob();
       const file = new File([blob], `copafever-${matchId}.png`, { type: "image/png" });
