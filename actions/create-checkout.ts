@@ -2,7 +2,7 @@
 
 import { getWhop } from "@/lib/whop";
 import { createClient } from "@/lib/supabase/server";
-import { planIdForPlan, CDM_INTRO_CODE, cdmIntroActive, type PaidPlan } from "@/lib/plans";
+import { planIdForPlan, type PaidPlan } from "@/lib/plans";
 
 type CheckoutResult =
   | { ok: true; url: string }
@@ -27,10 +27,9 @@ export async function createCheckout(
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  // World Cup intro: auto-apply the first-month coupon on the Monthly plan during
-  // the tournament, unless the caller passed an explicit code (welcome / winback).
-  let code = promoCode?.trim() || undefined;
-  if (!code && plan === "monthly" && cdmIntroActive()) code = CDM_INTRO_CODE;
+  // Optional explicit promo code (e.g. the win-back coupon). No auto-applied
+  // coupon: the World Cup discount is baked into the base price now.
+  const code = promoCode?.trim() || undefined;
 
   try {
     const config = await getWhop().checkoutConfigurations.create({

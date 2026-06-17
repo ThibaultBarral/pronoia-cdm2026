@@ -187,8 +187,8 @@ export default function AppSidebar() {
               </p>
               <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
                 {cdmIntroActive()
-                  ? "Pass Coupe du Monde — 9,99 € le 1er mois, puis 14,99 €/mois."
-                  : "Passe en illimité dès 14,99 €/mois."}
+                  ? "Pass Coupe du Monde — 8,99 €/mois, sans engagement."
+                  : "Passe en illimité dès 8,99 €/mois."}
               </p>
               <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
                 Voir les plans →

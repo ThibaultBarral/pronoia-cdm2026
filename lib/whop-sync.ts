@@ -6,7 +6,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PASS_CDM_END, planForPlanId, type SubStatus } from "@/lib/plans";
+import { PASS_CDM_END, SEASON_END, planForPlanId, type SubStatus } from "@/lib/plans";
 
 /** Structural subset of a Whop membership (webhook event data or API fetch). */
 export interface WhopMembership {
@@ -61,9 +61,15 @@ export async function syncMembershipToDb(
 
   const status = toStatus(m.status);
 
-  // Pass CDM is a fixed tournament window; lifetime never expires.
+  // Pass CDM / Pass Saison are fixed windows; lifetime never expires.
   const currentPeriodEnd =
-    plan === "pass_cdm" ? PASS_CDM_END : plan === "lifetime" ? null : m.renewal_period_end;
+    plan === "pass_cdm"
+      ? PASS_CDM_END
+      : plan === "season"
+        ? SEASON_END
+        : plan === "lifetime"
+          ? null
+          : m.renewal_period_end;
   const trialEnd = status === "trialing" ? m.renewal_period_end : null;
 
   const admin = createAdminClient();

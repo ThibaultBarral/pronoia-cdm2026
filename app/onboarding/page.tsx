@@ -20,6 +20,7 @@ import { trackEvent } from "@/lib/analytics";
 const PLAN_ICONS: Record<PaidPlan, LucideIcon> = {
   weekly: Zap,
   monthly: CalendarDays,
+  season: CalendarDays,
   lifetime: InfinityIcon,
   pass_cdm: Zap,
 };

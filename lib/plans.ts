@@ -10,7 +10,7 @@
  * which are only ever called from server code (checkout action + webhook).
  */
 
-export type Plan = "free" | "pass_cdm" | "weekly" | "monthly" | "lifetime";
+export type Plan = "free" | "pass_cdm" | "weekly" | "monthly" | "season" | "lifetime";
 export type PaidPlan = Exclude<Plan, "free">;
 
 /** Our normalized subscription status (mapped from Whop's MembershipStatus). */
@@ -22,16 +22,10 @@ export const FREE_ANALYSES_LIMIT: number = 3;
 /** Pass CDM is sold as a tournament pass: access through this instant (incl.). */
 export const PASS_CDM_END = "2026-07-19T23:59:59Z";
 
-/**
- * World Cup first-month intro on the Monthly plan (the "Pass Coupe du Monde").
- * Auto-applied at checkout until PASS_CDM_END — see actions/create-checkout.ts.
- * The real discount lives on a Whop coupon with this EXACT code (recommended:
- * 5 € off the first payment only → 14,99 € becomes 9,99 €, renews at 14,99 €).
- */
-export const CDM_INTRO_CODE = "COPA33";
-export const CDM_INTRO_PCT = 33;
+/** Pass Saison covers the CDM + the whole 2026/27 club season (access through here). */
+export const SEASON_END = "2027-07-31T23:59:59Z";
 
-/** Is the World Cup first-month intro window still open? */
+/** Is the World Cup window still open? (drives the "Pass Coupe du Monde" skin) */
 export function cdmIntroActive(now: number = Date.now()): boolean {
   return now <= Date.parse(PASS_CDM_END);
 }
@@ -83,10 +77,12 @@ export const OFFERS: Offer[] = [
   {
     plan: "weekly",
     name: "Hebdo",
-    priceLabel: "4,99 €",
+    priceLabel: "2,99 €",
+    anchorPrice: "4,99 €",
+    discountLabel: "-40%",
     unit: "/ semaine",
     sublabel: "Pour tester l'IA sur la CDM",
-    ctaLabel: "Choisir l'Hebdo",
+    ctaLabel: "Choisir l'Hebdo — 2,99 €",
     features: [
       "Analyses IA complètes illimitées",
       "Value bets & cotes en direct",
@@ -99,12 +95,14 @@ export const OFFERS: Offer[] = [
   {
     plan: "monthly",
     name: "Mensuel",
-    priceLabel: "14,99 €",
+    priceLabel: "8,99 €",
+    anchorPrice: "14,99 €",
+    discountLabel: "-40%",
     unit: "/ mois",
     sublabel:
       "CDM 2026 incluse · puis Ligue 1, PL, Liga, Serie A, Bundesliga, LDC & LDE",
-    ctaLabel: "S'abonner — 14,99 €/mois",
-    note: "Analyse illimitée — la concurrence facture 19 €/mois",
+    ctaLabel: "S'abonner — 8,99 €/mois",
+    note: "Tout inclus, ~2× moins cher que la concurrence (17,99 €/mois)",
     badge: "★ MEILLEUR DEAL",
     badgeKind: "green",
     highlight: true,
@@ -120,6 +118,33 @@ export const OFFERS: Offer[] = [
       "Annulable à tout moment",
     ],
     envKey: "WHOP_PLAN_MONTHLY",
+  },
+  {
+    plan: "season",
+    name: "Pass Saison",
+    priceLabel: "39 €",
+    anchorPrice: "59 €",
+    discountLabel: "-34%",
+    urgencyLabel: "CDM 2026 + saison 2026/27 · tarif de lancement",
+    unit: "une seule fois",
+    sublabel:
+      "Toute la CDM 2026 puis la saison 2026/27 — un seul paiement, zéro abonnement",
+    ctaLabel: "Prendre le Pass Saison — 39 €",
+    note: "~3,25 €/mois sur la saison — le meilleur rapport",
+    oneTime: true,
+    // PENDING WHOP : créer le produit "Pass Saison" (39 €, paiement unique) et
+    // renseigner WHOP_PLAN_SEASON, puis passer `hidden` à false pour l'afficher.
+    hidden: true,
+    badge: "SAISON COMPLÈTE",
+    badgeKind: "green",
+    features: [
+      "Tout le Mensuel, toute la saison :",
+      "Analyses IA complètes illimitées",
+      "Chat IA, simulateur & bracket",
+      "Toutes les compétitions 2026/27",
+      "Aucun abonnement, aucune reconduction",
+    ],
+    envKey: "WHOP_PLAN_SEASON",
   },
   {
     plan: "lifetime",
@@ -172,23 +197,23 @@ export const VISIBLE_OFFERS: Offer[] = OFFERS.filter((o) => !o.hidden);
 
 /**
  * During the World Cup, the Monthly plan is re-skinned as the "Pass Coupe du
- * Monde": same recurring 14,99 €/month, but a 9,99 € first month (coupon
- * CDM_INTRO_CODE auto-applied at checkout). The underlying plan/entitlements are
- * unchanged — only the display. After PASS_CDM_END it reverts automatically to
- * the plain Monthly, so there is never a stale "9,99 €" once the coupon expires.
+ * Monde": same recurring 8,99 €/month, only branded for the tournament with the
+ * 14,99 € anchor. The underlying plan/entitlements are unchanged — only the
+ * display. After PASS_CDM_END it reverts automatically to the plain Monthly
+ * (same 8,99 € price), so nothing goes stale.
  */
 const CDM_MONTHLY_SKIN: Partial<Offer> = {
   name: "Pass Coupe du Monde",
-  priceLabel: "9,99 €",
-  unit: "le 1er mois",
+  priceLabel: "8,99 €",
+  unit: "/ mois",
   anchorPrice: "14,99 €",
-  discountLabel: "-33%",
+  discountLabel: "-40%",
   urgencyLabel: "Tarif Coupe du Monde · jusqu'au 19 juillet",
   badge: "★ COUPE DU MONDE 2026",
   sublabel:
     "Suis toute la CDM 2026, puis Ligue 1, PL, Liga, Serie A, Bundesliga, LDC & LDE",
-  note: "Colle le code COPA33 au paiement pour le 1er mois à 9,99 € · puis 14,99 €/mois, résiliable",
-  ctaLabel: "Suivre la Coupe du Monde — 9,99 €",
+  note: "Sans engagement · résiliable à tout moment",
+  ctaLabel: "Suivre la Coupe du Monde — 8,99 €",
 };
 
 /**
@@ -216,6 +241,7 @@ const PLAN_FEATURES: Record<PaidPlan, Feature[]> = {
   weekly: [],
   pass_cdm: ["chat_ia", "simulator", "bracket"],
   monthly: ["chat_ia", "simulator", "bracket"],
+  season: ["chat_ia", "simulator", "bracket"],
   lifetime: ["chat_ia", "simulator", "bracket"],
 };
 
@@ -264,7 +290,8 @@ export interface SubscriptionState {
  * Single source of truth for "may this user run an analysis?".
  * - Lifetime: always (while not expired/canceled).
  * - Trialing: until trial_end.
- * - Pass CDM: until current_period_end (forced to 19 July 2026).
+ * - Pass CDM / Pass Saison: until current_period_end (one-time passes with a
+ *   fixed end — 19 July 2026 / 31 July 2027).
  * - Recurring (weekly/monthly): while active, or canceled-but-still-in-period.
  */
 export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
@@ -275,7 +302,7 @@ export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
   if (sub.status === "expired") return false;
   if (sub.plan === "lifetime") return sub.status !== "canceled";
   if (sub.status === "trialing") return within(sub.trialEnd);
-  if (sub.plan === "pass_cdm") return within(sub.currentPeriodEnd);
+  if (sub.plan === "pass_cdm" || sub.plan === "season") return within(sub.currentPeriodEnd);
   // weekly / monthly
   if (sub.status === "active") return true;
   // canceled at period end but still inside the paid window
@@ -284,14 +311,28 @@ export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
 
 // ── Server-only resolvers (read env). Never call from client components. ──────
 
+/**
+ * A plan's env var may hold a COMMA-SEPARATED list of Whop plan ids. The FIRST
+ * id is the current one (used for new checkouts); any following ids are legacy
+ * (e.g. a previous price point) kept only so existing members still map back.
+ * Example after a price change: WHOP_PLAN_MONTHLY="plan_NEW8990,plan_OLD1499".
+ */
+function planIds(envKey: string): string[] {
+  return (process.env[envKey] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function planIdForPlan(plan: PaidPlan): string | undefined {
   const offer = offerByPlan(plan);
-  return offer ? process.env[offer.envKey] : undefined;
+  // New checkouts always use the first (current) id.
+  return offer ? planIds(offer.envKey)[0] : undefined;
 }
 
 export function planForPlanId(planId: string): PaidPlan | null {
   for (const offer of OFFERS) {
-    if (process.env[offer.envKey] === planId) return offer.plan;
+    if (planIds(offer.envKey).includes(planId)) return offer.plan;
   }
   return null;
 }

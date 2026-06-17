@@ -18,6 +18,7 @@ const ICONS: Record<PaidPlan, LucideIcon> = {
   pass_cdm: Flame,
   weekly: Zap,
   monthly: CalendarDays,
+  season: CalendarDays,
   lifetime: InfinityIcon,
 };
 

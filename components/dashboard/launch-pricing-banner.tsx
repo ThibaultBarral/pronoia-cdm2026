@@ -10,7 +10,7 @@ const DISMISS_KEY = "launch-pricing-banner-dismissed-v2";
 
 /**
  * Dismissible (localStorage) urgency banner on the dashboard promoting the
- * "Pass Coupe du Monde" (9,99 € le 1er mois). Shown only to users WITHOUT access
+ * "Pass Coupe du Monde" (8,99 €/mois). Shown only to users WITHOUT access
  * (free) — anyone already paying or VIP has nothing to buy. Auto-hides after the
  * 19 July deadline.
  */
@@ -50,8 +50,8 @@ export default function LaunchPricingBanner() {
     >
       <span className="text-sm text-[#cfeee4]">
         <span aria-hidden>🏆</span>{" "}
-        <span className="font-black text-white">Pass Coupe du Monde — 9,99 € le 1er mois</span>,
-        puis 14,99 €/mois. La Coupe du Monde se termine dans{" "}
+        <span className="font-black text-white">Pass Coupe du Monde — 8,99 €/mois</span>,
+        sans engagement. La Coupe du Monde se termine dans{" "}
         <span className="tabular-nums font-bold">{left}</span>.
       </span>
 
@@ -60,7 +60,7 @@ export default function LaunchPricingBanner() {
         className="shrink-0 inline-flex items-center justify-center rounded-lg px-3.5 py-1.5 text-xs font-black text-[#06231a] sm:ml-auto"
         style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
       >
-        En profiter — 9,99 € →
+        En profiter — 8,99 € →
       </Link>
 
       <button
