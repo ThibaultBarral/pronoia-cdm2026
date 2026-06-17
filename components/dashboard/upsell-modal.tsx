@@ -71,7 +71,7 @@ export default function UpsellModal({
               className="mt-5 w-full rounded-xl py-3.5 text-sm font-black text-[#06231a] glow-neon transition-transform hover:scale-[1.02] disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
             >
-              {pending ? "Redirection…" : "⚡ Devenir membre — 14,99 €/mois"}
+              {pending ? "Redirection…" : "⚡ Devenir membre — 8,99 €/mois"}
             </button>
             <p className="text-[11px] text-[var(--text-muted)] text-center mt-2">
               Analyses illimitées · résiliable à tout moment · accès immédiat
@@ -79,7 +79,7 @@ export default function UpsellModal({
 
             <div className="flex items-center justify-center gap-4 mt-3 text-[11px]">
               <button onClick={() => go("weekly")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">
-                Juste tester · Hebdo 4,99 €
+                Juste tester · Hebdo 2,99 €
               </button>
               <span className="text-[#2a3550]">·</span>
               <Link href="/dashboard/pricing" onClick={onClose} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors inline-flex items-center gap-1">

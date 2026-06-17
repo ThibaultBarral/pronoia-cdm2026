@@ -101,7 +101,7 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
               className="mt-4 w-full rounded-xl py-3.5 text-sm font-black text-[#06231a] glow-neon transition-transform hover:scale-[1.02] disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
             >
-              {pending ? "Redirection…" : "⚡ Débloquer le combiné — 14,99 €/mois"}
+              {pending ? "Redirection…" : "⚡ Débloquer le combiné — 8,99 €/mois"}
             </button>
             <p className="text-[11px] text-[var(--text-muted)] text-center mt-2">
               Analyses illimitées · résiliable à tout moment
