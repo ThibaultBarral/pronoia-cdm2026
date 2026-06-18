@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Check, Flame, Zap, CalendarDays, Infinity as InfinityIcon, Lock, type LucideIcon,
 } from "lucide-react";
-import { visibleOffers, FREE_ANALYSES_LIMIT, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 import { trackEvent } from "@/lib/analytics";
 
@@ -32,8 +32,8 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
             </span>
           </h2>
           <p className="text-sm text-[var(--text-muted)] mt-3 max-w-lg mx-auto">
-            {FREE_ANALYSES_LIMIT === 1 ? "Une analyse offerte" : `${FREE_ANALYSES_LIMIT} analyses offertes`} à
-            l&apos;inscription. Ensuite, choisis ton rythme — annulable à tout moment.
+            Aperçu gratuit sur chaque match. L&apos;analyse IA complète est réservée
+            aux abonnés — choisis ton rythme, annulable à tout moment.
           </p>
         </div>
 

@@ -43,11 +43,11 @@ export default function CGUPage() {
         L&apos;accès nécessite la création d&apos;un compte via une adresse e-mail (authentification
         gérée par Supabase). L&apos;utilisateur est responsable de la confidentialité de ses
         identifiants et de toute activité réalisée depuis son compte. L&apos;inscription est gratuite
-        et donne droit à trois analyses de découverte.
+        et donne accès à un aperçu de chaque match (verdict du modèle&nbsp;: probabilités, buts attendus).
       </p>
 
       <H>4. Offres et paiement</H>
-      <p>Au-delà des analyses de découverte, l&apos;accès aux analyses requiert une offre payante :</p>
+      <p>L&apos;accès aux analyses IA complètes requiert une offre payante :</p>
       <ul className="list-disc pl-5 space-y-1.5">
         <li><strong className="text-[#f0f0f0]">Hebdomadaire</strong> — 2,99 € / semaine, abonnement reconductible.</li>
         <li><strong className="text-[#f0f0f0]">Mensuel</strong> — 8,99 € / mois, abonnement reconductible, accès à toutes les compétitions (CDM 2026 puis saison de clubs).</li>

@@ -1,9 +1,11 @@
 /**
  * Monetization model (Whop) — single source of truth.
  *
- * Total paywall: signing up is free and grants a few discovery analyses (see
- * FREE_ANALYSES_LIMIT); every analysis after that requires access (a paid plan
- * or an active trial).
+ * Hard paywall on analyses: signing up is free and gives a model-only PREVIEW of
+ * each match (favourite, probabilities, expected goals — zero AI cost), but the
+ * full AI analysis ALWAYS requires access (a paid plan or an active trial).
+ * No free full analyses (FREE_ANALYSES_LIMIT = 0). Match facts (stats, form,
+ * H2H, line-ups) stay public so pages remain indexable for SEO.
  *
  * Display fields are safe for client components. Real Whop plan IDs live in
  * server-only env vars (WHOP_PLAN_*), resolved via planIdForPlan / planForPlanId
@@ -16,8 +18,13 @@ export type PaidPlan = Exclude<Plan, "free">;
 /** Our normalized subscription status (mapped from Whop's MembershipStatus). */
 export type SubStatus = "active" | "trialing" | "expired" | "canceled";
 
-/** Number of free discovery analyses a `free` user gets in total (lifetime). */
-export const FREE_ANALYSES_LIMIT: number = 3;
+/**
+ * Number of free FULL analyses a `free` user gets in total (lifetime).
+ * Now 0 — free users only get the model-only preview; the full AI analysis is
+ * paid-only. The free-analysis plumbing (RPC + free_analyses_used column) is
+ * kept inert so this can be re-enabled by bumping this constant.
+ */
+export const FREE_ANALYSES_LIMIT: number = 0;
 
 /** Pass CDM is sold as a tournament pass: access through this instant (incl.). */
 export const PASS_CDM_END = "2026-07-19T23:59:59Z";

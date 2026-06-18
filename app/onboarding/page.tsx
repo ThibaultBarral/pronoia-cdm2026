@@ -78,15 +78,15 @@ function OnboardingV2() {
     });
   }
 
-  // Land the new user straight inside a match analysis (auto-generated) rather
-  // than the dashboard → they hit the "aha moment" in seconds. Falls back to the
-  // dashboard if no featured match is available.
+  // Land the new user straight on a match: they see the free model verdict
+  // (real numbers) plus the locked full AI analysis → the "aha moment" + the
+  // paywall in one view. Falls back to the dashboard if no featured match.
   function continueFree() {
     trackEvent("onboarding_free_continue", { segment: segment?.id });
     startEnter(async () => {
       const id = await getFeaturedMatchId().catch(() => null);
       router.refresh();
-      router.push(id ? `/match/${id}?welcome=1` : "/dashboard");
+      router.push(id ? `/match/${id}` : "/dashboard");
     });
   }
 

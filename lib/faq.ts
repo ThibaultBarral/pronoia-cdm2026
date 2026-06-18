@@ -24,7 +24,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: "Combien ça coûte ?",
-    a: "Tu commences gratuitement avec 3 analyses offertes. Ensuite : Hebdo à 2,99 €/semaine pour tester, Mensuel à 8,99 €/mois (l'offre la plus complète, tous les outils), ou Accès à vie en paiement unique. L'Accès à vie est à 59 € en tarif de lancement jusqu'au 19 juillet, puis 99 €.",
+    a: "L'inscription est gratuite et te donne un aperçu de chaque match (le verdict du modèle : favori, probabilités, buts attendus). L'analyse IA complète est réservée aux abonnés : Hebdo à 2,99 €/semaine pour tester, Mensuel à 8,99 €/mois (l'offre la plus complète, tous les outils), ou Accès à vie en paiement unique. L'Accès à vie est à 59 € en tarif de lancement jusqu'au 19 juillet, puis 99 €.",
   },
   {
     q: "Quelle est la différence entre les offres ?",

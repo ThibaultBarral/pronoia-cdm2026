@@ -4,14 +4,16 @@ import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Bot, Sparkles, RefreshCw, AlertCircle, Gauge,
+  Bot, Sparkles, RefreshCw, AlertCircle, Gauge, Lock,
   Coins, Target, TrendingUp, Wallet, Sliders,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
+import { getMatchPreview, type MatchPreview } from "@/actions/match-preview";
 import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
+import { useSubscription } from "@/lib/use-subscription";
 import { computeStats, loadBankroll, PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
 import { loadUserBankroll } from "@/lib/supabase/bankroll-db";
 import { createClient } from "@/lib/supabase/client";
@@ -70,6 +72,104 @@ function CompareRow({ label, home, away }: { label: string; home: number; away: 
   );
 }
 
+/**
+ * Free, model-only preview shown to non-members (zero Claude cost). Reveals the
+ * real numbers — our honest edge — then the full AI narrative is blurred below.
+ */
+function ModelPreview({
+  preview,
+  homeName,
+  awayName,
+}: {
+  preview: MatchPreview;
+  homeName: string;
+  awayName: string;
+}) {
+  const favLabel =
+    preview.favorite === "home"
+      ? homeName
+      : preview.favorite === "away"
+        ? awayName
+        : "Match nul";
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl glass p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--accent)]">
+            <Target size={13} /> Le verdict du modèle
+          </span>
+          <span className="text-[10px] text-[var(--text-muted)] border border-white/10 px-2 py-0.5 rounded-full">
+            Aperçu gratuit
+          </span>
+        </div>
+        <p className="text-sm text-[#d0d0d0] leading-relaxed mb-3">
+          {preview.favorite === "draw" ? (
+            <>Match très serré&nbsp;: notre modèle penche pour le <span className="font-bold text-[var(--accent)]">nul</span>.</>
+          ) : (
+            <>Notre modèle voit <span className="font-bold text-[var(--accent)]">{favLabel}</span> favori de ce match.</>
+          )}{" "}
+          Confiance&nbsp;: <span className="font-bold text-[#cdd3db]">{preview.confidence}</span>.
+        </p>
+        <div className="space-y-2.5">
+          <ProbRow label={`Victoire ${homeName}`} pct={preview.probabilities.home} accent={preview.favorite === "home"} />
+          <ProbRow label="Match nul" pct={preview.probabilities.draw} accent={preview.favorite === "draw"} />
+          <ProbRow label={`Victoire ${awayName}`} pct={preview.probabilities.away} accent={preview.favorite === "away"} />
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 mt-4">
+          <div className="rounded-xl glass p-3 text-center">
+            <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.expectedGoals.home}</div>
+            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {homeName}</div>
+          </div>
+          <div className="rounded-xl glass p-3 text-center">
+            <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.expectedGoals.away}</div>
+            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {awayName}</div>
+          </div>
+          <div className="rounded-xl glass p-3 text-center">
+            <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.over25}%</div>
+            <div className="text-[10px] text-[var(--text-muted)]">+2.5 buts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The full AI analysis, locked for non-members: a faint blurred silhouette
+ * behind, the loss-aversion paywall (ticket + track record + checkout) on top.
+ */
+function LockedAnalysis({ match }: { match: Match }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Decorative blurred silhouette → signals "there's a full analysis here". */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none select-none blur-[8px] opacity-30 space-y-3 p-1"
+      >
+        <div className="h-3 rounded bg-white/15 w-3/4" />
+        <div className="h-3 rounded bg-white/15 w-full" />
+        <div className="h-3 rounded bg-white/15 w-5/6" />
+        <div className="rounded-xl glass p-4 space-y-2 mt-4">
+          <div className="h-2.5 rounded bg-white/15 w-1/3" />
+          <div className="h-2 rounded bg-white/15 w-2/3" />
+          <div className="h-2 rounded bg-white/15 w-1/2" />
+        </div>
+        <div className="rounded-2xl glass-neon p-4 space-y-2">
+          <div className="h-3 rounded bg-white/15 w-1/2" />
+          <div className="h-6 rounded bg-white/15 w-3/4" />
+        </div>
+      </div>
+      {/* Paywall on top — defines the height so nothing gets clipped. */}
+      <div className="relative">
+        <div className="mb-3 flex items-center justify-center gap-2 text-xs font-bold text-[var(--accent)]">
+          <Lock size={14} /> Analyse complète IA — réservée aux abonnés
+        </div>
+        <LossAversionPaywall match={match} />
+      </div>
+    </div>
+  );
+}
+
 export default function AIAnalysis({
   match,
   autoStart = false,
@@ -79,10 +179,29 @@ export default function AIAnalysis({
   autoStart?: boolean;
 }) {
   const router = useRouter();
+  const sub = useSubscription();
+  // Treat anyone without a confirmed active entitlement as a non-member (a
+  // signed-out visitor returns null too). Full analysis is paid-only.
+  const hasPaidAccess = sub?.access === true;
+  const [preview, setPreview] = useState<MatchPreview | null>(null);
   const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Non-members get the free, model-only preview (zero Claude cost), shown above
+  // the blurred AI analysis. Skip the fetch entirely for paying members.
+  useEffect(() => {
+    if (hasPaidAccess) return;
+    let active = true;
+    getMatchPreview(match)
+      .then((p) => active && setPreview(p))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPaidAccess, match.id]);
   // Live bankroll + bettor profile → personalised € stake on the recommendation.
   const [bankroll, setBankroll] = useState<{ amount: number; playstyle?: Playstyle } | null>(null);
   const [bankrollReady, setBankrollReady] = useState(false);
@@ -194,22 +313,25 @@ export default function AIAnalysis({
       </div>
 
       <div className="p-5">
-        {/* Welcome banner — first analysis offered right after onboarding. */}
-        {autoStart && !locked && (
-          <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] px-3.5 py-2.5">
-            <Sparkles size={15} className="text-[var(--accent)] shrink-0" />
-            <p className="text-xs text-[#cdd3db] leading-snug">
-              <span className="font-bold text-[var(--accent)]">Bienvenue&nbsp;!</span> Voici ta
-              première analyse, offerte. Découvre comment on lit le match et le pari conseillé.
-            </p>
+        {/* Non-member: free model-only preview + the full analysis locked below. */}
+        {!hasPaidAccess && !data && (
+          <div className="space-y-5">
+            {preview ? (
+              <ModelPreview preview={preview} homeName={h.name} awayName={a.name} />
+            ) : (
+              <div className="flex justify-center py-6">
+                <div className="w-6 h-6 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
+              </div>
+            )}
+            <LockedAnalysis match={match} />
           </div>
         )}
 
-        {/* Locked — loss-aversion paywall (Feature 1), with simple-card fallback */}
-        {locked && <LossAversionPaywall match={match} />}
+        {/* Member whose access lapsed mid-session → paywall. */}
+        {hasPaidAccess && locked && <LossAversionPaywall match={match} />}
 
-        {/* Empty */}
-        {!data && !isPending && !error && !locked && (
+        {/* Member empty state — ready to generate the full analysis. */}
+        {hasPaidAccess && !data && !isPending && !error && !locked && (
           <div className="flex flex-col items-center gap-4 py-8 text-center">
             <div className="w-16 h-16 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center justify-center animate-pulse-neon">
               <Sparkles size={28} className="text-[var(--accent)]" />

@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { LayoutGrid, Globe, Trophy, TrendingUp, Sparkles, Crown, LogOut, ChevronRight, ShieldCheck, History, User, Layers, Map, Lock, Ticket, MessageCircleQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useSubscription } from "@/lib/use-subscription";
-import { FREE_ANALYSES_LIMIT, cdmIntroActive } from "@/lib/plans";
+import { cdmIntroActive } from "@/lib/plans";
 import { FEATURE } from "@/lib/feature-flags";
 import { LOCKED_TEASERS, type LockedTeaser } from "@/lib/upsell";
 import UpsellModal from "@/components/dashboard/upsell-modal";
@@ -37,9 +37,8 @@ export default function AppSidebar() {
   const [teaser, setTeaser] = useState<LockedTeaser | null>(null);
   const supabase = createClient();
 
-  // Free (non-member) state → counter + locked teasers.
+  // Free (non-member) state → locked teasers.
   const isFree = Boolean(sub) && !sub!.access;
-  const remaining = sub ? Math.max(0, FREE_ANALYSES_LIMIT - sub.freeAnalysesUsed) : 0;
   const showLocked = FEATURE.lockedNav && isFree;
 
   function openTeaser(t: LockedTeaser) {
@@ -176,19 +175,17 @@ export default function AppSidebar() {
                 <span className="text-[10px] font-black uppercase tracking-wide text-[#8a929e]">
                   Plan gratuit
                 </span>
-                <span className="text-[10px] font-bold text-[var(--accent)] tabular-nums">
-                  {remaining}/{FREE_ANALYSES_LIMIT}
+                <span className="text-[10px] font-bold text-[var(--accent)]">
+                  Aperçu
                 </span>
               </div>
               <p className="text-[13px] font-bold text-[#f0f0f0] leading-snug mb-1">
-                {remaining > 0
-                  ? `${remaining} analyse${remaining > 1 ? "s" : ""} découverte restante${remaining > 1 ? "s" : ""}`
-                  : "Analyses découverte épuisées"}
+                Débloque les analyses IA complètes
               </p>
               <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
                 {cdmIntroActive()
-                  ? "Pass Coupe du Monde — 8,99 €/mois, sans engagement."
-                  : "Passe en illimité dès 8,99 €/mois."}
+                  ? "Aperçu gratuit · analyse complète dès 8,99 €/mois, sans engagement."
+                  : "Aperçu gratuit · analyse complète dès 8,99 €/mois."}
               </p>
               <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
                 Voir les plans →
