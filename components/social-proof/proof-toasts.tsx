@@ -45,7 +45,7 @@ export default function ProofToasts({ items }: { items: WinItem[] }) {
   }
 
   return (
-    <div className="hidden md:block fixed left-4 bottom-4 z-40 w-[300px]">
+    <div className="hidden md:block fixed left-64 bottom-4 z-40 w-[300px]">
       <AnimatePresence>
         {current && (
           <motion.button
