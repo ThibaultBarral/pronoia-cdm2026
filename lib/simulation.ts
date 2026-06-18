@@ -12,8 +12,11 @@
  *   - Knockout is the ACTUAL OpenFootball bracket (lib/wc-bracket), simulated
  *     N times — capturing easy/hard draws — instead of an averaged field.
  *   - Published title% blends our model with bookmaker outright odds
- *     (lib/outright-odds): 65% market / 35% model, so numbers track the
- *     media/market consensus. Both halves are exposed (modelTitle/marketTitle).
+ *     (lib/outright-odds). The blend is DYNAMIC: 65% market / 35% model at
+ *     kick-off (so numbers track the media/market consensus), decaying toward
+ *     30% market / 70% model by the final — the pre-tournament odds get staler
+ *     every matchday while our model, now conditioned on real scores, earns
+ *     trust. Both halves are exposed (modelTitle/marketTitle).
  *
  * Seeded RNG → deterministic, so the whole thing is computed once per day and
  * cached. Everything is surfaced in the UI as "selon notre simulation".
@@ -39,8 +42,13 @@ const RATING_PER_GOAL = 350;
 /** Monte-Carlo iterations. Seeded → stable across cache reads. */
 const ITERATIONS = 20000;
 const SEED = 20260608;
-/** Output blend: published title = 65% market odds + 35% our model. */
-const MARKET_WEIGHT = 0.65;
+/** Output blend (DYNAMIC): published title = marketWeight·market + rest·model.
+ *  marketWeight decays linearly with tournament progress (matches played /
+ *  TOTAL_MATCHES) from START at kick-off to END by the final. */
+const MARKET_WEIGHT_START = 0.65;
+const MARKET_WEIGHT_END = 0.3;
+/** WC 2026 format: 48 teams, 104 matches total (72 group + 32 knockout). */
+const TOTAL_MATCHES = 104;
 
 export type Stage =
   | "Vainqueur"
@@ -70,7 +78,7 @@ export interface TeamSimResult {
   reachQF: number; // 1/4
   reachSF: number; // 1/2
   reachFinal: number;
-  /** Published title chance (65% market / 35% model blend). */
+  /** Published title chance (dynamic market/model blend — see MARKET_WEIGHT_*). */
   title: number;
   /** Our pure-model title chance (Monte-Carlo only). */
   modelTitle: number;
@@ -390,6 +398,12 @@ async function compute(): Promise<TeamSimResult[]> {
     eloOf
   );
 
+  // Dynamic blend: the more matches are in the books, the less we lean on the
+  // pre-tournament bookmaker odds and the more on our results-conditioned model.
+  const progress = Math.min(1, played.length / TOTAL_MATCHES);
+  const marketWeight =
+    MARKET_WEIGHT_START - (MARKET_WEIGHT_START - MARKET_WEIGHT_END) * progress;
+
   // 5) Assemble results.
   const N = ITERATIONS;
   const pct = (x: number) => Math.round((x / N) * 1000) / 10;
@@ -407,7 +421,7 @@ async function compute(): Promise<TeamSimResult[]> {
     const modelTitle = c.title / N;
     const marketTitle = market.get(t.nameEn) ?? 0;
     const titleBlend =
-      MARKET_WEIGHT * marketTitle + (1 - MARKET_WEIGHT) * modelTitle;
+      marketWeight * marketTitle + (1 - marketWeight) * modelTitle;
 
     const expMatches =
       3 + reachR32 + reachR16 + reachQF + reachSF + reachFinal;
@@ -470,7 +484,7 @@ export async function getSimulation(): Promise<TeamSimResult[]> {
   // Re-key by finished matches → the simulation re-runs (conditioned on the
   // latest real results) after every match, instead of once a day.
   const finished = await getWcFinishedCount().catch(() => 0);
-  return getCachedOrFetch(`simulation:wc2026:v3:wc${finished}`, 86400, compute);
+  return getCachedOrFetch(`simulation:wc2026:v4:wc${finished}`, 86400, compute);
 }
 
 /** Simulation result for one team by slug. */
