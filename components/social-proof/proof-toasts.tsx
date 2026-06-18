@@ -45,17 +45,17 @@ export default function ProofToasts({ items }: { items: WinItem[] }) {
   }
 
   return (
-    <div className="hidden md:block fixed left-64 bottom-4 z-40 w-[300px]">
+    <div className="hidden md:block fixed right-4 bottom-4 z-40 w-[300px]">
       <AnimatePresence>
         {current && (
           <motion.button
             key={`${current.id}-${tick}`}
             onClick={onClick}
-            initial={{ opacity: 0, x: -40 }}
+            initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
+            exit={{ opacity: 0, x: 40 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="w-full text-left rounded-2xl glass-strong border border-[var(--accent)]/15 p-3.5 shadow-2xl"
+            className="w-full text-left rounded-2xl bg-[#0c1018]/95 backdrop-blur-xl border border-[var(--accent)]/20 p-3.5 shadow-2xl"
           >
             <div className="flex items-start gap-2.5">
               <span className="w-8 h-8 rounded-xl bg-[var(--accent)]/12 flex items-center justify-center shrink-0">
