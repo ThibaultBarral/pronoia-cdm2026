@@ -462,6 +462,16 @@ export default function AIAnalysis({
               </div>
             )}
 
+            {/* Prédiction Gold — bloc premium (xG, marchés, comparaison des forces) */}
+            <div className="rounded-2xl p-4 space-y-5 border border-[#ffd700]/25 bg-gradient-to-b from-[#ffd700]/[0.06] to-transparent">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[#ffd700]/15 shrink-0">
+                <Sparkles size={13} className="text-[#ffd700]" />
+              </span>
+              <span className="text-xs font-black uppercase tracking-wide text-[#ffd700]">Prédiction Gold</span>
+              <span className="ml-auto text-[10px] text-[var(--text-muted)]">xG · marchés · forces</span>
+            </div>
+
             {/* Comparison */}
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -498,6 +508,7 @@ export default function AIAnalysis({
                 <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.markets.bttsYes}%</div>
                 <div className="text-[10px] text-[var(--text-muted)]">Les 2 marquent</div>
               </div>
+            </div>
             </div>
 
             {/* Recommendation — with a per-profile toggle (preview only, never
