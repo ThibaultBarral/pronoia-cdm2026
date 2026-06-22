@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { TickerItem } from "@/lib/combo";
+import { localizePath, defaultLocale, type Locale } from "@/lib/i18n/config";
 
 /** Thin scrolling odds bar (CSS marquee, no JS lib). Server component. */
-export default function OddsTicker({ items }: { items: TickerItem[] }) {
+export default function OddsTicker({ items, locale = defaultLocale }: { items: TickerItem[]; locale?: Locale }) {
   if (!items.length) return null;
   const doubled = [...items, ...items];
 
@@ -12,7 +13,7 @@ export default function OddsTicker({ items }: { items: TickerItem[] }) {
         {doubled.map((it, i) => (
           <Link
             key={i}
-            href={`/match/${it.matchId}`}
+            href={localizePath(`/match/${it.matchId}`, locale)}
             className="inline-flex items-center gap-2 text-xs shrink-0 hover:opacity-80 transition-opacity"
           >
             <span>{it.homeFlag}{it.awayFlag}</span>

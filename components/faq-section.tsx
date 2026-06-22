@@ -3,21 +3,25 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
-import { FAQ } from "@/lib/faq";
+import { getFaq } from "@/lib/faq";
 import { CONTACT_EMAIL } from "@/lib/social";
+import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
 
 export default function FaqSection() {
+  const t = useTranslations();
+  const locale = useLocale();
+  const FAQ = getFaq(locale);
   const [open, setOpen] = useState<number | null>(0);
 
   return (
     <section id="faq" className="max-w-3xl mx-auto px-4 py-16">
       <div className="text-center mb-10">
         <p className="text-xs text-[#3a4560] uppercase tracking-widest mb-2 font-medium">
-          Questions fréquentes
+          {t("faq.label")}
         </p>
         <h2 className="text-3xl md:text-4xl font-bold text-[#f0f0f0]">
-          Tout ce qu&apos;il faut savoir{" "}
-          <span className="text-[var(--accent)]">avant de commencer</span>
+          {t("faq.titlePre")}{" "}
+          <span className="text-[var(--accent)]">{t("faq.titleAccent")}</span>
         </h2>
       </div>
 
@@ -68,9 +72,9 @@ export default function FaqSection() {
       </div>
 
       <p className="text-center text-xs text-[var(--text-muted)] mt-8">
-        Une autre question ?{" "}
+        {t("faq.another")}{" "}
         <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--accent)] hover:underline">
-          Écris-nous
+          {t("faq.writeUs")}
         </a>
         .
       </p>

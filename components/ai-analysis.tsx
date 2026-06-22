@@ -22,6 +22,8 @@ import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
 import { valueBadge, fmtCote } from "@/lib/value";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { useLocalizedHref } from "@/lib/i18n/navigation";
 import {
   DISCLAIMER, type Confidence, type MatchAnalysisData,
 } from "@/lib/analysis-schema";
@@ -179,6 +181,8 @@ export default function AIAnalysis({
   autoStart?: boolean;
 }) {
   const router = useRouter();
+  const locale = useLocale();
+  const localizedHref = useLocalizedHref();
   const sub = useSubscription();
   // Treat anyone without a confirmed active entitlement as a non-member (a
   // signed-out visitor returns null too). Full analysis is paid-only.
@@ -273,10 +277,10 @@ export default function AIAnalysis({
     trackEvent("analysis_start", { match_id: match.id });
     startTransition(async () => {
       try {
-        const result = await analyzeMatch(match);
+        const result = await analyzeMatch(match, locale);
         if (!result.ok) {
           if (result.error === AUTH_REQUIRED) {
-            router.push(`/login?next=/match/${match.id}`);
+            router.push(localizedHref(`/login?next=/match/${match.id}`));
             return;
           }
           if (result.error === PAYWALL_REQUIRED) {

@@ -12,6 +12,18 @@ import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
 import { PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
 import type { BetRecommendation, MatchAnalysisData } from "@/lib/analysis-schema";
+import { defaultLocale, type Locale } from "@/lib/i18n/config";
+
+/**
+ * Hard language directive appended to the prompt so Claude writes every text
+ * field in the user's language. The instructions stay in French; only the
+ * OUTPUT language changes.
+ */
+function langDirective(locale: Locale): string {
+  return locale === "en"
+    ? `\n\nLANGUE DE SORTIE (IMPÉRATIF) : rédige TOUTES les valeurs textuelles du JSON en ANGLAIS (US), ton amical et accessible pour débutants. Les clés JSON restent inchangées. Utilise "you" plutôt qu'un ton formel.`
+    : "";
+}
 
 type Result = { ok: true; data: MatchAnalysisData } | { ok: false; error: string };
 
@@ -165,7 +177,7 @@ function buildRecommendation(
   };
 }
 
-async function generate(match: Match, userId: string): Promise<MatchAnalysisData> {
+async function generate(match: Match, userId: string, locale: Locale): Promise<MatchAnalysisData> {
   const pred = predictMatch(match);
   // One grounded value verdict per profile (single odds fetch shared across all).
   const emptyBets = Object.fromEntries(PROFILE_IDS.map((p) => [p, null])) as Record<Playstyle, ValueBet | null>;
@@ -173,7 +185,7 @@ async function generate(match: Match, userId: string): Promise<MatchAnalysisData
 
   const text = await callClaudeJson<ClaudeMatchText>({
     system: SYSTEM_PROMPT,
-    user: buildPrompt(match, pred) + valueVerdictsPrompt(bets),
+    user: buildPrompt(match, pred) + valueVerdictsPrompt(bets) + langDirective(locale),
     maxTokens: 1800,
     kind: "match",
     userId,
@@ -209,25 +221,32 @@ async function generate(match: Match, userId: string): Promise<MatchAnalysisData
   };
 }
 
-export async function analyzeMatch(match: Match): Promise<Result> {
+export async function analyzeMatch(match: Match, locale: Locale = defaultLocale): Promise<Result> {
+  const en = locale === "en";
   // No pre-match analysis for a finished match (checked before any credit spend).
   if (match.status === "FT" || match.status === "AET" || match.status === "PEN") {
-    return { ok: false, error: "Ce match est terminé — l'analyse pré-match n'est plus disponible." };
+    return {
+      ok: false,
+      error: en
+        ? "This match is over — the pre-match analysis is no longer available."
+        : "Ce match est terminé — l'analyse pré-match n'est plus disponible.",
+    };
   }
 
   // Check access WITHOUT consuming the free analysis (committed only on success).
   const access = await getAnalysisAccess();
   if ("error" in access) return { ok: false, error: access.error };
 
-  // Re-key by finished WC matches (fresh form after each match). The analysis now
-  // carries a recommendation for EVERY profile, so it's profile-independent and
-  // shared across all users — the UI toggles between profiles client-side.
+  // Re-key by finished WC matches (fresh form after each match) AND by locale, so
+  // each language gets its own cached analysis. The analysis carries a
+  // recommendation for EVERY profile, so it's profile-independent and shared
+  // across all users — the UI toggles between profiles client-side.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles3`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles3:${locale}`;
 
   try {
-    const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId));
+    const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));
     // Success → only now do we consume the free credit + record usage.
     await commitAnalysisUsage(access.isFree);
     await saveAnalysis(access.userId, {
@@ -245,6 +264,11 @@ export async function analyzeMatch(match: Match): Promise<Result> {
     // The Claude/data call failed → the free analysis is NOT consumed, the user
     // can retry. Show a clean message (never the raw provider error).
     console.error("[analyze-match] error:", err);
-    return { ok: false, error: "L'analyse est momentanément indisponible. Réessaie dans un instant." };
+    return {
+      ok: false,
+      error: en
+        ? "The analysis is temporarily unavailable. Try again in a moment."
+        : "L'analyse est momentanément indisponible. Réessaie dans un instant.",
+    };
   }
 }

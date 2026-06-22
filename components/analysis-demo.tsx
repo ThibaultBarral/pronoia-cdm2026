@@ -3,23 +3,24 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Check, TrendingUp } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 interface Scenario {
   homeFlag: string;
   home: string;
   awayFlag: string;
   away: string;
-  reco: string;
-  detail: string;
+  recoKey: string;
+  detailKey: string;
   start: number;
   target: number;
 }
 
 const SCENARIOS: Scenario[] = [
-  { homeFlag: "🇫🇷", home: "France", awayFlag: "🇸🇳", away: "Sénégal", reco: "France gagne", detail: "cote 1.45 · confiance élevée", start: 100, target: 245 },
-  { homeFlag: "🇧🇷", home: "Brésil", awayFlag: "🇲🇦", away: "Maroc", reco: "Plus de 2,5 buts", detail: "cote 1.80 · value détectée", start: 150, target: 320 },
-  { homeFlag: "🇪🇸", home: "Espagne", awayFlag: "🇩🇪", away: "Allemagne", reco: "Les deux équipes marquent", detail: "cote 1.70 · confiance moyenne", start: 80, target: 216 },
-  { homeFlag: "🇦🇷", home: "Argentine", awayFlag: "🇲🇽", away: "Mexique", reco: "Messi buteur", detail: "cote 2.10 · pari osé", start: 120, target: 372 },
+  { homeFlag: "🇫🇷", home: "France", awayFlag: "🇸🇳", away: "Sénégal", recoKey: "demo.reco1", detailKey: "demo.detail1", start: 100, target: 245 },
+  { homeFlag: "🇧🇷", home: "Brésil", awayFlag: "🇲🇦", away: "Maroc", recoKey: "demo.reco2", detailKey: "demo.detail2", start: 150, target: 320 },
+  { homeFlag: "🇪🇸", home: "Espagne", awayFlag: "🇩🇪", away: "Allemagne", recoKey: "demo.reco3", detailKey: "demo.detail3", start: 80, target: 216 },
+  { homeFlag: "🇦🇷", home: "Argentine", awayFlag: "🇲🇽", away: "Mexique", recoKey: "demo.reco4", detailKey: "demo.detail4", start: 120, target: 372 },
 ];
 
 function useCountUp(run: boolean, from: number, to: number): number {
@@ -50,6 +51,7 @@ function useCountUp(run: boolean, from: number, to: number): number {
  * Each scenario runs 4 phases (~1.5s each): 0 scan · 1 reco · 2 cagnotte · 3 hold.
  */
 export default function AnalysisDemo() {
+  const t = useTranslations();
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1500);
@@ -73,7 +75,7 @@ export default function AnalysisDemo() {
         <div className="w-8 h-8 rounded-xl bg-[var(--accent)]/12 border border-[var(--accent)]/25 flex items-center justify-center">
           <Bot size={16} className="text-[var(--accent)]" />
         </div>
-        <div className="text-sm font-bold text-[#f0f0f0]">Analyse Copafever IA</div>
+        <div className="text-sm font-bold text-[#f0f0f0]">{t("demo.title")}</div>
         <span className="ml-auto flex items-center gap-1.5 text-[10px] text-[var(--accent)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" /> live
         </span>
@@ -113,7 +115,7 @@ export default function AnalysisDemo() {
               className="flex items-center gap-2 text-xs text-[#7a8599] py-3"
             >
               <span className="w-4 h-4 rounded-full border-2 border-[var(--accent)]/30 border-t-[var(--accent)] animate-spin-custom" />
-              L&apos;IA analyse forme, cotes &amp; value bets…
+              {t("demo.scanning")}
             </motion.div>
           ) : (
             <motion.div
@@ -127,12 +129,12 @@ export default function AnalysisDemo() {
                   <Check size={13} strokeWidth={3} color="#06231a" />
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-bold text-[#f0f0f0] truncate">{sc.reco}</div>
-                  <div className="text-[10px] text-[#7a8599] truncate">{sc.detail}</div>
+                  <div className="text-sm font-bold text-[#f0f0f0] truncate">{t(sc.recoKey)}</div>
+                  <div className="text-[10px] text-[#7a8599] truncate">{t(sc.detailKey)}</div>
                 </div>
               </div>
               <span className="text-[10px] font-black uppercase tracking-wide text-[#06231a] bg-[var(--accent)] rounded-full px-2.5 py-1 shrink-0">
-                Value
+                {t("demo.value")}
               </span>
             </motion.div>
           )}
@@ -142,7 +144,7 @@ export default function AnalysisDemo() {
       {/* Bankroll rising */}
       <div className="relative flex items-end justify-between rounded-2xl bg-white/[0.03] border border-white/5 px-4 py-3">
         <div>
-          <div className="text-[10px] text-[#5a6472] uppercase tracking-wide mb-0.5">Ta cagnotte</div>
+          <div className="text-[10px] text-[#5a6472] uppercase tracking-wide mb-0.5">{t("demo.bankroll")}</div>
           <div className="text-2xl font-black tabular-nums text-[var(--accent)]">{amount} €</div>
         </div>
         <div className="flex flex-col items-end gap-1">

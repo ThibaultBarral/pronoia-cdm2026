@@ -15,11 +15,11 @@ import { visibleOffers, planName, type Plan, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
-  pass_cdm: Flame,
   weekly: Zap,
   monthly: CalendarDays,
-  season: CalendarDays,
   lifetime: InfinityIcon,
+  pass_cdm: Flame,
+  season: CalendarDays,
 };
 
 export default function PaywallContent({

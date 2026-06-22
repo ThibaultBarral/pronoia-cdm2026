@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
+import type { Locale } from "@/lib/i18n/config";
 
 /** The launch-pricing deadline: prices rise after the WC final. */
 export const PRICE_HIKE_DEADLINE = "2026-07-19T23:59:59Z";
@@ -30,10 +32,11 @@ export function useCountdown(targetIso: string): Remaining {
   };
 }
 
-/** Short human string, e.g. "12j 04h" or "3h 20min" near the end. */
-export function formatRemaining(r: Remaining): string {
+/** Short human string, e.g. "12d 04h" / "12j 04h" or "3h 20min" near the end. */
+export function formatRemaining(r: Remaining, locale: Locale = "fr"): string {
+  const d = locale === "en" ? "d" : "j";
   if (r.total <= 0) return "0h";
-  if (r.days >= 1) return `${r.days}j ${String(r.hours).padStart(2, "0")}h`;
+  if (r.days >= 1) return `${r.days}${d} ${String(r.hours).padStart(2, "0")}h`;
   if (r.hours >= 1) return `${r.hours}h ${String(r.minutes).padStart(2, "0")}min`;
   return `${r.minutes}min`;
 }
@@ -43,6 +46,8 @@ export function formatRemaining(r: Remaining): string {
  * dans Xj XXh — fin le 19 juillet." Renders nothing once the deadline passes.
  */
 export default function LaunchCountdown({ className = "" }: { className?: string }) {
+  const t = useTranslations();
+  const locale = useLocale();
   const r = useCountdown(PRICE_HIKE_DEADLINE);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -65,8 +70,8 @@ export default function LaunchCountdown({ className = "" }: { className?: string
     >
       <span aria-hidden>⏳</span>
       <span>
-        L&apos;Accès à vie passe à 99 € dans{" "}
-        <span className="tabular-nums">{formatRemaining(r)}</span> — le 19 juillet.
+        {t("launchCountdown.pillPre")}{" "}
+        <span className="tabular-nums">{formatRemaining(r, locale)}</span> {t("launchCountdown.pillPost")}
       </span>
     </div>
   );

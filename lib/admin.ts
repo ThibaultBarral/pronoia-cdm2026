@@ -191,14 +191,14 @@ export interface AdminStats {
   noSubDetails: { label: string; emoji: string; detail: string }[]; // verbatims libres
 }
 
-const PLAN_ORDER: Plan[] = ["free", "pass_cdm", "weekly", "monthly", "season", "lifetime"];
+const PLAN_ORDER: Plan[] = ["free", "weekly", "monthly", "lifetime", "pass_cdm", "season"];
 const PLAN_LABEL: Record<Plan, string> = {
   free: "Gratuit",
-  pass_cdm: "Pass CDM",
   weekly: "Hebdo",
   monthly: "Mensuel",
-  season: "Pass Saison",
   lifetime: "À vie",
+  pass_cdm: "Pass CDM",
+  season: "Pass Saison",
 };
 
 /** Compute the dashboard metrics from already-fetched rows (no extra queries). */

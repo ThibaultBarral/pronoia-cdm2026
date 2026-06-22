@@ -6,8 +6,10 @@ import { Lock, Sparkles, Timer, Layers } from "lucide-react";
 import type { DailyCombo } from "@/lib/combo";
 import { startCheckout } from "@/lib/checkout-client";
 import { trackEvent } from "@/lib/analytics";
+import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
+import { localizePath, type Locale } from "@/lib/i18n/config";
 
-function useCountdown(targetIso: string): string {
+function useCountdown(targetIso: string, live: string): string {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const first = setTimeout(() => setNow(Date.now()), 0);
@@ -19,15 +21,17 @@ function useCountdown(targetIso: string): string {
   }, []);
   if (now == null) return "—";
   const diff = Date.parse(targetIso) - now;
-  if (diff <= 0) return "en cours";
+  if (diff <= 0) return live;
   const d = Math.floor(diff / 86_400_000);
   const h = Math.floor((diff % 86_400_000) / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
   return d > 0 ? `${d}j ${h}h` : `${h}h ${String(m).padStart(2, "0")}min`;
 }
 
-export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; unlocked: boolean }) {
-  const cd = useCountdown(combo.firstKickoff);
+export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; unlocked: boolean; locale?: Locale }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const cd = useCountdown(combo.firstKickoff, t("combo.live"));
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -39,7 +43,7 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
     start(async () => {
       const res = await startCheckout("monthly");
       if (res.ok) window.location.href = res.url;
-      else window.location.href = "/login?mode=signup&next=/combine-du-jour";
+      else window.location.href = localizePath("/login?mode=signup&next=/combine-du-jour", locale);
     });
   }
 
@@ -50,7 +54,7 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
         <div className="flex items-center justify-between mb-4">
           <div className="inline-flex items-center gap-2 text-[var(--accent)]">
             <Layers size={16} />
-            <span className="text-sm font-black uppercase tracking-wide">Combiné IA du jour</span>
+            <span className="text-sm font-black uppercase tracking-wide">{t("combo.ticketTitle")}</span>
           </div>
           {combo.firstKickoff && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[#ff9d5c] font-bold">
@@ -81,8 +85,8 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
         {/* Total */}
         <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#ffd700]/[0.06] border border-[#ffd700]/15 px-4 py-3">
           <div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Cote totale</div>
-            <div className="text-[11px] text-[#9aa3b2]">Confiance : {combo.confidence}</div>
+            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">{t("combo.totalOdds")}</div>
+            <div className="text-[11px] text-[#9aa3b2]">{t("combo.confidence", { value: combo.confidence })}</div>
           </div>
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -101,17 +105,16 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
               className="mt-4 w-full rounded-xl py-3.5 text-sm font-black text-[#06231a] glow-neon transition-transform hover:scale-[1.02] disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
             >
-              {pending ? "Redirection…" : "⚡ Débloquer le combiné — 8,99 €/mois"}
+              {pending ? t("combo.redirecting") : t("combo.unlock")}
             </button>
             <p className="text-[11px] text-[var(--text-muted)] text-center mt-2">
-              Analyses illimitées · résiliable à tout moment
+              {t("combo.unlimited")}
             </p>
           </>
         )}
 
         <p className="text-[10px] text-[#5a6472] text-center mt-3 leading-relaxed">
-          Sélection IA sur cotes réelles · simulation, aucune garantie de gain · 18+ · jouer comporte
-          des risques · joueurs-info-service.fr
+          {t("combo.legal")}
         </p>
       </div>
     </div>

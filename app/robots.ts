@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/dashboard", "/onboarding", "/api/"],
+      disallow: ["/dashboard", "/onboarding", "/api/", "/en/dashboard", "/en/onboarding"],
     },
     sitemap: "https://copafever.com/sitemap.xml",
     host: "https://copafever.com",

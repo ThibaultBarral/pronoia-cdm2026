@@ -8,6 +8,7 @@ import { getWcFinishedCount } from "@/lib/data-service";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { getTeamSimulation, type TeamSimResult } from "@/lib/simulation";
 import type { TeamAnalysisData } from "@/lib/analysis-schema";
+import { defaultLocale, type Locale } from "@/lib/i18n/config";
 
 type Result = { ok: true; data: TeamAnalysisData } | { ok: false; error: string };
 
@@ -63,30 +64,36 @@ ${squad}
 ${simStr}`;
 }
 
-async function generate(team: Team, slug: string, userId: string): Promise<TeamAnalysisData> {
+function langDirective(locale: Locale): string {
+  return locale === "en"
+    ? `\n\nLANGUE DE SORTIE (IMPÉRATIF) : rédige TOUTES les valeurs textuelles du JSON en ANGLAIS (US), ton amical et accessible pour débutants. Les clés JSON restent inchangées.`
+    : "";
+}
+
+async function generate(team: Team, slug: string, userId: string, locale: Locale): Promise<TeamAnalysisData> {
   const sim = await getTeamSimulation(slug);
   return callClaudeJson<TeamAnalysisData>({
     system: SYSTEM_PROMPT,
-    user: buildPrompt(team, sim),
+    user: buildPrompt(team, sim) + langDirective(locale),
     maxTokens: 1400,
     kind: "team",
     userId,
   });
 }
 
-export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
+export async function analyzeTeam(team: Team, slug: string, locale: Locale = defaultLocale): Promise<Result> {
   // Check access WITHOUT consuming the free analysis (committed only on success).
   const access = await getAnalysisAccess();
   if ("error" in access) return { ok: false, error: access.error };
 
-  // Re-key by finished WC matches so the team analysis refreshes as results land.
+  // Re-key by finished WC matches AND locale so each language refreshes/caches apart.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:team:${slug}:${day}:wc${finished}`;
+  const key = `analysis:team:${slug}:${day}:wc${finished}:${locale}`;
 
   try {
-    // Shared daily cache → one Claude call per team per day, reused by everyone.
-    const data = await getCachedOrFetch(key, 86400, () => generate(team, slug, access.userId));
+    // Shared daily cache → one Claude call per team per day per language, reused by everyone.
+    const data = await getCachedOrFetch(key, 86400, () => generate(team, slug, access.userId, locale));
     // Success → only now do we consume the free credit + record usage.
     await commitAnalysisUsage(access.isFree);
     await saveAnalysis(access.userId, {
@@ -99,6 +106,11 @@ export async function analyzeTeam(team: Team, slug: string): Promise<Result> {
     return { ok: true, data };
   } catch (err) {
     console.error("[analyze-team] error:", err);
-    return { ok: false, error: "L'analyse est momentanément indisponible. Réessaie dans un instant." };
+    return {
+      ok: false,
+      error: locale === "en"
+        ? "The analysis is temporarily unavailable. Try again in a moment."
+        : "L'analyse est momentanément indisponible. Réessaie dans un instant.",
+    };
   }
 }

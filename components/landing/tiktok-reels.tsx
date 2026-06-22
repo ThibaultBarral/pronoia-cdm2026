@@ -6,6 +6,7 @@ import { Volume2, VolumeX, Heart, MessageCircle, Play, ArrowUpRight, Sparkles } 
 import { REELS, type Reel } from "@/lib/landing-videos";
 import { SocialIcon } from "@/components/social-icons";
 import { trackEvent } from "@/lib/analytics";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 /**
  * Section "Copafever en vrai" — un feed de vidéos verticales (9:16), feeling
@@ -13,6 +14,7 @@ import { trackEvent } from "@/lib/analytics";
  * son, scale + glow au survol. Vidéos auto-hébergées (lib/landing-videos.ts).
  */
 function ReelCard({ reel, index }: { reel: Reel; index: number }) {
+  const t = useTranslations();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [inView, setInView] = useState(false);
@@ -82,7 +84,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
               <Play size={20} className="text-[var(--accent)] fill-[var(--accent)] ml-0.5" />
             </div>
             <span className="text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-widest">
-              Vidéo bientôt
+              {t("reels.comingSoon")}
             </span>
           </div>
         )}
@@ -104,7 +106,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
             className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold text-white hover:bg-black/70 transition-colors"
           >
             <SocialIcon id="tiktok" size={11} />
-            En entier
+            {t("reels.full")}
             <ArrowUpRight size={11} />
           </a>
         )}
@@ -113,7 +115,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
         {hasVideo && (
           <button
             onClick={toggleSound}
-            aria-label={muted ? "Activer le son" : "Couper le son"}
+            aria-label={muted ? t("reels.unmute") : t("reels.mute")}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/70 transition-colors"
           >
             {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
@@ -124,7 +126,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
         {hasVideo && muted && (
           <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 backdrop-blur-md px-3 py-1.5 text-[11px] font-bold text-white">
-              <Volume2 size={13} /> Touche pour le son
+              <Volume2 size={13} /> {t("reels.tapForSound")}
             </span>
           </div>
         )}
@@ -164,6 +166,7 @@ function ReelCard({ reel, index }: { reel: Reel; index: number }) {
 }
 
 export default function TikTokReels() {
+  const t = useTranslations();
   return (
     <section className="relative overflow-hidden py-20 px-4 border-t border-white/5">
       {/* Fond ludique */}
@@ -177,11 +180,11 @@ export default function TikTokReels() {
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full glass-neon mb-5">
             <Sparkles size={12} className="text-[var(--accent)]" />
             <span className="text-[11px] text-[var(--accent)] font-bold tracking-wide uppercase">
-              📲 Copafever en vrai
+              {t("reels.badge")}
             </span>
           </span>
           <h2 className="text-3xl md:text-5xl font-black text-[#f0f0f0] leading-[1.05]">
-            Pas de blabla.{" "}
+            {t("reels.titlePre")}{" "}
             <span
               style={{
                 background: "linear-gradient(135deg, var(--accent), var(--accent-soft))",
@@ -189,11 +192,11 @@ export default function TikTokReels() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Tu regardes.
+              {t("reels.titleAccent")}
             </span>
           </h2>
           <p className="text-[#9aa3b2] text-sm md:text-base mt-4 max-w-md mx-auto">
-            L&apos;appli, les analyses, les coulisses — en vidéo. Touche une carte pour le son. 🔊
+            {t("reels.subtitle")}
           </p>
         </div>
 
@@ -216,7 +219,7 @@ export default function TikTokReels() {
               ))}
             </div>
             <p className="text-sm text-[#9aa3b2]">
-              <span className="text-[#f0f0f0] font-bold">+50 000</span> nous suivent déjà
+              <span className="text-[#f0f0f0] font-bold">+50 000</span> {t("reels.followers")}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

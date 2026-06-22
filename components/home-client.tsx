@@ -5,8 +5,10 @@ import { Zap } from "lucide-react";
 import MatchCard from "@/components/match-card";
 import MatchFilters from "@/components/match-filters";
 import { Match } from "@/lib/types";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 export default function HomeClient({ matches }: { matches: Match[] }) {
+  const t = useTranslations();
   const [filtered, setFiltered] = useState<Match[]>(matches);
 
   return (
@@ -15,11 +17,10 @@ export default function HomeClient({ matches }: { matches: Match[] }) {
         <div>
           <h2 className="text-xl font-bold text-[#f0f0f0] flex items-center gap-2">
             <Zap size={18} className="text-[var(--accent)]" />
-            Matchs à analyser
+            {t("home.matchesTitle")}
           </h2>
           <p className="text-sm text-[#888] mt-0.5">
-            {filtered.length} match{filtered.length > 1 ? "s" : ""} ·{" "}
-            Cliquez pour l&apos;analyse IA complète
+            {t(filtered.length > 1 ? "home.matchesCountMany" : "home.matchesCountOne", { count: filtered.length })}
           </p>
         </div>
         <div className="sm:ml-auto">
@@ -35,8 +36,8 @@ export default function HomeClient({ matches }: { matches: Match[] }) {
         </div>
       ) : (
         <div className="text-center py-16 text-[#888]">
-          <p className="text-lg font-medium mb-1">Aucun match dans ce groupe</p>
-          <p className="text-sm">Sélectionnez un autre filtre</p>
+          <p className="text-lg font-medium mb-1">{t("home.emptyTitle")}</p>
+          <p className="text-sm">{t("home.emptySubtitle")}</p>
         </div>
       )}
     </section>

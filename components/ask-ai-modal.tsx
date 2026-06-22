@@ -3,13 +3,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircleQuestion, X, Send, AlertCircle, Lock } from "lucide-react";
-import Link from "next/link";
 import type { Match } from "@/lib/types";
 import { askMatchQuestion } from "@/actions/ask-ai";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
+import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
+import { LocaleLink } from "@/lib/i18n/navigation";
+import { useLocalizedHref } from "@/lib/i18n/navigation";
 
 export default function AskAiModal({ match }: { match: Match }) {
   const router = useRouter();
+  const t = useTranslations();
+  const locale = useLocale();
+  const localizedHref = useLocalizedHref();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -22,13 +27,13 @@ export default function AskAiModal({ match }: { match: Match }) {
     setError(null);
     setLocked(false);
     startTransition(async () => {
-      const res = await askMatchQuestion(match, q);
+      const res = await askMatchQuestion(match, q, locale);
       if (res.ok) {
         setAnswer(res.answer);
         return;
       }
       if (res.error === AUTH_REQUIRED) {
-        router.push(`/login?next=/match/${match.id}`);
+        router.push(localizedHref(`/login?next=/match/${match.id}`));
         return;
       }
       if (res.error === PAYWALL_REQUIRED) {
@@ -45,7 +50,7 @@ export default function AskAiModal({ match }: { match: Match }) {
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20 font-bold px-4 py-2.5 text-sm transition-colors"
       >
-        <MessageCircleQuestion size={16} /> Poser une question précise à l&apos;IA
+        <MessageCircleQuestion size={16} /> {t("askAi.trigger")}
       </button>
 
       {open && (
@@ -62,7 +67,7 @@ export default function AskAiModal({ match }: { match: Match }) {
                 <MessageCircleQuestion size={18} className="text-[var(--accent)]" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold text-[var(--text)]">Question à l&apos;IA</div>
+                <div className="text-sm font-bold text-[var(--text)]">{t("askAi.title")}</div>
                 <div className="text-[10px] text-[var(--text-muted)] truncate">
                   {match.homeTeam.name} vs {match.awayTeam.name}
                 </div>
@@ -80,17 +85,16 @@ export default function AskAiModal({ match }: { match: Match }) {
                 <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
                   <Lock size={20} className="text-[var(--accent)]" />
                 </div>
-                <p className="text-sm text-[var(--text)] font-semibold">Réservé au Mensuel & Accès à vie</p>
+                <p className="text-sm text-[var(--text)] font-semibold">{t("askAi.lockedTitle")}</p>
                 <p className="text-xs text-[var(--text-muted)] max-w-xs">
-                  Le chat IA contextuel est inclus dans le Mensuel et l&apos;Accès à vie. Pose
-                  des questions illimitées à l&apos;IA sur chaque match.
+                  {t("askAi.lockedDesc")}
                 </p>
-                <Link
+                <LocaleLink
                   href="/dashboard/pricing"
                   className="rounded-xl bg-[var(--accent)] text-[#06231a] font-bold px-5 py-2.5 text-sm glow-neon"
                 >
-                  Voir les offres
-                </Link>
+                  {t("askAi.seePlans")}
+                </LocaleLink>
               </div>
             ) : (
               <>
@@ -100,7 +104,7 @@ export default function AskAiModal({ match }: { match: Match }) {
                     onChange={(e) => setQ(e.target.value)}
                     rows={3}
                     maxLength={300}
-                    placeholder="Ex. La France peut-elle gagner sans encaisser ? Quel pari sur le nombre de buts ?"
+                    placeholder={t("askAi.placeholder")}
                     className="w-full rounded-2xl glass px-4 py-3 text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/40 resize-none"
                   />
                 </div>
@@ -114,7 +118,7 @@ export default function AskAiModal({ match }: { match: Match }) {
                   ) : (
                     <Send size={15} />
                   )}
-                  {pending ? "L'IA réfléchit…" : "Demander"}
+                  {pending ? t("askAi.thinking") : t("askAi.ask")}
                 </button>
 
                 {error && (
@@ -129,7 +133,7 @@ export default function AskAiModal({ match }: { match: Match }) {
                       {answer}
                     </p>
                     <p className="text-[10px] text-[var(--text-muted)] mt-3">
-                      Réponse IA à titre informatif uniquement.
+                      {t("askAi.disclaimer")}
                     </p>
                   </div>
                 )}

@@ -2,20 +2,23 @@
 
 import { useState } from "react";
 import { Match } from "@/lib/types";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 interface MatchFiltersProps {
   matches: Match[];
   onFilter: (filtered: Match[]) => void;
 }
 
-const GROUPS = ["Tous", "A", "B", "C", "D", "E", "F"];
+// "all" is the sentinel for the unfiltered view; A–F are real group ids.
+const GROUPS = ["all", "A", "B", "C", "D", "E", "F"];
 
 export default function MatchFilters({ matches, onFilter }: MatchFiltersProps) {
-  const [activeGroup, setActiveGroup] = useState("Tous");
+  const t = useTranslations();
+  const [activeGroup, setActiveGroup] = useState("all");
 
   function handleGroup(group: string) {
     setActiveGroup(group);
-    if (group === "Tous") {
+    if (group === "all") {
       onFilter(matches);
     } else {
       onFilter(matches.filter((m) => m.group === group));
@@ -24,7 +27,7 @@ export default function MatchFilters({ matches, onFilter }: MatchFiltersProps) {
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-sm text-[#888] mr-1">Groupe :</span>
+      <span className="text-sm text-[#888] mr-1">{t("matchFilters.group")}</span>
       {GROUPS.map((g) => (
         <button
           key={g}
@@ -35,7 +38,7 @@ export default function MatchFilters({ matches, onFilter }: MatchFiltersProps) {
               : "bg-transparent text-[#888] border-[#1f1f1f] hover:border-[var(--accent)]/40 hover:text-[#f0f0f0]"
           }`}
         >
-          {g}
+          {g === "all" ? t("matchFilters.all") : g}
         </button>
       ))}
     </div>

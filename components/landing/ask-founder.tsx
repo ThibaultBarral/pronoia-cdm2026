@@ -5,6 +5,7 @@ import { MessageCircle } from "lucide-react";
 import { SocialIcon } from "@/components/social-icons";
 import { logAppEvent } from "@/actions/log-event";
 import { trackEvent } from "@/lib/analytics";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 /**
  * Section humanisée "On répond en vrai" :
@@ -21,26 +22,27 @@ const DM_X = "https://x.com/0xCopa";
 const DM_INSTA = "https://ig.me/m/0xcopa";
 
 // Questions réelles que se posent les parieurs. Une issue (X ou Insta) par chip.
-const QUESTIONS: { q: string; to: "twitter" | "instagram" }[] = [
-  { q: "Les analyses sont fiables ?", to: "instagram" },
-  { q: "Ça marche sur quels matchs ?", to: "twitter" },
-  { q: "C'est combien par mois ?", to: "instagram" },
-  { q: "Y'a une offre gratuite ?", to: "twitter" },
-  { q: "Comment l'IA trouve les value bets ?", to: "instagram" },
-  { q: "Ça marche après la Coupe du Monde ?", to: "twitter" },
-  { q: "Je peux résilier quand je veux ?", to: "instagram" },
-  { q: "Vous êtes qui derrière l'appli ?", to: "twitter" },
-  { q: "Je deviens créateur rémunéré, comment ?", to: "instagram" },
-  { q: "Comment je suis ma bankroll ?", to: "twitter" },
-  { q: "C'est légal tout ça ?", to: "instagram" },
-  { q: "Vous prédisez vraiment les scores ?", to: "twitter" },
+const QUESTIONS: { qKey: string; to: "twitter" | "instagram" }[] = [
+  { qKey: "askFounder.q1", to: "instagram" },
+  { qKey: "askFounder.q2", to: "twitter" },
+  { qKey: "askFounder.q3", to: "instagram" },
+  { qKey: "askFounder.q4", to: "twitter" },
+  { qKey: "askFounder.q5", to: "instagram" },
+  { qKey: "askFounder.q6", to: "twitter" },
+  { qKey: "askFounder.q7", to: "instagram" },
+  { qKey: "askFounder.q8", to: "twitter" },
+  { qKey: "askFounder.q9", to: "instagram" },
+  { qKey: "askFounder.q10", to: "twitter" },
+  { qKey: "askFounder.q11", to: "instagram" },
+  { qKey: "askFounder.q12", to: "twitter" },
 ];
 
 function hrefFor(to: "twitter" | "instagram") {
   return to === "instagram" ? DM_INSTA : DM_X;
 }
 
-function QuestionChip({ q, to, accent }: { q: string; to: "twitter" | "instagram"; accent: boolean }) {
+function QuestionChip({ qKey, to, accent }: { qKey: string; to: "twitter" | "instagram"; accent: boolean }) {
+  const t = useTranslations();
   return (
     <a
       href={hrefFor(to)}
@@ -57,7 +59,7 @@ function QuestionChip({ q, to, accent }: { q: string; to: "twitter" | "instagram
       }`}
     >
       <MessageCircle size={15} className={accent ? "text-[#0a0a0a]" : "text-[var(--accent)]"} />
-      {q}
+      {t(qKey)}
     </a>
   );
 }
@@ -69,7 +71,7 @@ function MarqueeRow({
   duration,
   startAccent,
 }: {
-  items: { q: string; to: "twitter" | "instagram" }[];
+  items: { qKey: string; to: "twitter" | "instagram" }[];
   direction: "left" | "right";
   duration: number;
   startAccent: boolean;
@@ -84,7 +86,7 @@ function MarqueeRow({
         style={{ ["--marquee-duration" as string]: `${duration}s` }}
       >
         {[...items, ...items].map((item, i) => (
-          <QuestionChip key={i} q={item.q} to={item.to} accent={(i + (startAccent ? 0 : 1)) % 3 === 0} />
+          <QuestionChip key={i} qKey={item.qKey} to={item.to} accent={(i + (startAccent ? 0 : 1)) % 3 === 0} />
         ))}
       </div>
     </div>
@@ -92,6 +94,7 @@ function MarqueeRow({
 }
 
 export default function AskFounder() {
+  const t = useTranslations();
   const row1 = QUESTIONS.slice(0, 6);
   const row2 = QUESTIONS.slice(6);
 
@@ -117,11 +120,11 @@ export default function AskFounder() {
             </span>
           </div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#f0f0f0]">Une question ? On répond en vrai</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#f0f0f0]">{t("askFounder.title")}</h2>
           </div>
           <p className="text-[#7a8599] text-sm max-w-md">
-            Pas un chatbot. Le créateur de Copafever répond perso à chaque DM —{" "}
-            <span className="text-[var(--accent)] font-semibold">en ligne maintenant</span>. 👋
+            {t("askFounder.subtitlePre")}{" "}
+            <span className="text-[var(--accent)] font-semibold">{t("askFounder.subtitleAccent")}</span>{t("askFounder.subtitlePost")}
           </p>
         </motion.div>
 
@@ -150,7 +153,7 @@ export default function AskFounder() {
             className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm glow-neon hover:bg-[var(--accent-soft)] transition-colors"
           >
             <SocialIcon id="instagram" size={17} />
-            Écrire sur Instagram
+            {t("askFounder.writeInstagram")}
           </a>
           <a
             href={DM_X}
@@ -163,7 +166,7 @@ export default function AskFounder() {
             className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl glass text-sm font-bold text-[#dfe4ea] hover:text-white hover:border-white/20 transition-colors"
           >
             <SocialIcon id="twitter" size={16} />
-            Écrire sur X
+            {t("askFounder.writeX")}
           </a>
         </div>
       </div>

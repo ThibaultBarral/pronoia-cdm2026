@@ -7,33 +7,35 @@ import {
 import { visibleOffers, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 import { trackEvent } from "@/lib/analytics";
+import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
-  pass_cdm: Flame,
   weekly: Zap,
   monthly: CalendarDays,
-  season: CalendarDays,
   lifetime: InfinityIcon,
+  pass_cdm: Flame,
+  season: CalendarDays,
 };
 
 /** Public, informational pricing (no checkout) — CTAs send to signup. */
 export default function PricingSection({ id = "tarifs" }: { id?: string }) {
+  const t = useTranslations();
+  const locale = useLocale();
   return (
     <section id={id} className="border-t border-white/5 bg-[#060910]">
       <div className="max-w-5xl mx-auto px-4 py-16">
         <div className="text-center mb-4">
           <p className="text-xs text-[#3a4560] uppercase tracking-widest mb-2 font-medium">
-            Tarifs clairs, sans surprise
+            {t("pricing.label")}
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-[#f0f0f0]">
-            Une offre pour{" "}
+            {t("pricing.titlePre")}{" "}
             <span style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-soft))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              chaque parieur
+              {t("pricing.titleAccent")}
             </span>
           </h2>
           <p className="text-sm text-[var(--text-muted)] mt-3 max-w-lg mx-auto">
-            Aperçu gratuit sur chaque match. L&apos;analyse IA complète est réservée
-            aux abonnés — choisis ton rythme, annulable à tout moment.
+            {t("pricing.subtitle")}
           </p>
         </div>
 
@@ -42,7 +44,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto">
-          {visibleOffers().map((o, i) => {
+          {visibleOffers(Date.now(), locale).map((o, i) => {
             const Icon = ICONS[o.plan];
             const gold = o.plan === "lifetime";
             const highlight = o.highlight;
@@ -135,7 +137,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
                         : "linear-gradient(135deg, #0fb5a0, var(--accent))",
                   }}
                 >
-                  Commencer
+                  {t("pricing.cta")}
                 </a>
                 {o.note && (
                   <p className="text-[11px] text-[var(--text-muted)] text-center mt-3">{o.note}</p>
@@ -146,10 +148,9 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
         </div>
 
         <p className="text-center text-xs text-[var(--text-muted)] mt-8 max-w-2xl mx-auto leading-relaxed">
-          Hebdo et Mensuel : sans engagement, résiliables à tout moment. Accès à vie : un seul
-          paiement, pour toujours. Paiement sécurisé via Whop — aucune donnée bancaire stockée.
+          {t("pricing.legal")}
           <br />
-          Analyses fournies à titre informatif · Réservé aux 18 ans et plus · Jouez responsable.
+          {t("pricing.legal2")}
         </p>
       </div>
     </section>

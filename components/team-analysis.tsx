@@ -12,6 +12,8 @@ import type { Team } from "@/lib/types";
 import { analyzeTeam } from "@/actions/analyze-team";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import { DISCLAIMER, type Confidence, type TeamAnalysisData } from "@/lib/analysis-schema";
+import { useLocale } from "@/lib/i18n/locale-provider";
+import { useLocalizedHref } from "@/lib/i18n/navigation";
 
 function ConfidenceBadge({ level }: { level: Confidence }) {
   const map: Record<Confidence, { bg: string; fg: string }> = {
@@ -33,6 +35,8 @@ function ConfidenceBadge({ level }: { level: Confidence }) {
 
 export default function TeamAnalysis({ team, slug }: { team: Team; slug: string }) {
   const router = useRouter();
+  const locale = useLocale();
+  const localizedHref = useLocalizedHref();
   const [data, setData] = useState<TeamAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
@@ -44,10 +48,10 @@ export default function TeamAnalysis({ team, slug }: { team: Team; slug: string 
     setLocked(false);
     startTransition(async () => {
       try {
-        const result = await analyzeTeam(team, slug);
+        const result = await analyzeTeam(team, slug, locale);
         if (!result.ok) {
           if (result.error === AUTH_REQUIRED) {
-            router.push(`/login?next=/team/${slug}`);
+            router.push(localizedHref(`/login?next=/team/${slug}`));
             return;
           }
           if (result.error === PAYWALL_REQUIRED) {

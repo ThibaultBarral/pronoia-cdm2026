@@ -13,17 +13,21 @@ import ComboSection from "@/components/combo/combo-section";
 import { getMatches } from "@/lib/data-service";
 import { getTodayTicker } from "@/lib/combo";
 import { FEATURE } from "@/lib/feature-flags";
-import { FAQ } from "@/lib/faq";
+import { getFaq } from "@/lib/faq";
 import { SOCIAL_LINKS } from "@/lib/social";
+import { defaultLocale, isLocale } from "@/lib/i18n/config";
 
 export const revalidate = 3600;
 
-export default async function HomePage() {
+export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const locale = isLocale(lang) ? lang : defaultLocale;
   const [matches, ticker] = await Promise.all([
     getMatches(),
     FEATURE.combo ? getTodayTicker() : Promise.resolve([]),
   ]);
 
+  const FAQ = getFaq(locale);
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -32,7 +36,9 @@ export default async function HomePage() {
       url: "https://copafever.com",
       logo: "https://copafever.com/copafever-icon.svg",
       description:
-        "Assistant de paris propulsé par l'IA : analyses, value bets et suivi de bankroll pour la Coupe du Monde 2026 et les grands championnats.",
+        locale === "en"
+          ? "AI-powered betting assistant: analysis, value bets and bankroll tracking for the 2026 World Cup and major leagues."
+          : "Assistant de paris propulsé par l'IA : analyses, value bets et suivi de bankroll pour la Coupe du Monde 2026 et les grands championnats.",
       sameAs: SOCIAL_LINKS.map((s) => s.href),
     },
     {
@@ -59,12 +65,12 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <OddsTicker items={ticker} />
+      <OddsTicker items={ticker} locale={locale} />
       <Hero />
       <TikTokReels />
       <AskFounder />
       <FeaturesSection />
-      <ComboSection />
+      <ComboSection locale={locale} />
       <SocialProof />
       <PricingSection />
       <FaqSection />

@@ -1,11 +1,13 @@
 /** FAQ — shared by the visible accordion (components/faq-section) and the
  *  FAQPage JSON-LD on the landing. Keep answers honest and concrete. */
+import type { Locale } from "@/lib/i18n/config";
+
 export interface FaqItem {
   q: string;
   a: string;
 }
 
-export const FAQ: FaqItem[] = [
+const FAQ_FR: FaqItem[] = [
   {
     q: "C'est quoi Copafever, en une phrase ?",
     a: "Copafever est un assistant de paris propulsé par l'IA : pour chaque match, il croise la forme récente, les stats réelles, les compositions et les cotes du marché pour t'expliquer le match en clair et te proposer un pari à valeur, avec un niveau de confiance et une mise adaptée à ta bankroll.",
@@ -47,3 +49,53 @@ export const FAQ: FaqItem[] = [
     a: "Copafever est un outil d'aide à la décision : les analyses sont fournies à titre informatif uniquement et ne garantissent aucun gain. Les paris sportifs comportent des risques. Le service est réservé aux personnes de 18 ans et plus. Mise toujours de petites sommes, pour le plaisir, et joue responsable.",
   },
 ];
+
+const FAQ_EN: FaqItem[] = [
+  {
+    q: "What is Copafever, in one sentence?",
+    a: "Copafever is an AI-powered betting assistant: for every match, it combines recent form, real stats, lineups and market odds to explain the game in plain language and suggest a value bet, with a confidence level and a stake sized to your bankroll.",
+  },
+  {
+    q: "How does it actually work?",
+    a: "You create a free account, pick a match and run the analysis. In seconds you get: a match summary, each team's strengths and weaknesses, the probabilities, the value bets detected and a clear betting recommendation (Low / Medium / High) with a suggested stake. You stay in control: Copafever advises, you decide.",
+  },
+  {
+    q: "What is a value bet?",
+    a: "A value bet is a bet whose estimated true probability is higher than the one implied by the bookmaker's odds: the bookmaker underrates an outcome. Over the long run, backing these edges is statistically more profitable. Copafever spots them automatically on every match.",
+  },
+  {
+    q: "Is the data real?",
+    a: "Yes, 100%. Copafever relies on real sports data: team form, head-to-head records, squads, statistics and live odds. No analysis is based on made-up numbers. When a data point is missing, we say so honestly rather than filling the gap.",
+  },
+  {
+    q: "How much does it cost?",
+    a: "Signing up is free and gives you a preview of every match (the model's verdict: favorite, probabilities, expected goals). The full AI analysis is for subscribers: Weekly at €2.99/week to try it out, Monthly at €8.99/month (the most complete plan, all tools), or one-time Lifetime access. Lifetime is €59 as a launch price until July 19, then €99.",
+  },
+  {
+    q: "What's the difference between the plans?",
+    a: "All of them give unlimited AI analyses, value bets, live odds and bankroll tracking. Monthly and Lifetime also add the contextual AI chat, the run simulator and the interactive bracket. Lifetime is all of that forever, with no subscription.",
+  },
+  {
+    q: "And after the 2026 World Cup?",
+    a: "Copafever continues through the whole 2026/27 season: Ligue 1, Premier League, La Liga, Serie A, Bundesliga, Champions League and Europa League — over 2,100 analyzable matches. Subscriptions carry on across these competitions, and Lifetime covers them all, for life.",
+  },
+  {
+    q: "Can I track my bets and bankroll?",
+    a: "Yes. Copafever includes full bankroll tracking: you log your bets and see your ROI, win rate, profit curve and streaks. You can also pick your betting style (cautious to bold) so the recommendations and stakes adapt to you.",
+  },
+  {
+    q: "Is payment secure? Can I cancel?",
+    a: "Payment is handled by Whop, a secure platform — no banking details are stored by Copafever. Weekly and Monthly subscriptions are commitment-free, cancellable anytime in one click. Lifetime is a one-time payment, with no renewal.",
+  },
+  {
+    q: "Is it legal and responsible?",
+    a: "Copafever is a decision-support tool: the analyses are provided for informational purposes only and guarantee no winnings. Sports betting carries risk. The service is for people aged 18 and over. Always stake small amounts, for fun, and play responsibly.",
+  },
+];
+
+export function getFaq(locale: Locale): FaqItem[] {
+  return locale === "en" ? FAQ_EN : FAQ_FR;
+}
+
+/** Back-compat default export (French) for any non-localized consumer. */
+export const FAQ = FAQ_FR;

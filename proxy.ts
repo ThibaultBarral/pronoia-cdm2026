@@ -1,12 +1,54 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { localizePath, splitLocale, type Locale } from "@/lib/i18n/config";
+
+/**
+ * Build the internal rewrite URL for a request. French (default) has no URL
+ * prefix, so `/dashboard` must be served by the `app/[lang]` tree as
+ * `/fr/dashboard`. English requests already carry `/en`, so Next routes them
+ * directly — no rewrite needed.
+ */
+function internalUrl(request: NextRequest, locale: Locale): URL | null {
+  if (locale !== "fr") return null; // /en/* already maps to [lang]=en
+  const url = request.nextUrl.clone();
+  url.pathname = url.pathname === "/" ? "/fr" : `/fr${url.pathname}`;
+  return url;
+}
 
 export async function proxy(request: NextRequest) {
+  const rawPath = request.nextUrl.pathname;
+  // Resolve the active locale and the locale-stripped "logical" path used by
+  // the auth rules below (so /en/dashboard is treated like /dashboard).
+  const { locale, pathname: path } = splitLocale(rawPath);
+
+  // Locale-aware redirect helper: keep the user inside their language.
+  const rewrite = internalUrl(request, locale);
+
+  const isPublicDashboard =
+    path.startsWith("/dashboard/competitions") ||
+    path.startsWith("/dashboard/roadmap");
+
+  // Whether this request needs the Supabase session dance at all. Public
+  // marketing/SEO pages skip it to stay fast and cacheable.
+  const needsAuth =
+    (path.startsWith("/dashboard") && !isPublicDashboard) ||
+    path === "/onboarding" ||
+    path.startsWith("/admin") ||
+    path === "/login" ||
+    path.startsWith("/match") ||
+    path.startsWith("/team");
+
+  // Fast path: no auth needed → just apply the locale rewrite (if any).
+  if (!needsAuth) {
+    return rewrite ? NextResponse.rewrite(rewrite, { request }) : NextResponse.next({ request });
+  }
+
   // IMPORTANT (Supabase SSR): `response` must be recreated inside setAll after
   // the request cookies are updated, otherwise the refreshed auth token is not
-  // propagated and the browser/server sessions desync → random sign-outs. See
-  // the canonical @supabase/ssr Next.js middleware pattern.
-  let response = NextResponse.next({ request });
+  // propagated and the browser/server sessions desync → random sign-outs.
+  let response = rewrite
+    ? NextResponse.rewrite(rewrite, { request })
+    : NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +58,9 @@ export async function proxy(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (toSet) => {
           toSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = rewrite
+            ? NextResponse.rewrite(rewrite, { request })
+            : NextResponse.next({ request });
           toSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
@@ -25,24 +69,14 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Must run immediately after createServerClient — triggers the token refresh
-  // whose new cookies setAll writes onto `response`.
+  // Triggers the token refresh whose new cookies setAll writes onto `response`.
   const { data: { user } } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
   const hasProfile = Boolean(user?.user_metadata?.bettor_profile);
   const isAdminUser = user?.app_metadata?.is_admin === true;
 
-  // Read-only vitrine pages under /dashboard that stay public (SEO + conversion):
-  // the Competitions hub/detail and the Roadmap. They never expose user data and
-  // are crawlable, so they're exempt from the auth + onboarding redirects below.
-  const isPublicDashboard =
-    path.startsWith("/dashboard/competitions") ||
-    path.startsWith("/dashboard/roadmap");
-
-  // Redirect while carrying over any refreshed auth cookies, so navigating into
-  // a redirect branch never drops the freshly-rotated session.
+  // Redirect to a locale-aware destination, carrying over refreshed cookies.
   const redirectTo = (dest: string) => {
-    const r = NextResponse.redirect(new URL(dest, request.url));
+    const r = NextResponse.redirect(new URL(localizePath(dest, locale), request.url));
     response.cookies.getAll().forEach((c) => r.cookies.set(c));
     return r;
   };
@@ -63,11 +97,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user) {
-    // Signed in but no bettor profile yet → force onboarding once.
     if (!hasProfile && path.startsWith("/dashboard") && !isPublicDashboard) {
       return redirectTo("/onboarding");
     }
-    // Already onboarded → keep them out of /login and /onboarding.
     if (path === "/login") {
       return redirectTo("/dashboard");
     }
@@ -80,17 +112,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Refresh the Supabase session everywhere a signed-in user navigates —
-  // including /match (where they read "un pari") so the token never goes stale
-  // there and they aren't bounced to /login on the next click. Public marketing
-  // pages (/, /cgu, …) are left out so anonymous/SEO traffic skips the auth hop.
+  // Run on every page request (for the locale rewrite) EXCEPT API routes, the
+  // OAuth callback, Next internals, and static files (anything with a dot).
   matcher: [
-    "/dashboard/:path*",
-    "/match/:path*",
-    "/team/:path*",
-    "/login",
-    "/onboarding",
-    "/admin/:path*",
-    "/admin",
+    "/((?!api|auth|_next|favicon.ico|sitemap.xml|robots.txt|manifest.json|.*\\.).*)",
   ],
 };

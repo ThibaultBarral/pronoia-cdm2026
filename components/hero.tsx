@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Zap, ArrowDown, Sparkles, Search, Target, Wallet, ArrowRight } from "lucide-react";
 import AnalysisDemo from "@/components/analysis-demo";
 import { trackEvent } from "@/lib/analytics";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 const KICKOFF = new Date("2026-06-11T19:00:00-04:00");
 
@@ -58,12 +59,13 @@ const headlineStagger = {
 
 // Animated value loop — communicates: AI analyses → you bet right → you cash in.
 const STEPS = [
-  { icon: Search, label: "L'IA analyse" },
-  { icon: Target, label: "Le bon pari" },
-  { icon: Wallet, label: "Tu encaisses" },
+  { icon: Search, key: "hero.loopAnalyze" },
+  { icon: Target, key: "hero.loopBet" },
+  { icon: Wallet, key: "hero.loopCash" },
 ];
 
 function ValueLoop() {
+  const t = useTranslations();
   const [active, setActive] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setActive((a) => (a + 1) % STEPS.length), 1300);
@@ -84,7 +86,7 @@ function ValueLoop() {
             >
               <Icon size={15} className={on ? "text-[var(--accent)]" : "text-[#6a7488]"} />
               <span className={`text-xs sm:text-sm font-bold ${on ? "text-[var(--accent)]" : "text-[#6a7488]"}`}>
-                {s.label}
+                {t(s.key)}
               </span>
             </motion.div>
             {i < STEPS.length - 1 && <ArrowRight size={14} className="text-[#2a3550] shrink-0" />}
@@ -96,6 +98,7 @@ function ValueLoop() {
 }
 
 export default function Hero() {
+  const t = useTranslations();
   // Start null so SSR and the first client render produce the SAME markup
   // (deterministic zero placeholder). The real countdown is computed only
   // after mount, avoiding a hydration mismatch on the live-changing value.
@@ -142,7 +145,7 @@ export default function Hero() {
         >
           <Sparkles size={12} className="text-[var(--accent)]" />
           <span className="text-[11px] text-[var(--accent)] font-bold tracking-wide uppercase">
-            Propulsé par l&apos;IA
+            {t("hero.badge")}
           </span>
         </motion.div>
 
@@ -151,8 +154,8 @@ export default function Hero() {
           variants={headlineStagger} initial="hidden" animate="show"
           className="text-[2.75rem] sm:text-6xl md:text-7xl font-black leading-[1.04] tracking-tight mb-6"
         >
-          <motion.span variants={lineUp} className="block text-[#f0f0f0]">Analyse.</motion.span>
-          <motion.span variants={lineUp} className="block text-[#f0f0f0]">Parie malin.</motion.span>
+          <motion.span variants={lineUp} className="block text-[#f0f0f0]">{t("hero.line1")}</motion.span>
+          <motion.span variants={lineUp} className="block text-[#f0f0f0]">{t("hero.line2")}</motion.span>
           <motion.span
             variants={lineUp}
             className="block text-glow-neon"
@@ -162,7 +165,7 @@ export default function Hero() {
               WebkitTextFillColor: "transparent",
             }}
           >
-            Encaisse.
+            {t("hero.line3")}
           </motion.span>
         </motion.h1>
 
@@ -171,9 +174,9 @@ export default function Hero() {
           variants={fadeUp} initial="hidden" animate="show" custom={2}
           className="text-[#9aa3b2] text-base md:text-xl max-w-xl mx-auto mb-7 leading-relaxed"
         >
-          L&apos;appli qui regarde chaque match à ta place : elle t&apos;explique{" "}
-          <span className="text-[var(--accent)] font-semibold">qui va gagner, sur quoi parier et combien miser</span>{" "}
-          — en français simple, zéro jargon. 💸
+          {t("hero.subheadPre")}{" "}
+          <span className="text-[var(--accent)] font-semibold">{t("hero.subheadEmphasis")}</span>{" "}
+          {t("hero.subheadPost")}
         </motion.p>
 
         {/* Animated value loop — Analyse → Bon pari → Encaisse */}
@@ -205,7 +208,7 @@ export default function Hero() {
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[var(--accent)] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-soft)]"
           >
             <Zap size={15} />
-            Commencer gratuitement
+            {t("hero.ctaPrimary")}
           </motion.a>
           <motion.a
             href="#matches"
@@ -213,7 +216,7 @@ export default function Hero() {
             whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl glass text-[#7a8599] text-sm hover:text-[#f0f0f0] transition-colors"
           >
-            Voir les matchs
+            {t("hero.ctaSecondary")}
           </motion.a>
         </motion.div>
 
@@ -224,16 +227,16 @@ export default function Hero() {
           {!isLive ? (
             <>
               <p className="text-[#3a4560] text-[11px] uppercase tracking-widest mb-5">
-                Coup d&apos;envoi dans
+                {t("hero.kickoffIn")}
               </p>
               <div className="flex items-center justify-center gap-3 md:gap-4">
-                <CountdownUnit value={display.days} label="jours" />
+                <CountdownUnit value={display.days} label={t("hero.days")} />
                 <span className="text-[#2a3550] text-2xl font-light mb-5">:</span>
-                <CountdownUnit value={display.hours} label="heures" />
+                <CountdownUnit value={display.hours} label={t("hero.hours")} />
                 <span className="text-[#2a3550] text-2xl font-light mb-5">:</span>
-                <CountdownUnit value={display.minutes} label="min" />
+                <CountdownUnit value={display.minutes} label={t("hero.minutes")} />
                 <span className="text-[#2a3550] text-2xl font-light mb-5">:</span>
-                <CountdownUnit value={display.seconds} label="sec" />
+                <CountdownUnit value={display.seconds} label={t("hero.seconds")} />
               </div>
             </>
           ) : (
@@ -242,7 +245,7 @@ export default function Hero() {
               whileHover={{ scale: 1.03 }}
             >
               <Zap size={14} className="text-[var(--accent)]" />
-              <span className="text-[var(--accent)] font-semibold text-sm">CDM 2026 en cours — analyses live disponibles</span>
+              <span className="text-[var(--accent)] font-semibold text-sm">{t("hero.live")}</span>
             </motion.div>
           )}
         </motion.div>
