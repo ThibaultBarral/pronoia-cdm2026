@@ -87,7 +87,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       />
       <Navbar />
       <OddsTicker items={ticker} locale={locale} />
-      <Hero />
+      <Hero stats={{ matches: matches.length, verified: trackStats.verified, winRate: trackStats.winRate }} />
       <TikTokReels />
       <AskFounder />
       <FeaturesSection />

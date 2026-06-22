@@ -5,7 +5,34 @@ import { motion } from "framer-motion";
 import { Zap, ArrowDown, Sparkles, Search, Target, Wallet, ArrowRight } from "lucide-react";
 import AnalysisDemo from "@/components/analysis-demo";
 import { trackEvent } from "@/lib/analytics";
-import { useTranslations } from "@/lib/i18n/locale-provider";
+import { useTranslations, useLocale } from "@/lib/i18n/locale-provider";
+
+export interface HeroStats {
+  matches: number;
+  verified: number;
+  winRate: number;
+}
+
+/** Real-numbers proof strip — honest counts fed from the server. */
+function StatStrip({ stats }: { stats: HeroStats }) {
+  const en = useLocale() === "en";
+  const items = [
+    stats.matches > 0 && { value: `${stats.matches}`, label: en ? "matches covered" : "matchs couverts" },
+    stats.verified > 0 && { value: `${stats.verified}`, label: en ? "verified picks" : "pronos vérifiés" },
+    stats.winRate > 0 && { value: `${stats.winRate}%`, label: en ? "hit rate" : "de réussite" },
+  ].filter(Boolean) as { value: string; label: string }[];
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-9 gap-y-3">
+      {items.map((it) => (
+        <div key={it.label} className="flex flex-col items-center">
+          <span className="text-2xl md:text-3xl font-black text-[var(--accent)] tabular-nums">{it.value}</span>
+          <span className="text-[11px] text-[#5a6472] uppercase tracking-wide">{it.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const KICKOFF = new Date("2026-06-11T19:00:00-04:00");
 
@@ -97,7 +124,7 @@ function ValueLoop() {
   );
 }
 
-export default function Hero() {
+export default function Hero({ stats }: { stats?: HeroStats }) {
   const t = useTranslations();
   // Start null so SSR and the first client render produce the SAME markup
   // (deterministic zero placeholder). The real countdown is computed only
@@ -219,6 +246,16 @@ export default function Hero() {
             {t("hero.ctaSecondary")}
           </motion.a>
         </motion.div>
+
+        {/* Real-numbers proof strip */}
+        {stats && (
+          <motion.div
+            variants={fadeUp} initial="hidden" animate="show" custom={3.4}
+            className="mb-16 -mt-6"
+          >
+            <StatStrip stats={stats} />
+          </motion.div>
+        )}
 
         {/* Countdown */}
         <motion.div
