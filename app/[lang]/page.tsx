@@ -5,6 +5,7 @@ import AskFounder from "@/components/landing/ask-founder";
 import FeaturesSection from "@/components/features-section";
 import PricingSection from "@/components/pricing-section";
 import SocialProof from "@/components/social-proof";
+import ComparisonSection from "@/components/landing/comparison-section";
 import FaqSection from "@/components/faq-section";
 import HomeClient from "@/components/home-client";
 import SiteFooter from "@/components/site-footer";
@@ -72,6 +73,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       <FeaturesSection />
       <ComboSection locale={locale} />
       <SocialProof />
+      <ComparisonSection />
       <PricingSection />
       <FaqSection />
       <div id="matches" />
