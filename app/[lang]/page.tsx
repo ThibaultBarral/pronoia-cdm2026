@@ -6,12 +6,14 @@ import FeaturesSection from "@/components/features-section";
 import PricingSection from "@/components/pricing-section";
 import SocialProof from "@/components/social-proof";
 import ComparisonSection from "@/components/landing/comparison-section";
+import VerifiedResults from "@/components/landing/verified-results";
 import FaqSection from "@/components/faq-section";
 import HomeClient from "@/components/home-client";
 import SiteFooter from "@/components/site-footer";
 import OddsTicker from "@/components/combo/odds-ticker";
 import ComboSection from "@/components/combo/combo-section";
 import { getMatches } from "@/lib/data-service";
+import { getTrackRecordStats, getTrackRecordList } from "@/lib/track-record";
 import { getTodayTicker } from "@/lib/combo";
 import { FEATURE } from "@/lib/feature-flags";
 import { getFaq } from "@/lib/faq";
@@ -23,10 +25,28 @@ export const revalidate = 3600;
 export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
   const locale = isLocale(lang) ? lang : defaultLocale;
-  const [matches, ticker] = await Promise.all([
+  const [matches, ticker, trackStats, trackList] = await Promise.all([
     getMatches(),
     FEATURE.combo ? getTodayTicker() : Promise.resolve([]),
+    getTrackRecordStats(),
+    getTrackRecordList(60),
   ]);
+
+  // Honest "Trouvé juste" proof — only the real settled-as-won predictions.
+  const verifiedRows = trackList
+    .filter((r) => r.status === "won")
+    .slice(0, 6)
+    .map((r) => ({
+      id: r.id,
+      matchLabel: r.matchLabel,
+      homeFlag: r.homeFlag,
+      awayFlag: r.awayFlag,
+      market: r.market,
+      selection: r.selection,
+      odds: r.odds,
+    }));
+  // Show the section only when there's something real to show.
+  const showVerified = verifiedRows.length >= 3;
 
   const FAQ = getFaq(locale);
   const jsonLd = [
@@ -74,6 +94,11 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       <ComboSection locale={locale} />
       <SocialProof />
       <ComparisonSection />
+      {showVerified && (
+        <VerifiedResults
+          data={{ winRate: trackStats.winRate, won: trackStats.won, total: trackStats.total, rows: verifiedRows }}
+        />
+      )}
       <PricingSection />
       <FaqSection />
       <div id="matches" />
