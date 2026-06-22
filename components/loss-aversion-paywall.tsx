@@ -155,18 +155,18 @@ export default function LossAversionPaywall({ match }: { match: Match }) {
           {pending ? "Redirection…" : "⚡ Débloquer mon ticket →"}
         </button>
         <p className="text-[11px] text-[#9aa3b2] text-center mt-2">
-          8,99 €/mois · Analyses <span className="text-[#cdd3db] font-semibold">ILLIMITÉES</span> ·
+          14,99 €/mois · Analyses <span className="text-[#cdd3db] font-semibold">ILLIMITÉES</span> ·
           Résiliable à tout moment · Accès immédiat
         </p>
 
         {/* Intentions secondaires */}
         <div className="flex items-center justify-center gap-4 mt-3 text-[11px]">
           <button onClick={() => unlock("weekly")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">
-            Juste tester · Hebdo 2,99 €
+            Juste tester · Hebdo 4,99 €
           </button>
           <span className="text-[#2a3550]">·</span>
           <button onClick={() => unlock("lifetime")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">
-            Une fois pour toutes · À vie 59 €
+            Une fois pour toutes · À vie 89 €
           </button>
         </div>
 

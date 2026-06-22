@@ -4,7 +4,7 @@
  * the trigger logic or the component.
  *
  * Targets RETURNING non-subscribers with an exclusive discount on the MONTHLY
- * plan only (never lifetime — we don't dilute the 59→99 € urgency).
+ * plan only (never lifetime — we don't dilute the 89→129 € urgency).
  */
 import { FREE_ANALYSES_LIMIT, type PaidPlan } from "@/lib/plans";
 

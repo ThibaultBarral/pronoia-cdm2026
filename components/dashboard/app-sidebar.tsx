@@ -184,8 +184,8 @@ export default function AppSidebar() {
               </p>
               <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
                 {cdmIntroActive()
-                  ? "Aperçu gratuit · analyse complète dès 8,99 €/mois, sans engagement."
-                  : "Aperçu gratuit · analyse complète dès 8,99 €/mois."}
+                  ? "Aperçu gratuit · analyse complète dès 4,99 €/sem, sans engagement."
+                  : "Aperçu gratuit · analyse complète dès 4,99 €/sem."}
               </p>
               <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
                 Voir les plans →

@@ -49,9 +49,9 @@ export default function CGUPage() {
       <H>4. Offres et paiement</H>
       <p>L&apos;accès aux analyses IA complètes requiert une offre payante :</p>
       <ul className="list-disc pl-5 space-y-1.5">
-        <li><strong className="text-[#f0f0f0]">Hebdomadaire</strong> — 2,99 € / semaine, abonnement reconductible.</li>
-        <li><strong className="text-[#f0f0f0]">Mensuel</strong> — 8,99 € / mois, abonnement reconductible, accès à toutes les compétitions (CDM 2026 puis saison de clubs).</li>
-        <li><strong className="text-[#f0f0f0]">Accès à vie</strong> — 59 €, paiement unique, sans reconduction.</li>
+        <li><strong className="text-[#f0f0f0]">Hebdomadaire</strong> — 4,99 € / semaine, abonnement reconductible.</li>
+        <li><strong className="text-[#f0f0f0]">Mensuel</strong> — 14,99 € / mois, abonnement reconductible, accès à toutes les compétitions (CDM 2026 puis saison de clubs).</li>
+        <li><strong className="text-[#f0f0f0]">Accès à vie</strong> — 89 €, paiement unique, sans reconduction.</li>
       </ul>
       <p>
         Les paiements sont opérés par notre prestataire <strong className="text-[#f0f0f0]">Whop</strong>,

@@ -144,7 +144,7 @@ export const OFFERS: Offer[] = [
     priceLabel: "89 €",
     anchorPrice: "129 €",
     discountLabel: "-31%",
-    urgencyLabel: "Offre de lancement · un seul paiement",
+    urgencyLabel: "Tarif de lancement · passe à 129 € le 19 juillet",
     unit: "une seule fois",
     oneTime: true,
     sublabel: "Un seul paiement · le produit complet, pour toujours",
@@ -261,7 +261,7 @@ const EN_OFFER_TEXT: Partial<Record<PaidPlan, Partial<Offer>>> = {
   lifetime: {
     name: "Lifetime",
     unit: "one-time",
-    urgencyLabel: "Launch offer · a single payment",
+    urgencyLabel: "Launch price · rises to €129 on July 19",
     sublabel: "A single payment · the full product, forever",
     ctaLabel: "Lifetime access — €89",
     note: "The only one-time payment — zero subscription, for life",

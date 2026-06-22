@@ -102,7 +102,7 @@ export default function PaywallContent({
               disabled={pending === "lifetime"}
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold bg-[#ffd700]/12 text-[#ffd700] border border-[#ffd700]/30 hover:bg-[#ffd700]/20 transition-colors disabled:opacity-60"
             >
-              {pending === "lifetime" ? "Redirection…" : "Passer à vie — 59 €"}
+              {pending === "lifetime" ? "Redirection…" : "Passer à vie — 89 €"}
             </button>
           ) : (
             <a
@@ -256,7 +256,7 @@ export default function PaywallContent({
       {/* Price-hike strip */}
       <div className="max-w-3xl mx-auto mt-6 rounded-2xl glass px-5 py-3.5 flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center">
         <span className="text-xs text-[var(--text-muted)]">
-          <span className="font-bold text-[#cdd3db]">Le 19 juillet, l&apos;Accès à vie passe à 99 €.</span>{" "}
+          <span className="font-bold text-[#cdd3db]">Le 19 juillet, l&apos;Accès à vie passe à 129 €.</span>{" "}
           Les abonnements continuent sur toutes les compétitions 2026/27.
         </span>
         <Link

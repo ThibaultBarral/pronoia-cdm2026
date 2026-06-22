@@ -40,11 +40,11 @@ export const ROADMAP: Milestone[] = [
     id: "price-hike",
     when: "19 JUILLET",
     tag: "DERNIER JOUR",
-    title: "L'Accès à vie passe à 99 €",
+    title: "L'Accès à vie passe à 129 €",
     description:
-      "Après la finale, le tarif de lancement de l'Accès à vie disparaît : il passe de 59 € à 99 €. Les abonnements Hebdo & Mensuel, eux, continuent sur toutes les compétitions.",
+      "Après la finale, le tarif de lancement de l'Accès à vie disparaît : il passe de 89 € à 129 €. Les abonnements Hebdo & Mensuel, eux, continuent sur toutes les compétitions.",
     tone: "urgent",
-    ctaLabel: "Verrouiller 59 €",
+    ctaLabel: "Verrouiller 89 €",
     ctaHref: "/dashboard/pricing",
   },
   {
