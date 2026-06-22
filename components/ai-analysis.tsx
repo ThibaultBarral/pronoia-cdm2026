@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { recommendStake, parseOdds } from "@/lib/staking";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
+import AnalysisLoader from "@/components/analysis-loader";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
 import { valueBadge, fmtCote } from "@/lib/value";
 import { useLocale } from "@/lib/i18n/locale-provider";
@@ -356,12 +357,7 @@ export default function AIAnalysis({
         )}
 
         {/* Loading */}
-        {isPending && (
-          <div className="flex flex-col items-center gap-3 py-8">
-            <div className="w-7 h-7 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
-            <p className="text-xs text-[#555]">Analyse des données en cours…</p>
-          </div>
-        )}
+        {isPending && <AnalysisLoader />}
 
         {/* Error */}
         {error && (
