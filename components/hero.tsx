@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Zap, ArrowDown, Sparkles, Search, Target, Wallet, ArrowRight } from "lucide-react";
 import AnalysisDemo from "@/components/analysis-demo";
+import FeaturedMatchCard, { type FeaturedMatch } from "@/components/landing/featured-match-card";
 import { trackEvent } from "@/lib/analytics";
 import { useTranslations, useLocale } from "@/lib/i18n/locale-provider";
 
@@ -124,7 +125,7 @@ function ValueLoop() {
   );
 }
 
-export default function Hero({ stats }: { stats?: HeroStats }) {
+export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; featuredMatch?: FeaturedMatch }) {
   const t = useTranslations();
   // Start null so SSR and the first client render produce the SAME markup
   // (deterministic zero placeholder). The real countdown is computed only
@@ -219,7 +220,7 @@ export default function Hero({ stats }: { stats?: HeroStats }) {
           variants={fadeUp} initial="hidden" animate="show" custom={2.8}
           className="mb-10"
         >
-          <AnalysisDemo />
+          {featuredMatch ? <FeaturedMatchCard match={featuredMatch} /> : <AnalysisDemo />}
         </motion.div>
 
         {/* CTAs */}

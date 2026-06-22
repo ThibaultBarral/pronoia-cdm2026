@@ -48,6 +48,32 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   // Show the section only when there's something real to show.
   const showVerified = verifiedRows.length >= 3;
 
+  // Hero "next big match" — soonest upcoming fixture, strongest pairing among the
+  // next dozen (lowest summed FIFA rank). Real data; falls back to the demo if none.
+  const upcoming = matches
+    .filter((m) => (m.status ?? "NS") === "NS")
+    .sort(
+      (a, b) =>
+        new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime(),
+    );
+  const marquee = upcoming
+    .slice(0, 12)
+    .sort(
+      (a, b) =>
+        a.homeTeam.fifaRanking + a.awayTeam.fifaRanking -
+        (b.homeTeam.fifaRanking + b.awayTeam.fifaRanking),
+    )[0];
+  const featuredMatch = marquee
+    ? {
+        id: marquee.id,
+        home: { name: marquee.homeTeam.name, flag: marquee.homeTeam.flag },
+        away: { name: marquee.awayTeam.name, flag: marquee.awayTeam.flag },
+        date: marquee.date,
+        time: marquee.time,
+        round: marquee.round,
+      }
+    : undefined;
+
   const FAQ = getFaq(locale);
   const jsonLd = [
     {
@@ -87,7 +113,10 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       />
       <Navbar />
       <OddsTicker items={ticker} locale={locale} />
-      <Hero stats={{ matches: matches.length, verified: trackStats.verified, winRate: trackStats.winRate }} />
+      <Hero
+        stats={{ matches: matches.length, verified: trackStats.verified, winRate: trackStats.winRate }}
+        featuredMatch={featuredMatch}
+      />
       <TikTokReels />
       <AskFounder />
       <FeaturesSection />
