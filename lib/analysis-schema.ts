@@ -40,6 +40,23 @@ export interface BetRecommendation {
   basis?: "value" | "probability";
 }
 
+/** A probable scorer — picked from the REAL squad. Speculative (a prediction). */
+export interface ProbableScorer {
+  name: string;
+  team: "home" | "away";
+  /** Short reason: form, role, penalties, matchup… */
+  note: string;
+}
+
+/** A key player to watch, picked from the REAL squad. */
+export interface MatchKeyPlayer {
+  name: string;
+  team: "home" | "away";
+  /** Position/role in plain words, e.g. "Attaquant", "Meneur de jeu". */
+  role?: string;
+  note: string;
+}
+
 export interface MatchAnalysisData {
   /** Plain-language quick summary (2-3 sentences). */
   summary: string;
@@ -69,6 +86,15 @@ export interface MatchAnalysisData {
    * older cached/stored analyses (fall back to `recommendation`).
    */
   recommendationsByProfile?: Partial<Record<Playstyle, BetRecommendation>>;
+  /**
+   * Probable scorers, chosen from the real squads (a prediction, not a fact).
+   * Optional → absent on older cached/stored analyses.
+   */
+  probableScorers?: ProbableScorer[];
+  /** The single most likely first scorer (a real squad name). */
+  firstScorer?: string;
+  /** Key players to watch, from the real squads. */
+  keyPlayers?: MatchKeyPlayer[];
 }
 
 // ─── Team analysis ────────────────────────────────────────────────────────────

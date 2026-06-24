@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Bot, Sparkles, RefreshCw, AlertCircle, Gauge, Lock,
-  Coins, Target, TrendingUp, Wallet, Sliders,
+  Bot, Sparkles, RefreshCw, AlertCircle, Gauge,
+  Coins, Target, TrendingUp, Wallet, Sliders, Goal, Users, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
@@ -22,6 +22,7 @@ import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import AnalysisLoader from "@/components/analysis-loader";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
+import LockedFullAnalysis from "@/components/locked-full-analysis";
 import { valueBadge, fmtCote } from "@/lib/value";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { useLocalizedHref } from "@/lib/i18n/navigation";
@@ -132,42 +133,6 @@ function ModelPreview({
             <div className="text-[10px] text-[var(--text-muted)]">+2.5 buts</div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * The full AI analysis, locked for non-members: a faint blurred silhouette
- * behind, the loss-aversion paywall (ticket + track record + checkout) on top.
- */
-function LockedAnalysis({ match }: { match: Match }) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl">
-      {/* Decorative blurred silhouette → signals "there's a full analysis here". */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none select-none blur-[8px] opacity-30 space-y-3 p-1"
-      >
-        <div className="h-3 rounded bg-white/15 w-3/4" />
-        <div className="h-3 rounded bg-white/15 w-full" />
-        <div className="h-3 rounded bg-white/15 w-5/6" />
-        <div className="rounded-xl glass p-4 space-y-2 mt-4">
-          <div className="h-2.5 rounded bg-white/15 w-1/3" />
-          <div className="h-2 rounded bg-white/15 w-2/3" />
-          <div className="h-2 rounded bg-white/15 w-1/2" />
-        </div>
-        <div className="rounded-2xl glass-neon p-4 space-y-2">
-          <div className="h-3 rounded bg-white/15 w-1/2" />
-          <div className="h-6 rounded bg-white/15 w-3/4" />
-        </div>
-      </div>
-      {/* Paywall on top — defines the height so nothing gets clipped. */}
-      <div className="relative">
-        <div className="mb-3 flex items-center justify-center gap-2 text-xs font-bold text-[var(--accent)]">
-          <Lock size={14} /> Analyse complète IA — réservée aux abonnés
-        </div>
-        <LossAversionPaywall match={match} />
       </div>
     </div>
   );
@@ -328,7 +293,7 @@ export default function AIAnalysis({
                 <div className="w-6 h-6 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
               </div>
             )}
-            <LockedAnalysis match={match} />
+            <LockedFullAnalysis match={match} />
           </div>
         )}
 
@@ -459,6 +424,67 @@ export default function AIAnalysis({
                     {f.label}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {/* Buteurs probables & 1er buteur — depuis l'effectif réel */}
+            {data.probableScorers && data.probableScorers.length > 0 && (
+              <div>
+                <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
+                  <Goal size={13} className="text-[var(--accent)]" /> Buteurs probables
+                </h3>
+                {data.firstScorer && (
+                  <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/[0.06] px-3.5 py-2.5">
+                    <Star size={14} className="text-[var(--accent)] shrink-0" />
+                    <span className="text-xs text-[#c0c0c0]">
+                      1<sup>er</sup> buteur le plus probable&nbsp;:{" "}
+                      <span className="font-black text-[#f0f0f0]">{data.firstScorer}</span>
+                    </span>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {data.probableScorers.map((s, i) => (
+                    <div key={i} className="flex items-start gap-3 rounded-xl glass p-3.5">
+                      <span className="mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--accent)]/12 shrink-0">
+                        <Goal size={12} className="text-[var(--accent)]" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-[#f0f0f0]">
+                          {s.name}{" "}
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+                            · {s.team === "home" ? h.shortName : a.shortName}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#999] mt-0.5 leading-relaxed">{s.note}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Joueurs clés à suivre — depuis l'effectif réel */}
+            {data.keyPlayers && data.keyPlayers.length > 0 && (
+              <div>
+                <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
+                  <Users size={13} className="text-[var(--accent)]" /> Joueurs clés à suivre
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {data.keyPlayers.map((p, i) => (
+                    <div key={i} className="rounded-xl glass p-3.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-[#f0f0f0]">{p.name}</span>
+                        <span className="ml-auto text-[10px] font-semibold text-[var(--text-muted)]">
+                          {p.team === "home" ? h.shortName : a.shortName}
+                        </span>
+                      </div>
+                      {p.role && (
+                        <div className="text-[10px] font-semibold text-[var(--accent)] mt-0.5">{p.role}</div>
+                      )}
+                      <p className="text-xs text-[#999] mt-1 leading-relaxed">{p.note}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

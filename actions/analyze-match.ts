@@ -11,7 +11,12 @@ import { fmtCote, confidenceFromProba } from "@/lib/value";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
 import { PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
-import type { BetRecommendation, MatchAnalysisData } from "@/lib/analysis-schema";
+import type {
+  BetRecommendation,
+  MatchAnalysisData,
+  ProbableScorer,
+  MatchKeyPlayer,
+} from "@/lib/analysis-schema";
 import { defaultLocale, type Locale } from "@/lib/i18n/config";
 
 /**
@@ -37,6 +42,10 @@ interface ClaudeMatchText {
   secondaryScenarios: { title: string; detail: string }[];
   keyStrengths: { team: "home" | "away"; points: string[] }[];
   factors: { label: string; kind: "pos" | "neg" | "neutral" }[];
+  /** Probable scorers + key players, picked from the real squad (see prompt). */
+  probableScorers?: ProbableScorer[];
+  firstScorer?: string;
+  keyPlayers?: MatchKeyPlayer[];
   /** One short rationale per bettor profile (keyed by profile id). */
   recommendations: Partial<Record<Playstyle, { rationale: string }>>;
 }
@@ -52,6 +61,9 @@ Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte 
   "secondaryScenarios": [{"title": "ex. Over 2.5 buts", "detail": "explication simple basée sur les chiffres fournis"}],
   "keyStrengths": [{"team": "home", "points": ["force 1", "force 2"]}, {"team": "away", "points": ["force 1"]}],
   "factors": [{"label": "ex. Supériorité offensive", "kind": "pos|neg|neutral"}],
+  "probableScorers": [{"name": "Nom EXACT depuis l'effectif fourni", "team": "home|away", "note": "1 phrase courte : pourquoi (forme, rôle, penalties…)"}],
+  "firstScorer": "Nom EXACT (depuis l'effectif) du buteur le plus probable d'ouvrir le score",
+  "keyPlayers": [{"name": "Nom EXACT depuis l'effectif", "team": "home|away", "role": "ex. Attaquant, Meneur de jeu", "note": "1 phrase : pourquoi le surveiller"}],
   "recommendations": {
     "safe": {"rationale": "1-2 phrases qui expliquent le pari du profil Prudent en clair"},
     "balanced": {"rationale": "1-2 phrases pour le profil Équilibré"},
@@ -61,6 +73,7 @@ Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte 
 }
 
 RÈGLES : 2 à 3 secondaryScenarios, 3 à 5 factors, "home"=équipe à domicile/1ère citée. Base-toi UNIQUEMENT sur les données et chiffres fournis.
+RÈGLE JOUEURS (capitale) : pour "probableScorers", "firstScorer" et "keyPlayers", choisis EXCLUSIVEMENT des noms présents dans l'EFFECTIF fourni plus bas — n'INVENTE JAMAIS un joueur, ne devine pas un nom de mémoire. Si aucun effectif n'est fourni, renvoie [] pour probableScorers/keyPlayers et "" pour firstScorer. 2 à 4 probableScorers (favorise les attaquants/ailiers et le côté favori), 2 à 4 keyPlayers répartis entre les 2 équipes. Recopie les noms à l'identique.
 RÈGLE VALUE (capitale) : chaque profil a SON pari, imposé par le VERDICT VALUE de notre moteur (fourni plus bas, un par profil). Pour CHAQUE profil, rédige le "rationale" en cohérence STRICTE avec SON verdict — ne propose JAMAIS un autre pari, ne contredis pas l'EV. Si l'EV d'un profil est ≤ 0 ("Pas de value"), explique honnêtement que ce pari n'a pas de valeur au prix actuel et conseille de NE PAS miser — n'écris JAMAIS "value", "bon pari" ou "ça sent la value" dans ce cas. Une probabilité de victoire élevée n'est PAS une value si la cote est trop basse. Seul ton "rationale" est conservé (le moteur réécrit bet/odds/confidence/stake).`;
 
 function buildPrompt(match: Match, pred: MatchPrediction): string {
@@ -84,6 +97,20 @@ function buildPrompt(match: Match, pred: MatchPrediction): string {
 
   const cmp = pred.comparison.map((c) => `${c.label} ${c.home}/${c.away}`).join(" · ");
 
+  // Real squad pool so Claude picks scorers/key players from actual names — never
+  // invents one. Attacking players first (likelier scorers), capped to bound tokens.
+  const ATTACK = /(ATT|FW|ST|CF|SS|LW|RW|RF|LF|AIL|AM|CAM|MO|MF|CM|LM|RM|MIL)/i;
+  const squadStr = (team: typeof h): string => {
+    const players = team.lineup?.players ?? [];
+    if (!players.length) {
+      return team.keyPlayers?.length ? `joueurs connus : ${team.keyPlayers.join(", ")}` : "effectif non disponible";
+    }
+    const sorted = [...players].sort(
+      (p1, p2) => (ATTACK.test(p2.position) ? 1 : 0) - (ATTACK.test(p1.position) ? 1 : 0),
+    );
+    return sorted.slice(0, 16).map((p) => `${p.name} (${p.position})`).join(", ");
+  };
+
   return `CDM 2026 | ${match.round}${match.group ? ` Gr.${match.group}` : ""} | ${match.date} ${match.time} | ${match.stadium}, ${match.city}
 
 ${h.flag} ${h.name} (#${h.fifaRanking} FIFA, domicile/1er) vs ${a.flag} ${a.name} (#${a.fifaRanking} FIFA)
@@ -94,6 +121,10 @@ ${a.flag} ${a.name}: ${formStr(a)}
 
 H2H : ${h2hStr}
 COTES : ${oddsStr}
+
+EFFECTIF (choisis buteurs & joueurs clés UNIQUEMENT dans ces listes — noms exacts) :
+${h.flag} ${h.name}: ${squadStr(h)}
+${a.flag} ${a.name}: ${squadStr(a)}
 
 CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
 - Probabilités : ${h.name} ${pred.probabilities.home}% · Nul ${pred.probabilities.draw}% · ${a.name} ${pred.probabilities.away}%
@@ -186,7 +217,7 @@ async function generate(match: Match, userId: string, locale: Locale): Promise<M
   const text = await callClaudeJson<ClaudeMatchText>({
     system: SYSTEM_PROMPT,
     user: buildPrompt(match, pred) + valueVerdictsPrompt(bets) + langDirective(locale),
-    maxTokens: 1800,
+    maxTokens: 2200,
     kind: "match",
     userId,
   });
@@ -218,6 +249,9 @@ async function generate(match: Match, userId: string, locale: Locale): Promise<M
     markets: pred.markets,
     recommendation: canonical,
     recommendationsByProfile,
+    probableScorers: text.probableScorers ?? [],
+    firstScorer: text.firstScorer || undefined,
+    keyPlayers: text.keyPlayers ?? [],
   };
 }
 
@@ -243,7 +277,7 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
   // across all users — the UI toggles between profiles client-side.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles3:${locale}`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles3sc:${locale}`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));

@@ -152,6 +152,21 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
           <MatchHeader match={match} />
         </div>
 
+        {/* Analysis first — it's the core value. Keeps the user from scrolling
+            past form/H2H/stats/squad (the supporting context, now below). */}
+        <div className="animate-fade-in-up">
+          {finished ? (
+            <MatchResult match={match} canShare={Boolean(user)} />
+          ) : (
+            <AIAnalysis match={match} autoStart={welcome === "1"} />
+          )}
+        </div>
+
+        {/* Supporting context below the analysis. */}
+        <div className="pt-2 text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
+          Les données derrière l&apos;analyse
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
           <TeamForm team={match.homeTeam} />
           <TeamForm team={match.awayTeam} />
@@ -176,14 +191,6 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
             <Lineup team={match.awayTeam} />
           </div>
         )}
-
-        <div className="animate-fade-in-up delay-400">
-          {finished ? (
-            <MatchResult match={match} canShare={Boolean(user)} />
-          ) : (
-            <AIAnalysis match={match} autoStart={welcome === "1"} />
-          )}
-        </div>
       </div>
 
       <footer className="border-t border-[#1f1f1f] mt-10 py-6 px-4 text-center">
