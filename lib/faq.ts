@@ -26,11 +26,11 @@ const FAQ_FR: FaqItem[] = [
   },
   {
     q: "Combien ça coûte ?",
-    a: "L'inscription est gratuite et te donne une première analyse offerte, plus un aperçu de chaque match (le verdict du modèle : favori, probabilités, buts attendus). L'analyse IA complète est réservée aux abonnés : Hebdo à 4,99 €/semaine pour tester, Mensuel à 14,99 €/mois (l'offre la plus complète, tous les outils), ou Accès à vie en paiement unique. L'Accès à vie est à 89 € en tarif de lancement jusqu'au 19 juillet, puis 129 €.",
+    a: "L'inscription est gratuite et te donne une première analyse offerte, plus un aperçu de chaque match (le verdict du modèle : favori, probabilités, buts attendus). L'analyse IA complète est réservée aux abonnés : Essential à 9,99 €/mois (analyses illimitées + l'analyse complète de chaque match), Premium à 14,99 €/mois (en plus toute la boîte à outils paris), ou Accès à vie en paiement unique. L'Accès à vie est à 89 € en tarif de lancement jusqu'au 19 juillet, puis 129 €.",
   },
   {
     q: "Quelle est la différence entre les offres ?",
-    a: "Toutes donnent les analyses IA illimitées, les value bets, les cotes en direct et le suivi de bankroll. Le Mensuel et l'Accès à vie ajoutent en plus le chat IA contextuel, le simulateur de parcours et le bracket interactif. L'Accès à vie, c'est tout ça pour toujours, sans abonnement.",
+    a: "Essential (9,99 €/mois) donne les analyses IA illimitées et l'analyse complète de chaque match (résumé, scénario, probabilités, xG, forces & faiblesses). Premium (14,99 €/mois) ajoute toute la boîte à outils paris : value bets et cotes en direct, buteurs probables et joueurs clés, chat IA contextuel, simulateur de parcours, bracket interactif et suivi de bankroll. L'Accès à vie, c'est tout Premium pour toujours, sans abonnement, plus le badge membre fondateur.",
   },
   {
     q: "Et après la Coupe du Monde 2026 ?",
@@ -42,7 +42,7 @@ const FAQ_FR: FaqItem[] = [
   },
   {
     q: "Le paiement est-il sécurisé ? Puis-je résilier ?",
-    a: "Le paiement est géré par Whop, une plateforme sécurisée — aucune donnée bancaire n'est stockée par Copafever. Les abonnements Hebdo et Mensuel sont sans engagement, résiliables à tout moment en un clic. L'Accès à vie est un paiement unique, sans reconduction.",
+    a: "Le paiement est géré par Whop, une plateforme sécurisée — aucune donnée bancaire n'est stockée par Copafever. Les abonnements Essential et Premium sont sans engagement, résiliables à tout moment en un clic. L'Accès à vie est un paiement unique, sans reconduction.",
   },
   {
     q: "Est-ce légal et responsable ?",
@@ -69,11 +69,11 @@ const FAQ_EN: FaqItem[] = [
   },
   {
     q: "How much does it cost?",
-    a: "Signing up is free and gives you one free analysis, plus a preview of every match (the model's verdict: favorite, probabilities, expected goals). The full AI analysis is for subscribers: Weekly at €4.99/week to try it out, Monthly at €14.99/month (the most complete plan, all tools), or one-time Lifetime access. Lifetime is €89 as a launch price until July 19, then €129.",
+    a: "Signing up is free and gives you one free analysis, plus a preview of every match (the model's verdict: favorite, probabilities, expected goals). The full AI analysis is for subscribers: Essential at €9.99/month (unlimited analyses + the full analysis of every match), Premium at €14.99/month (plus the whole betting toolkit), or one-time Lifetime access. Lifetime is €89 as a launch price until July 19, then €129.",
   },
   {
     q: "What's the difference between the plans?",
-    a: "All of them give unlimited AI analyses, value bets, live odds and bankroll tracking. Monthly and Lifetime also add the contextual AI chat, the run simulator and the interactive bracket. Lifetime is all of that forever, with no subscription.",
+    a: "Essential (€9.99/month) gives unlimited AI analyses and the full analysis of every match (summary, scenario, probabilities, xG, strengths & weaknesses). Premium (€14.99/month) adds the whole betting toolkit: value bets and live odds, probable scorers and key players, contextual AI chat, run simulator, interactive bracket and bankroll tracking. Lifetime is all of Premium forever, with no subscription, plus the founder badge.",
   },
   {
     q: "And after the 2026 World Cup?",
@@ -85,7 +85,7 @@ const FAQ_EN: FaqItem[] = [
   },
   {
     q: "Is payment secure? Can I cancel?",
-    a: "Payment is handled by Whop, a secure platform — no banking details are stored by Copafever. Weekly and Monthly subscriptions are commitment-free, cancellable anytime in one click. Lifetime is a one-time payment, with no renewal.",
+    a: "Payment is handled by Whop, a secure platform — no banking details are stored by Copafever. Essential and Premium subscriptions are commitment-free, cancellable anytime in one click. Lifetime is a one-time payment, with no renewal.",
   },
   {
     q: "Is it legal and responsible?",

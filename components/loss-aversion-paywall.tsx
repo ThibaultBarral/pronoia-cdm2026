@@ -82,7 +82,7 @@ export default function LossAversionPaywall({
 
   function unlock(plan: PaidPlan) {
     trackEvent("unlock_ticket_click", {
-      plan: plan === "monthly" ? "mensuel" : plan === "weekly" ? "hebdo" : "avie",
+      plan: plan === "monthly" ? "premium" : plan === "essential" ? "essential" : "avie",
       match_id: match.id,
     });
     startCheckout(async () => {
@@ -178,9 +178,9 @@ export default function LossAversionPaywall({
         </button>
         <p className="text-[11px] text-[#9aa3b2] text-center mt-2.5">
           14,99 €/mois · sans engagement
-          <span className="text-[#5a6472]"> · ou hebdo </span>
-          <button onClick={() => unlock("weekly")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">
-            4,99 €
+          <span className="text-[#5a6472]"> · ou Essential </span>
+          <button onClick={() => unlock("essential")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">
+            9,99 €
           </button>
           <span className="text-[#5a6472]"> · à vie </span>
           <button onClick={() => unlock("lifetime")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">

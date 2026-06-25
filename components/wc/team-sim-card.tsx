@@ -69,7 +69,7 @@ export default function TeamSimCard({
       <div className="p-5 space-y-5">
         <FeatureGate
           feature="simulator"
-          label="Le scénario de parcours est réservé au Mensuel & Accès à vie"
+          label="Le scénario de parcours est réservé à Premium & Accès à vie"
         >
           {sim ? (
           <div className="space-y-5">

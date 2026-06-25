@@ -105,7 +105,7 @@ The 1X odds at 1.65 offer real value: bookmakers overrate Senegal based on their
     titleAccent: "every bettor",
     subtitle: "Free preview on every match. The full AI analysis is for subscribers — pick your pace, cancel anytime.",
     cta: "Get started",
-    legal: "Weekly and Monthly: no commitment, cancellable anytime. Lifetime: a single payment, forever. Secure payment via Whop — no banking details stored.",
+    legal: "Essential and Premium: no commitment, cancellable anytime. Lifetime: a single payment, forever. Secure payment via Whop — no banking details stored.",
     legal2: "Analysis provided for informational purposes · 18+ only · Play responsibly.",
   },
   matchFilters: {
@@ -158,8 +158,8 @@ The 1X odds at 1.65 offer real value: bookmakers overrate Senegal based on their
   askAi: {
     trigger: "Ask the AI a specific question",
     title: "Ask the AI",
-    lockedTitle: "Monthly & Lifetime only",
-    lockedDesc: "The contextual AI chat is included with Monthly and Lifetime. Ask the AI unlimited questions about any match.",
+    lockedTitle: "Premium & Lifetime only",
+    lockedDesc: "The contextual AI chat is included with Premium and Lifetime. Ask the AI unlimited questions about any match.",
     seePlans: "See the plans",
     placeholder: "e.g. Can France win without conceding? What bet on the number of goals?",
     thinking: "The AI is thinking…",

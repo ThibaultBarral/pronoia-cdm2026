@@ -23,11 +23,12 @@ import type { Locale } from "@/lib/i18n/config";
 
 export type Plan =
   | "free"
-  // current plans (differentiated by billing period, same full product)
-  | "weekly"
+  // current plans — feature ladder: Essential (basic) < Premium (full) < À vie
+  | "essential"
   | "monthly"
   | "lifetime"
   // legacy (grandfathered, hidden from sale)
+  | "weekly"
   | "pass_cdm"
   | "season";
 export type PaidPlan = Exclude<Plan, "free">;
@@ -95,46 +96,55 @@ export interface Offer {
  */
 export const OFFERS: Offer[] = [
   {
-    plan: "weekly",
-    name: "Hebdo",
-    priceLabel: "4,99 €",
-    anchorPrice: "7,99 €",
-    discountLabel: "-38%",
-    unit: "/ semaine",
-    sublabel: "Pour tester l'IA, ou couvrir un gros week-end",
-    ctaLabel: "Choisir l'Hebdo — 4,99 €",
+    plan: "essential",
+    name: "Essential",
+    priceLabel: "9,99 €",
+    anchorPrice: "13,99 €",
+    discountLabel: "-29%",
+    unit: "/ mois",
+    sublabel: "L'analyse IA complète, pour suivre chaque match",
+    ctaLabel: "Choisir Essential — 9,99 €/mois",
     note: "Sans engagement · résiliable à tout moment",
     features: [
       "Analyses IA illimitées",
-      "Value bets & cotes en direct",
-      "Chat IA, simulateur & bracket",
-      "Suivi bankroll & ROI",
+      "Analyse complète : scénario, probas & xG",
+      "Forces & faiblesses des équipes",
+      "Forme, H2H & compositions",
     ],
-    envKey: "WHOP_PLAN_WEEKLY",
+    lockedFeatures: [
+      "Value bets & cotes en direct",
+      "Buteurs probables & joueurs clés",
+      "Chat IA contextuel",
+      "Simulateur & bracket",
+    ],
+    envKey: "WHOP_PLAN_ESSENTIAL",
   },
   {
     plan: "monthly",
-    name: "Mensuel",
+    name: "Premium",
     priceLabel: "14,99 €",
     anchorPrice: "24,99 €",
     discountLabel: "-40%",
     unit: "/ mois",
     sublabel:
-      "Toute la CDM 2026, puis Ligue 1, PL, Liga, Serie A, Bundesliga, LDC & LDE",
-    ctaLabel: "S'abonner — 14,99 €/mois",
+      "Toute la boîte à outils paris — value bets, buteurs, Chat IA, simulateur",
+    ctaLabel: "Choisir Premium — 14,99 €/mois",
     note: "Le meilleur rapport — résiliable à tout moment",
-    badge: "★ MEILLEUR DEAL",
+    badge: "★ LE PLUS CHOISI",
     badgeKind: "green",
     highlight: true,
     features: [
-      "Analyses IA illimitées",
-      "Value bets & cotes en direct",
-      "Niveau de confiance par pari",
+      "Tout Essential, et en plus :",
+      "Value bets & cotes + niveau de confiance",
+      "Buteurs probables & joueurs clés",
       "Chat IA contextuel",
       "Simulateur & bracket interactif",
       "Suivi bankroll & ROI",
       "CDM 2026 + toutes les compétitions 2026/27",
-      "Annulable à tout moment",
+    ],
+    lockedFeatures: [
+      "Accès à vie (un seul paiement)",
+      "Badge fondateur & support prioritaire",
     ],
     envKey: "WHOP_PLAN_MONTHLY",
   },
@@ -153,16 +163,34 @@ export const OFFERS: Offer[] = [
     badge: "À VIE",
     badgeKind: "life",
     features: [
-      "Tout le Mensuel, à vie",
+      "Tout Premium, à vie",
       "Analyses IA illimitées pour toujours",
       "Toutes les compétitions 2026/27 et au-delà",
       "Badge membre fondateur",
+      "Support prioritaire",
+      "Accès à toutes les futures fonctions",
       "Un seul paiement, plus jamais d'abonnement",
     ],
     envKey: "WHOP_PLAN_LIFETIME",
   },
 
   // ── Legacy plans — grandfathering only (hidden from sale) ──────────────────
+  {
+    plan: "weekly",
+    name: "Hebdo",
+    priceLabel: "4,99 €",
+    unit: "/ semaine",
+    hidden: true,
+    sublabel: "Ancien pass hebdo (récurrent)",
+    ctaLabel: "Hebdo",
+    features: [
+      "Analyses IA illimitées",
+      "Value bets, buteurs & joueurs clés",
+      "Chat IA, simulateur & bracket",
+      "Suivi bankroll & ROI",
+    ],
+    envKey: "WHOP_PLAN_WEEKLY",
+  },
   {
     plan: "season",
     name: "Pass Saison",
@@ -226,36 +254,45 @@ const CDM_MONTHLY_SKIN: Partial<Offer> = {
  * user-visible strings are translated; keys absent here keep the French value.
  */
 const EN_OFFER_TEXT: Partial<Record<PaidPlan, Partial<Offer>>> = {
-  weekly: {
-    name: "Weekly",
-    unit: "/ week",
-    sublabel: "To try the AI, or cover a big weekend",
-    ctaLabel: "Choose Weekly — €4.99",
+  essential: {
+    name: "Essential",
+    unit: "/ month",
+    sublabel: "The full AI analysis, to follow every match",
+    ctaLabel: "Choose Essential — €9.99/month",
     note: "No commitment · cancel anytime",
     features: [
       "Unlimited AI analyses",
+      "Full analysis: scenario, probabilities & xG",
+      "Team strengths & weaknesses",
+      "Form, H2H & line-ups",
+    ],
+    lockedFeatures: [
       "Value bets & live odds",
-      "AI chat, simulator & bracket",
-      "Bankroll & ROI tracking",
+      "Probable scorers & key players",
+      "Contextual AI chat",
+      "Simulator & bracket",
     ],
   },
   monthly: {
-    name: "Monthly",
+    name: "Premium",
     unit: "/ month",
     sublabel:
-      "The whole 2026 World Cup, then Ligue 1, PL, La Liga, Serie A, Bundesliga, UCL & UEL",
-    ctaLabel: "Subscribe — €14.99/month",
+      "The full betting toolkit — value bets, scorers, AI chat, simulator",
+    ctaLabel: "Choose Premium — €14.99/month",
     note: "Best value — cancel anytime",
-    badge: "★ BEST DEAL",
+    badge: "★ MOST POPULAR",
     features: [
-      "Unlimited AI analyses",
-      "Value bets & live odds",
-      "Confidence level per bet",
+      "Everything in Essential, plus:",
+      "Value bets & live odds + confidence level",
+      "Probable scorers & key players",
       "Contextual AI chat",
       "Simulator & interactive bracket",
       "Bankroll & ROI tracking",
       "2026 World Cup + all 2026/27 competitions",
-      "Cancel anytime",
+    ],
+    lockedFeatures: [
+      "Lifetime access (one-time payment)",
+      "Founder badge & priority support",
     ],
   },
   lifetime: {
@@ -267,10 +304,12 @@ const EN_OFFER_TEXT: Partial<Record<PaidPlan, Partial<Offer>>> = {
     note: "The only one-time payment — zero subscription, for life",
     badge: "LIFETIME",
     features: [
-      "Everything in Monthly, for life",
+      "Everything in Premium, for life",
       "Unlimited AI analyses forever",
       "All 2026/27 competitions and beyond",
       "Founder member badge",
+      "Priority support",
+      "Access to all future features",
       "A single payment, never pay again",
     ],
   },
@@ -303,6 +342,66 @@ export function visibleOffers(now: number = Date.now(), locale: Locale = "fr"): 
   });
 }
 
+/**
+ * The FREE tier — display-only (not a checkout offer). Its `lockedFeatures` are
+ * the whole point of the pricing page: they spell out, in ✗, exactly what a
+ * non-paying visitor is missing, so the value of paying is obvious.
+ */
+export interface FreeTier {
+  name: string;
+  priceLabel: string;
+  unit: string;
+  sublabel: string;
+  features: string[];
+  lockedFeatures: string[];
+}
+
+const FREE_TIER_FR: FreeTier = {
+  name: "Gratuit",
+  priceLabel: "0 €",
+  unit: "pour toujours",
+  sublabel: "Pour découvrir — 1 analyse complète offerte",
+  features: [
+    "1 analyse IA complète offerte",
+    "Aperçu : probabilités & buts attendus",
+    "Forme, H2H & compositions des équipes",
+  ],
+  lockedFeatures: [
+    "Analyses IA illimitées",
+    "Analyse complète : scénario, forces & faiblesses",
+    "Buteurs probables & joueurs clés",
+    "Value bets & cotes en direct",
+    "Chat IA contextuel",
+    "Simulateur & bracket",
+    "Suivi bankroll & ROI",
+  ],
+};
+
+const FREE_TIER_EN: FreeTier = {
+  name: "Free",
+  priceLabel: "€0",
+  unit: "forever",
+  sublabel: "Try it out — 1 full analysis on us",
+  features: [
+    "1 full AI analysis included",
+    "Preview: probabilities & expected goals",
+    "Form, H2H & team line-ups",
+  ],
+  lockedFeatures: [
+    "Unlimited AI analyses",
+    "Full analysis: scenario, strengths & weaknesses",
+    "Probable scorers & key players",
+    "Value bets & live odds",
+    "Contextual AI chat",
+    "Simulator & bracket",
+    "Bankroll & ROI tracking",
+  ],
+};
+
+export function freeTier(locale: Locale = "fr"): FreeTier {
+  return locale === "en" ? FREE_TIER_EN : FREE_TIER_FR;
+}
+
 // ── Per-feature entitlements ─────────────────────────────────────────────────
 
 /**
@@ -310,15 +409,28 @@ export function visibleOffers(now: number = Date.now(), locale: Locale = "fr"): 
  * them (paying = the full product). Kept as a capability map so callers can
  * still gate a tool behind "is this an active paid plan?".
  */
-export type Feature = "chat_ia" | "simulator" | "bracket";
+export type Feature =
+  | "chat_ia"
+  | "simulator"
+  | "bracket"
+  | "value_bets"
+  | "advanced_players";
 
-const ALL_FEATURES: Feature[] = ["chat_ia", "simulator", "bracket"];
+const ALL_FEATURES: Feature[] = [
+  "chat_ia",
+  "simulator",
+  "bracket",
+  "value_bets",
+  "advanced_players",
+];
 
 const PLAN_FEATURES: Record<PaidPlan, Feature[]> = {
-  weekly: ALL_FEATURES,
+  // Essential = unlimited base analysis only (no betting toolkit).
+  essential: [],
   monthly: ALL_FEATURES,
   lifetime: ALL_FEATURES,
-  // legacy
+  // legacy (grandfathered) — keep full access
+  weekly: ALL_FEATURES,
   pass_cdm: ALL_FEATURES,
   season: ALL_FEATURES,
 };

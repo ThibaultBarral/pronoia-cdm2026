@@ -114,7 +114,7 @@ export default function WinbackPopup() {
             <p className="text-sm text-[var(--text-muted)] mt-2">
               Voici <span className="font-bold text-[var(--text)]">-{WINBACK_DISCOUNT_PCT} %</span>{" "}
               sur tes <span className="font-bold text-[var(--text)]">{WINBACK_DURATION_MONTHS} premiers mois</span>{" "}
-              du Mensuel, rien que pour toi.
+              du Premium, rien que pour toi.
             </p>
 
             {/* Code */}

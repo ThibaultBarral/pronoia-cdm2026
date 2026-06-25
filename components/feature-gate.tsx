@@ -6,17 +6,17 @@ import { useSubscription } from "@/lib/use-subscription";
 import { planHasFeature, type Feature } from "@/lib/plans";
 
 /**
- * Soft client-side gate for Mensuel/Vie-only features (simulator, bracket).
+ * Soft client-side gate for Premium/Vie-only features (simulator, bracket).
  *
  * The children are always rendered (kept in the DOM/SSR for caching & SEO) but
  * blurred behind a lock + upgrade CTA until the subscription resolves and the
- * active plan is found to include `feature`. Logged-out / Hebdo users stay
+ * active plan is found to include `feature`. Logged-out / Essential users stay
  * locked. This is intentionally a soft gate — these are projections, not the
  * core paid analyses (which are hard-gated server-side).
  */
 export default function FeatureGate({
   feature,
-  label = "Réservé au Mensuel & Accès à vie",
+  label = "Réservé à Premium & Accès à vie",
   children,
 }: {
   feature: Feature;

@@ -11,13 +11,14 @@ import {
 import Link from "next/link";
 import { startCheckout } from "@/lib/checkout-client";
 import { restoreSubscription } from "@/actions/restore-subscription";
-import { visibleOffers, planName, type Plan, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, freeTier, planName, type Plan, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
-  weekly: Zap,
+  essential: Zap,
   monthly: CalendarDays,
   lifetime: InfinityIcon,
+  weekly: Zap,
   pass_cdm: Flame,
   season: CalendarDays,
 };
@@ -121,7 +122,7 @@ export default function PaywallContent({
         </div>
       )}
 
-      {/* Offers */}
+      {/* Offers — 3 paliers payants */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto">
         {visibleOffers().map((o, i) => {
           const Icon = ICONS[o.plan];
@@ -253,6 +254,19 @@ export default function PaywallContent({
         })}
       </div>
 
+      {/* Free baseline — what you keep without paying. */}
+      {!hasAccess && (() => {
+        const free = freeTier();
+        return (
+          <div className="max-w-3xl mx-auto mt-5 rounded-2xl glass px-5 py-3.5 text-center">
+            <span className="text-xs text-[var(--text-muted)]">
+              <span className="font-bold text-[#cdd3db]">{free.name} · {free.priceLabel}</span> —{" "}
+              1 analyse complète offerte, puis le reste reste verrouillé. C&apos;est ton plan actuel.
+            </span>
+          </div>
+        );
+      })()}
+
       {/* Price-hike strip */}
       <div className="max-w-3xl mx-auto mt-6 rounded-2xl glass px-5 py-3.5 flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center">
         <span className="text-xs text-[var(--text-muted)]">
@@ -282,7 +296,7 @@ export default function PaywallContent({
       {/* Footer */}
       <div className="mt-10 text-center space-y-3">
         <p className="text-xs text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed">
-          Hebdo et Mensuel : abonnements annulables à tout moment, sans engagement.
+          Essential et Premium : abonnements annulables à tout moment, sans engagement.
           Accès à vie : un seul paiement, pour toujours.
           <br />
           Les analyses sont fournies à titre informatif. Les paris sportifs comportent des risques ·

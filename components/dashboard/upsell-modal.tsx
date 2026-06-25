@@ -77,13 +77,9 @@ export default function UpsellModal({
               Analyses illimitées · résiliable à tout moment · accès immédiat
             </p>
 
-            <div className="flex items-center justify-center gap-4 mt-3 text-[11px]">
-              <button onClick={() => go("weekly")} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors">
-                Juste tester · Hebdo 4,99 €
-              </button>
-              <span className="text-[#2a3550]">·</span>
+            <div className="flex items-center justify-center mt-3 text-[11px]">
               <Link href="/dashboard/pricing" onClick={onClose} className="text-[#7a8290] hover:text-[#cdd3db] transition-colors inline-flex items-center gap-1">
-                <Sparkles size={11} /> Tous les plans
+                <Sparkles size={11} /> Comparer tous les plans
               </Link>
             </div>
 

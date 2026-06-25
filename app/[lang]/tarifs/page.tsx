@@ -7,7 +7,7 @@ import SiteFooter from "@/components/site-footer";
 export const metadata: Metadata = {
   title: "Tarifs — Copafever | Analyses IA & paris CDM 2026",
   description:
-    "Hebdo 4,99 € · Mensuel 14,99 € · Accès à vie 89 €. Aperçu gratuit sur chaque match, analyse IA complète sur abonnement, sans engagement. Toutes les compétitions après la Coupe du Monde 2026.",
+    "Essential 9,99 €/mois · Premium 14,99 €/mois · Accès à vie 89 €. Aperçu gratuit sur chaque match, analyse IA complète sur abonnement, sans engagement. Toutes les compétitions après la Coupe du Monde 2026.",
   alternates: { canonical: "/tarifs" },
 };
 

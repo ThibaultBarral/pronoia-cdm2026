@@ -18,7 +18,7 @@ export const LOCKED_TEASERS: LockedTeaser[] = [
     id: "chat_ia",
     label: "Chat IA",
     title: "Le Chat IA est réservé aux membres",
-    body: "Pose tes questions à l'IA sur n'importe quel match et obtiens une réponse claire en quelques secondes. Inclus dès le Mensuel à 14,99 €/mois en illimité (ou teste à 4,99 €/sem).",
+    body: "Pose tes questions à l'IA sur n'importe quel match et obtiens une réponse claire en quelques secondes. Inclus dans Premium à 14,99 €/mois en illimité.",
   },
 ];
 

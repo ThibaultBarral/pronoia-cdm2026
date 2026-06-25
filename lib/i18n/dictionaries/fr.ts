@@ -105,7 +105,7 @@ La cote 1X à 1.65 offre une value réelle : les bookmakers surévaluent le Sén
     titleAccent: "chaque parieur",
     subtitle: "Aperçu gratuit sur chaque match. L'analyse IA complète est réservée aux abonnés — choisis ton rythme, annulable à tout moment.",
     cta: "Commencer",
-    legal: "Hebdo et Mensuel : sans engagement, résiliables à tout moment. Accès à vie : un seul paiement, pour toujours. Paiement sécurisé via Whop — aucune donnée bancaire stockée.",
+    legal: "Essential et Premium : sans engagement, résiliables à tout moment. Accès à vie : un seul paiement, pour toujours. Paiement sécurisé via Whop — aucune donnée bancaire stockée.",
     legal2: "Analyses fournies à titre informatif · Réservé aux 18 ans et plus · Jouez responsable.",
   },
   matchFilters: {
@@ -158,8 +158,8 @@ La cote 1X à 1.65 offre une value réelle : les bookmakers surévaluent le Sén
   askAi: {
     trigger: "Poser une question précise à l'IA",
     title: "Question à l'IA",
-    lockedTitle: "Réservé au Mensuel & Accès à vie",
-    lockedDesc: "Le chat IA contextuel est inclus dans le Mensuel et l'Accès à vie. Pose des questions illimitées à l'IA sur chaque match.",
+    lockedTitle: "Réservé à Premium & Accès à vie",
+    lockedDesc: "Le chat IA contextuel est inclus dans Premium et l'Accès à vie. Pose des questions illimitées à l'IA sur chaque match.",
     seePlans: "Voir les offres",
     placeholder: "Ex. La France peut-elle gagner sans encaisser ? Quel pari sur le nombre de buts ?",
     thinking: "L'IA réfléchit…",

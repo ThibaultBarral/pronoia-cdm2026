@@ -4,15 +4,16 @@ import { motion } from "framer-motion";
 import {
   Check, Flame, Zap, CalendarDays, Infinity as InfinityIcon, Lock, type LucideIcon,
 } from "lucide-react";
-import { visibleOffers, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, freeTier, type PaidPlan } from "@/lib/plans";
 import LaunchCountdown from "@/components/launch-countdown";
 import { trackEvent } from "@/lib/analytics";
 import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
-  weekly: Zap,
+  essential: Zap,
   monthly: CalendarDays,
   lifetime: InfinityIcon,
+  weekly: Zap,
   pass_cdm: Flame,
   season: CalendarDays,
 };
@@ -146,6 +147,28 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
             );
           })}
         </div>
+
+        {/* Free baseline — what you keep without paying (and what stays locked). */}
+        {(() => {
+          const free = freeTier(locale);
+          return (
+            <a
+              href="/login?mode=signup"
+              onClick={() => trackEvent("signup_click", { location: "pricing", plan: "free" })}
+              className="mt-5 max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center rounded-2xl glass px-5 py-3.5 hover:bg-white/[0.04] transition-colors"
+            >
+              <span className="text-xs text-[var(--text-muted)]">
+                <span className="font-bold text-[#cdd3db]">{free.name} · {free.priceLabel}</span> —{" "}
+                {locale === "en"
+                  ? "1 full analysis included, the rest stays locked"
+                  : "1 analyse complète offerte, le reste reste verrouillé"}
+              </span>
+              <span className="text-xs font-bold text-[var(--accent)] shrink-0">
+                {locale === "en" ? "Start free →" : "Commencer gratuitement →"}
+              </span>
+            </a>
+          );
+        })()}
 
         <p className="text-center text-xs text-[var(--text-muted)] mt-8 max-w-2xl mx-auto leading-relaxed">
           {t("pricing.legal")}

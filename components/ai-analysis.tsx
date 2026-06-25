@@ -77,6 +77,28 @@ function CompareRow({ label, home, away }: { label: string; home: number; away: 
 }
 
 /**
+ * Inline upsell shown to Essential members in place of a Premium-only block
+ * (value bets, probable scorers, key players, Chat IA…).
+ */
+function PremiumUpsell({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <Link
+      href="/dashboard/pricing"
+      className="flex items-center gap-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.05] p-4 hover:bg-[var(--accent)]/[0.09] transition-colors"
+    >
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent)]/12 shrink-0">
+        <Sparkles size={15} className="text-[var(--accent)]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-bold text-[#f0f0f0]">{title}</div>
+        <div className="text-xs text-[var(--text-muted)]">{subtitle}</div>
+      </div>
+      <span className="text-[var(--accent)] text-sm font-bold shrink-0">Premium →</span>
+    </Link>
+  );
+}
+
+/**
  * Free, model-only preview shown to non-members (zero Claude cost). Reveals the
  * real numbers — our honest edge — then the full AI narrative is blurred below.
  */
@@ -153,6 +175,12 @@ export default function AIAnalysis({
   // Treat anyone without a confirmed active entitlement as a non-member (a
   // signed-out visitor returns null too). Full analysis is paid-only.
   const hasPaidAccess = sub?.access === true;
+  // Feature-tiered gating: Essential has access but not the betting toolkit
+  // (value bets, scorers/key players, Chat IA). Every other paid plan + VIP do.
+  const hasToolkit = sub?.access === true && sub.plan !== "essential";
+  const canValueBets = hasToolkit;
+  const canPlayers = hasToolkit;
+  const canChat = hasToolkit;
   const [preview, setPreview] = useState<MatchPreview | null>(null);
   const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -427,8 +455,16 @@ export default function AIAnalysis({
               </div>
             )}
 
+            {/* Essential : pas la boîte à outils paris → upsell vers Premium */}
+            {!canPlayers && (
+              <PremiumUpsell
+                title="Buteurs probables & joueurs clés"
+                subtitle="Le 1er buteur, les buteurs probables et les joueurs à suivre"
+              />
+            )}
+
             {/* Buteurs probables & 1er buteur — depuis l'effectif réel */}
-            {data.probableScorers && data.probableScorers.length > 0 && (
+            {canPlayers && data.probableScorers && data.probableScorers.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
                   <Goal size={13} className="text-[var(--accent)]" /> Buteurs probables
@@ -464,7 +500,7 @@ export default function AIAnalysis({
             )}
 
             {/* Joueurs clés à suivre — depuis l'effectif réel */}
-            {data.keyPlayers && data.keyPlayers.length > 0 && (
+            {canPlayers && data.keyPlayers && data.keyPlayers.length > 0 && (
               <div>
                 <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
                   <Users size={13} className="text-[var(--accent)]" /> Joueurs clés à suivre
@@ -537,9 +573,17 @@ export default function AIAnalysis({
             </div>
             </div>
 
+            {/* Essential : la reco value bet est réservée à Premium */}
+            {!canValueBets && (
+              <PremiumUpsell
+                title="Value bets & recommandation de pari"
+                subtitle="Le pari à miser, la cote, la value détectée et la mise conseillée"
+              />
+            )}
+
             {/* Recommendation — with a per-profile toggle (preview only, never
                 changes the user's saved profile). */}
-            {rec && (
+            {canValueBets && rec && (
             <div>
               {profileRecs && (
                 <div className="mb-2.5">
@@ -699,7 +743,7 @@ export default function AIAnalysis({
                 matchId={match.id}
                 title={`${match.homeTeam.name} vs ${match.awayTeam.name}`}
               />
-              <AskAiModal match={match} />
+              {canChat && <AskAiModal match={match} />}
               <Button
                 variant="outline"
                 onClick={handleGenerate}
