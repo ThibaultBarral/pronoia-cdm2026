@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminDashboard from "@/components/admin/admin-dashboard";
+import RecoverablePayments from "@/components/admin/recoverable-payments";
 import UsersTable from "@/components/admin/users-table";
 import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   if (!(await isAdmin())) notFound();
 
-  const { users, totalRevenue } = await getAdminData();
+  const { users, totalRevenue, recoverable } = await getAdminData();
   const stats = computeAdminStats(users, totalRevenue);
 
   return (
@@ -28,6 +29,9 @@ export default async function AdminPage() {
 
           {/* Analytics dashboard */}
           <AdminDashboard stats={stats} />
+
+          {/* Argent à récupérer : paiements échoués (3DS, carte refusée…) */}
+          <RecoverablePayments rows={recoverable} />
 
           {/* Users table — sortable + filterable (toggles admin/VIP par ligne) */}
           <UsersTable users={users} />
