@@ -217,7 +217,9 @@ async function generate(match: Match, userId: string, locale: Locale): Promise<M
   const text = await callClaudeJson<ClaudeMatchText>({
     system: SYSTEM_PROMPT,
     user: buildPrompt(match, pred) + valueVerdictsPrompt(bets) + langDirective(locale),
-    maxTokens: 2200,
+    // Headroom for the full schema (4 profiles + scorers + key players + factors)
+    // on verbose matches; the truncation-retry in callClaudeJson is the backstop.
+    maxTokens: 4000,
     kind: "match",
     userId,
   });

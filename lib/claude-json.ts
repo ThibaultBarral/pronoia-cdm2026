@@ -26,25 +26,35 @@ export async function callClaudeJson<T>(opts: {
 
   const client = new Anthropic({ apiKey });
   const model = opts.model ?? "claude-sonnet-4-5";
+  const baseMax = opts.maxTokens ?? 1500;
 
-  const msg = await client.messages.create({
-    model,
-    max_tokens: opts.maxTokens ?? 1500,
-    system: [
-      { type: "text", text: opts.system, cache_control: { type: "ephemeral" } },
-    ],
-    messages: [{ role: "user", content: opts.user }],
-  });
+  const run = async (maxTokens: number) => {
+    const msg = await client.messages.create({
+      model,
+      max_tokens: maxTokens,
+      system: [
+        { type: "text", text: opts.system, cache_control: { type: "ephemeral" } },
+      ],
+      messages: [{ role: "user", content: opts.user }],
+    });
+    // Record token usage + computed cost (best-effort, never throws).
+    if (opts.kind) {
+      await logAiUsage({ kind: opts.kind, model, usage: msg.usage, userId: opts.userId });
+    }
+    const text = msg.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+    return { msg, text };
+  };
 
-  // Record token usage + computed cost (best-effort, never throws).
-  if (opts.kind) {
-    await logAiUsage({ kind: opts.kind, model, usage: msg.usage, userId: opts.userId });
+  let { msg, text } = await run(baseMax);
+  // If the model hit the token ceiling, the JSON is truncated (unterminated) and
+  // JSON.parse would throw. Retry ONCE with more room so a verbose match (big
+  // squads → long analysis) never surfaces an error to the user.
+  if (msg.stop_reason === "max_tokens") {
+    ({ text } = await run(Math.min(baseMax * 2, 8000)));
   }
-
-  const text = msg.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("");
 
   return parseJson<T>(text);
 }
