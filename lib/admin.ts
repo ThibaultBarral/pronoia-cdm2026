@@ -153,6 +153,8 @@ export interface ChannelCount {
   label: string;
   emoji: string;
   count: number;
+  revenue: number; // CA réel Whop (€) généré par les inscrits venus de ce canal
+  paidCount: number; // nombre de clients payants venus de ce canal
 }
 
 export interface AdminStats {
@@ -247,14 +249,20 @@ export function computeAdminStats(
     count: users.filter((u) => u.plan === plan).length,
   })).filter((p) => p.count > 0);
 
-  const acquisitionBreakdown: ChannelCount[] = ACQUISITION_CHANNELS.map((c) => ({
-    channel: c.id,
-    label: c.label,
-    emoji: c.emoji,
-    count: users.filter((u) => u.acquisitionChannel === c.id).length,
-  }))
+  const acquisitionBreakdown: ChannelCount[] = ACQUISITION_CHANNELS.map((c) => {
+    const fromChannel = users.filter((u) => u.acquisitionChannel === c.id);
+    return {
+      channel: c.id,
+      label: c.label,
+      emoji: c.emoji,
+      count: fromChannel.length,
+      revenue: fromChannel.reduce((s, u) => s + u.revenue, 0),
+      paidCount: fromChannel.filter((u) => u.revenue > 0).length,
+    };
+  })
     .filter((c) => c.count > 0)
-    .sort((a, b) => b.count - a.count);
+    // Le canal qui rapporte le plus d'argent en premier ; à CA égal, le plus gros volume.
+    .sort((a, b) => b.revenue - a.revenue || b.count - a.count);
   const acquisitionAnswered = users.filter((u) =>
     isRealChannel(u.acquisitionChannel)
   ).length;
@@ -340,62 +348,6 @@ export async function setAdmin(email: string, value: boolean): Promise<{ ok: boo
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true };
-}
-
-// ─── Conversion-funnel events (app_events) ────────────────────────────────────
-
-export interface EventStats {
-  days: number;
-  welcomeView: number;
-  welcomeClick: number;
-  contactOpen: number;
-  contactClick: number;
-  contactByChannel: { channel: string; count: number }[];
-}
-
-/**
- * Aggregate the in-app funnel events over the last N days (welcome offer +
- * contact widget). Admin only; fail-safe — returns zeros if the table doesn't
- * exist yet (migration not applied) or on any error.
- */
-export async function getAppEventStats(days = 7): Promise<EventStats> {
-  const empty: EventStats = {
-    days, welcomeView: 0, welcomeClick: 0, contactOpen: 0, contactClick: 0, contactByChannel: [],
-  };
-  if (!(await isAdmin())) return empty;
-  try {
-    const admin = createAdminClient();
-    const since = new Date(Date.now() - days * 86_400_000).toISOString();
-    const { data } = await admin
-      .from("app_events")
-      .select("name, props")
-      .gte("created_at", since)
-      .limit(20000);
-
-    const rows = (data ?? []) as { name: string; props: Record<string, unknown> | null }[];
-    const count = (n: string) => rows.filter((r) => r.name === n).length;
-
-    const channels = new Map<string, number>();
-    for (const r of rows) {
-      if (r.name !== "contact_click") continue;
-      const ch = String(r.props?.channel ?? "?");
-      channels.set(ch, (channels.get(ch) ?? 0) + 1);
-    }
-
-    return {
-      days,
-      welcomeView: count("welcome_offer_view"),
-      welcomeClick: count("welcome_offer_click"),
-      contactOpen: count("contact_open"),
-      contactClick: count("contact_click"),
-      contactByChannel: [...channels.entries()]
-        .map(([channel, c]) => ({ channel, count: c }))
-        .sort((a, b) => b.count - a.count),
-    };
-  } catch (err) {
-    console.warn("[admin] getAppEventStats error:", err);
-    return empty;
-  }
 }
 
 /**

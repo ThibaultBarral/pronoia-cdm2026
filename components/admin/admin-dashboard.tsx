@@ -1,6 +1,6 @@
 import {
-  Users, Euro, Percent, Zap, UserCheck, Activity, Gift, CalendarPlus,
-  TicketPercent, ArrowUpRight, ArrowDownRight, Minus, type LucideIcon,
+  Users, Euro, Percent, Zap, UserCheck, CalendarPlus,
+  ArrowUpRight, ArrowDownRight, Minus, type LucideIcon,
 } from "lucide-react";
 import type { AdminStats } from "@/lib/admin";
 import SignupsChart from "@/components/admin/signups-chart";
@@ -62,6 +62,82 @@ function MiniCard({
   );
 }
 
+/* ── Acquisition par CA ──────────────────────────────────────────────────────
+ * Quel canal rapporte le plus d'argent : barres pondérées par le CA réel Whop
+ * (et non par le simple volume d'inscrits). Repli sur le volume tant qu'aucun
+ * canal n'a encore généré de revenu. */
+function AcquisitionByRevenue({ stats }: { stats: AdminStats }) {
+  const { acquisitionBreakdown: rows, acquisitionAnswered, totalUsers } = stats;
+  const totalChannelRevenue = rows.reduce((s, c) => s + c.revenue, 0);
+  const hasRevenue = totalChannelRevenue > 0;
+  const top = hasRevenue ? rows[0] : null; // déjà trié par CA décroissant
+  const maxBar = Math.max(1, ...rows.map((c) => (hasRevenue ? c.revenue : c.count)));
+  const eur = (n: number) => `${Math.round(n)} €`;
+
+  return (
+    <div className="rounded-2xl glass px-5 py-4">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#9aa3b2]">
+          Acquisition — qui rapporte le plus
+        </h3>
+        <span className="text-[11px] text-[#5a6472]">
+          {acquisitionAnswered}/{totalUsers} ont répondu
+        </span>
+      </div>
+
+      {top ? (
+        <p className="text-[11px] text-[#9aa3b2] mb-4">
+          🏆 <span className="text-[var(--accent)] font-bold">{top.emoji} {top.label}</span> est ton
+          canal #1 — <span className="font-semibold text-[#f0f0f0]">{eur(top.revenue)}</span> de CA
+          {top.paidCount > 0 && ` (${top.paidCount} payant${top.paidCount > 1 ? "s" : ""})`}.
+        </p>
+      ) : (
+        <p className="text-[11px] text-[#5a6472] mb-4">
+          Aucun CA attribué pour l&apos;instant — classement par volume d&apos;inscrits.
+        </p>
+      )}
+
+      {rows.length === 0 ? (
+        <p className="text-xs text-[#5a6472] py-4 text-center">
+          Aucune réponse pour l&apos;instant — les nouveaux inscrits verront la question.
+        </p>
+      ) : (
+        <div className="space-y-2.5">
+          {rows.map((c) => {
+            const metric = hasRevenue ? c.revenue : c.count;
+            return (
+              <div key={c.channel}>
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-[#f0f0f0] font-semibold">
+                    {c.emoji} {c.label}
+                  </span>
+                  <span className="tabular-nums text-[#9aa3b2]">
+                    <span className="font-bold text-[var(--accent)]">{eur(c.revenue)}</span>
+                    <span className="text-[#5a6472]">
+                      {" · "}{c.count} inscrit{c.count > 1 ? "s" : ""}
+                      {c.paidCount > 0 && ` · ${c.paidCount} payant${c.paidCount > 1 ? "s" : ""}`}
+                    </span>
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--accent)]"
+                    style={{ width: `${Math.max(2, (metric / maxBar) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[10px] text-[#5a6472] mt-3">
+        CA réel Whop attribué au canal déclaré à l&apos;inscription. Le détail libre est dans la
+        colonne « Canal » du tableau ci-dessous.
+      </p>
+    </div>
+  );
+}
+
 /* ── Dashboard ───────────────────────────────────────────────────────────── */
 
 export default function AdminDashboard({ stats }: { stats: AdminStats }) {
@@ -100,26 +176,14 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
       </div>
 
       {/* Secondary metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <MiniCard
           icon={UserCheck} label="Actifs (7j)" value={String(stats.activeUsers7d)}
           sub={`${stats.activeUsers30d} sur 30j`}
         />
         <MiniCard
-          icon={Activity} label="Activation" value={`${stats.activationRate.toFixed(0)} %`}
-          sub={`${stats.usersWithAnalysis} ont analysé`} accent="var(--accent-soft)"
-        />
-        <MiniCard
-          icon={Gift} label="Onboarding" value={`${stats.onboardedRate.toFixed(0)} %`}
-          sub="profil complété" accent="#ffd700"
-        />
-        <MiniCard
           icon={CalendarPlus} label="Nouveaux (30j)" value={String(stats.newUsers30d)}
           sub={`${stats.newUsers7d} sur 7j`}
-        />
-        <MiniCard
-          icon={TicketPercent} label="Win-back KICKOFF20" value={String(stats.winbackShown)}
-          sub={`pop-ups affichées · ${stats.winbackEligible} éligibles`} accent="var(--accent-soft)"
         />
       </div>
 
@@ -159,53 +223,8 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
         </div>
       </div>
 
-      {/* Acquisition channels */}
-      <div className="rounded-2xl glass px-5 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-[#9aa3b2]">
-            Canaux d&apos;acquisition
-          </h3>
-          <span className="text-[11px] text-[#5a6472]">
-            {stats.acquisitionAnswered}/{stats.totalUsers} ont répondu
-          </span>
-        </div>
-
-        {stats.acquisitionBreakdown.length === 0 ? (
-          <p className="text-xs text-[#5a6472] py-4 text-center">
-            Aucune réponse pour l&apos;instant — les nouveaux inscrits verront la question.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
-            {stats.acquisitionBreakdown.map((c) => {
-              const share = stats.acquisitionAnswered
-                ? Math.round((c.count / stats.acquisitionAnswered) * 100)
-                : 0;
-              const maxChannel = Math.max(1, ...stats.acquisitionBreakdown.map((x) => x.count));
-              return (
-                <div key={c.channel}>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-[#f0f0f0] font-semibold">
-                      {c.emoji} {c.label}
-                    </span>
-                    <span className="tabular-nums text-[#9aa3b2]">
-                      {c.count} · {share}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[var(--accent)]"
-                      style={{ width: `${(c.count / maxChannel) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <p className="text-[10px] text-[#5a6472] mt-3">
-          Le détail libre saisi par chaque utilisateur est visible dans la colonne « Canal » du tableau ci-dessous.
-        </p>
-      </div>
+      {/* Acquisition channels — classés par CA généré (quel canal rapporte le plus) */}
+      <AcquisitionByRevenue stats={stats} />
 
       {/* Pourquoi pas d'abonnement ? */}
       <div className="rounded-2xl glass px-5 py-4">
