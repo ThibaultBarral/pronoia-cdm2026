@@ -1,5 +1,6 @@
-import { AlertTriangle, Mail } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import type { RecoverablePayment } from "@/lib/admin";
+import RecoverButton from "@/components/admin/recover-button";
 
 const REASON_STYLE: Record<string, string> = {
   "3D Secure (vérif. bancaire)": "text-[#ffd700] bg-[#ffd700]/10",
@@ -45,14 +46,6 @@ export default function RecoverablePayments({ rows }: { rows: RecoverablePayment
       <div className="space-y-2">
         {rows.map((r) => {
           const style = REASON_STYLE[r.reason] ?? "text-[#9aa3b2] bg-white/[0.05]";
-          const mailSubject = encodeURIComponent("Ton accès Copafever t'attend ⚽");
-          const mailBody = encodeURIComponent(
-            `Salut${r.name ? " " + r.name.split(" ")[0] : ""},\n\n` +
-              `J'ai vu que ton paiement (${r.offer}, ${r.amount.toFixed(2)} €) n'a pas pu aboutir. ` +
-              `Ça vient souvent de la vérification 3D Secure de la banque.\n\n` +
-              `Réessaie avec Apple Pay ou un virement SEPA, ça passe en général sans souci : [ton lien Whop]\n\n` +
-              `Dis-moi si tu bloques, je t'aide. À tout de suite !`,
-          );
           return (
             <div
               key={r.userId}
@@ -85,12 +78,7 @@ export default function RecoverablePayments({ rows }: { rows: RecoverablePayment
               </span>
 
               {r.email && (
-                <a
-                  href={`mailto:${r.email}?subject=${mailSubject}&body=${mailBody}`}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[12px] font-bold text-black hover:opacity-90 transition-opacity"
-                >
-                  <Mail size={13} /> Relancer
-                </a>
+                <RecoverButton email={r.email} name={r.name} offer={r.offer} amount={r.amount} />
               )}
             </div>
           );
