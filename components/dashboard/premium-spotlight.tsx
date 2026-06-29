@@ -61,7 +61,13 @@ export default function PremiumSpotlight({ matches }: { matches: Match[] }) {
   const anyStarted = matches.some((m) => (m.status ?? "NS") !== "NS");
   const live = matches.find((m) => LIVE.has(m.status ?? ""));
   const upcoming = matches
-    .filter((m) => (m.status ?? "NS") === "NS" && datetime(m) > Date.now())
+    .filter(
+      (m) =>
+        (m.status ?? "NS") === "NS" &&
+        datetime(m) > Date.now() &&
+        !m.homeTeam.isPlaceholder &&
+        !m.awayTeam.isPlaceholder
+    )
     .sort((a, b) => datetime(a) - datetime(b));
 
   // Feature: the opener countdown before kickoff → a live match → the next match.

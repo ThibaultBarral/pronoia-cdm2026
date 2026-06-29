@@ -38,6 +38,10 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
           <p className="text-sm text-[var(--text-muted)] mt-3 max-w-lg mx-auto">
             {t("pricing.subtitle")}
           </p>
+          <p className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/5 text-[12px] font-medium text-[var(--accent)]">
+            <span aria-hidden>🔁</span>
+            Après la Coupe du Monde, Copafever continue sur les grands championnats (Ligue 1, Champions League…).
+          </p>
         </div>
 
         <div className="flex justify-center mb-8">

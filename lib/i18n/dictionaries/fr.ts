@@ -190,7 +190,7 @@ La cote 1X à 1.65 offre une value réelle : les bookmakers surévaluent le Sén
     },
     steps: {
       s1Title: "Choisissez un match",
-      s1Desc: "Parcourez les 72 matchs de groupe de la CDM 2026, filtrés par groupe ou date.",
+      s1Desc: "Parcourez tous les matchs de la CDM 2026 — groupes et phases finales — filtrés par groupe ou date.",
       s2Title: "Lancez l'analyse IA",
       s2Desc: "Un clic. Copafever IA reçoit toutes les données et génère une analyse structurée en temps réel.",
       s3Title: "Pariez avec conviction",

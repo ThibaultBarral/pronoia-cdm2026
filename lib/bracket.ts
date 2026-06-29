@@ -13,19 +13,35 @@
 import "server-only";
 
 import { getSimulation, type TeamSimResult } from "./simulation";
+import { getMatches, teamSlug } from "./data-service";
+import type { Match, Team } from "./types";
 
 export interface BracketSlot {
   nameEn: string;
   fr: string;
   flag: string;
   slug: string;
-  /** Seed (1 = strongest projected qualifier). */
-  seed: number;
+  /** Seed (1 = strongest projected qualifier). Absent for real fixtures. */
+  seed?: number;
+  /** Real goals once the match is played (null otherwise). */
+  goals?: number | null;
+  /** True when this side won and advanced. */
+  winner?: boolean;
+  /** True for an undecided knockout slot ("Vainqueur match 89"). */
+  placeholder?: boolean;
 }
 
 export interface BracketMatch {
-  /** Stable id, e.g. "R32-1". */
+  /** Stable id, e.g. "R32-1" (projection) or the match slug (real). */
   id: string;
+  /** Match slug → /match/[id] when both teams are decided (real fixtures only). */
+  matchId?: string;
+  /** Kick-off date (YYYY-MM-DD) for real fixtures. */
+  date?: string;
+  /** Live/finished status for real fixtures. */
+  status?: string;
+  /** True once the match is finished. */
+  finished?: boolean;
   home: BracketSlot | null;
   away: BracketSlot | null;
 }
@@ -37,8 +53,84 @@ export interface BracketRound {
 }
 
 export interface Bracket {
+  /** True = projected from the simulation; false = real knockout fixtures. */
   projected: boolean;
   rounds: BracketRound[];
+}
+
+// ─── Real bracket from official knockout fixtures ─────────────────────────────
+
+const FINISHED_KO = new Set(["FT", "AET", "PEN"]);
+
+/** Knockout rounds in bracket order → clean display label. */
+const KO_DISPLAY: Record<string, string> = {
+  "16es de finale": "16es de finale",
+  "8es de finale": "8es de finale",
+  "Quart de finale": "Quarts de finale",
+  "Demi-finale": "Demi-finales",
+  "Match pour la 3e place": "3e place",
+  Finale: "Finale",
+};
+const KO_ORDER = Object.keys(KO_DISPLAY);
+
+function slotFromTeam(team: Team, goals: number | null, winner: boolean): BracketSlot {
+  return {
+    nameEn: team.nameEn ?? team.name,
+    fr: team.name,
+    flag: team.flag,
+    slug: team.isPlaceholder ? "" : teamSlug(team.nameEn ?? team.name),
+    goals,
+    winner,
+    placeholder: team.isPlaceholder,
+  };
+}
+
+/**
+ * The REAL knockout bracket built from the official fixtures (OpenFootball /
+ * API-Football, via getMatches): real nations where decided, live/final scores,
+ * winner highlighting, and a link to each match's analysis. Undecided slots show
+ * "à déterminer". Falls back to the projected bracket before any knockout
+ * fixture exists (pre-tournament).
+ */
+export async function getRealBracket(): Promise<Bracket> {
+  const matches = await getMatches();
+  const ko = matches.filter((m) => m.round !== "Phase de groupes");
+  if (!ko.length) return getBracket(); // pre-tournament: nothing real yet
+
+  const rounds: BracketRound[] = [];
+  for (const key of KO_ORDER) {
+    const roundMatches = ko
+      .filter((m) => m.round === key)
+      .sort(
+        (a, b) =>
+          new Date(`${a.date}T${a.time}`).getTime() -
+          new Date(`${b.date}T${b.time}`).getTime()
+      );
+    if (!roundMatches.length) continue;
+
+    rounds.push({
+      name: KO_DISPLAY[key] ?? key,
+      matches: roundMatches.map((m: Match): BracketMatch => {
+        const finished = FINISHED_KO.has(m.status ?? "");
+        const hg = m.score?.home ?? null;
+        const ag = m.score?.away ?? null;
+        const homeWin = finished && hg != null && ag != null && hg > ag;
+        const awayWin = finished && hg != null && ag != null && ag > hg;
+        const bothReal = !m.homeTeam.isPlaceholder && !m.awayTeam.isPlaceholder;
+        return {
+          id: m.id,
+          matchId: bothReal ? m.id : undefined,
+          date: m.date,
+          status: m.status,
+          finished,
+          home: slotFromTeam(m.homeTeam, finished ? hg : null, homeWin),
+          away: slotFromTeam(m.awayTeam, finished ? ag : null, awayWin),
+        };
+      }),
+    });
+  }
+
+  return { projected: false, rounds };
 }
 
 const ROUND_NAMES = [

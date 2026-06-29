@@ -44,24 +44,36 @@ export default function MatchHeader({ match }: { match: Match }) {
         {/* Teams */}
         <div className="grid grid-cols-3 items-center gap-4 mb-6">
           <Link
-            href={`/team/${teamSlug(match.homeTeam.nameEn ?? match.homeTeam.name)}`}
-            className="group flex flex-col items-center gap-2 rounded-xl px-2 py-1 hover:bg-white/[0.03] transition-colors"
+            href={
+              match.homeTeam.isPlaceholder
+                ? "#"
+                : `/team/${teamSlug(match.homeTeam.nameEn ?? match.homeTeam.name)}`
+            }
+            className={`group flex flex-col items-center gap-2 rounded-xl px-2 py-1 transition-colors ${
+              match.homeTeam.isPlaceholder
+                ? "pointer-events-none"
+                : "hover:bg-white/[0.03]"
+            }`}
           >
             <span className="text-5xl md:text-7xl">{match.homeTeam.flag}</span>
             <div className="text-center">
               <div className="text-lg md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors">
                 {match.homeTeam.name}
               </div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                <Shield size={11} className="text-[#888]" />
-                <span className="text-xs text-[#888]">
-                  #{match.homeTeam.fifaRanking} FIFA
-                </span>
-              </div>
+              {!match.homeTeam.isPlaceholder && (
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <Shield size={11} className="text-[#888]" />
+                  <span className="text-xs text-[#888]">
+                    #{match.homeTeam.fifaRanking} FIFA
+                  </span>
+                </div>
+              )}
               <div className="text-[10px] text-[#888] mt-0.5">{match.homeTeam.coach}</div>
-              <div className="text-[9px] text-[var(--accent)]/0 group-hover:text-[var(--accent)] transition-colors mt-0.5">
-                Voir l&apos;analyse d&apos;équipe →
-              </div>
+              {!match.homeTeam.isPlaceholder && (
+                <div className="text-[9px] text-[var(--accent)]/0 group-hover:text-[var(--accent)] transition-colors mt-0.5">
+                  Voir l&apos;analyse d&apos;équipe →
+                </div>
+              )}
             </div>
           </Link>
 
@@ -103,24 +115,36 @@ export default function MatchHeader({ match }: { match: Match }) {
           </div>
 
           <Link
-            href={`/team/${teamSlug(match.awayTeam.nameEn ?? match.awayTeam.name)}`}
-            className="group flex flex-col items-center gap-2 rounded-xl px-2 py-1 hover:bg-white/[0.03] transition-colors"
+            href={
+              match.awayTeam.isPlaceholder
+                ? "#"
+                : `/team/${teamSlug(match.awayTeam.nameEn ?? match.awayTeam.name)}`
+            }
+            className={`group flex flex-col items-center gap-2 rounded-xl px-2 py-1 transition-colors ${
+              match.awayTeam.isPlaceholder
+                ? "pointer-events-none"
+                : "hover:bg-white/[0.03]"
+            }`}
           >
             <span className="text-5xl md:text-7xl">{match.awayTeam.flag}</span>
             <div className="text-center">
               <div className="text-lg md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors">
                 {match.awayTeam.name}
               </div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                <Shield size={11} className="text-[#888]" />
-                <span className="text-xs text-[#888]">
-                  #{match.awayTeam.fifaRanking} FIFA
-                </span>
-              </div>
+              {!match.awayTeam.isPlaceholder && (
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <Shield size={11} className="text-[#888]" />
+                  <span className="text-xs text-[#888]">
+                    #{match.awayTeam.fifaRanking} FIFA
+                  </span>
+                </div>
+              )}
               <div className="text-[10px] text-[#888] mt-0.5">{match.awayTeam.coach}</div>
-              <div className="text-[9px] text-[var(--accent)]/0 group-hover:text-[var(--accent)] transition-colors mt-0.5">
-                Voir l&apos;analyse d&apos;équipe →
-              </div>
+              {!match.awayTeam.isPlaceholder && (
+                <div className="text-[9px] text-[var(--accent)]/0 group-hover:text-[var(--accent)] transition-colors mt-0.5">
+                  Voir l&apos;analyse d&apos;équipe →
+                </div>
+              )}
             </div>
           </Link>
         </div>

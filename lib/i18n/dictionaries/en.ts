@@ -190,7 +190,7 @@ The 1X odds at 1.65 offer real value: bookmakers overrate Senegal based on their
     },
     steps: {
       s1Title: "Pick a match",
-      s1Desc: "Browse the 72 group-stage matches of the 2026 World Cup, filtered by group or date.",
+      s1Desc: "Browse every match of the 2026 World Cup — group stage and knockouts — filtered by group or date.",
       s2Title: "Run the AI analysis",
       s2Desc: "One click. Copafever AI receives all the data and generates a structured analysis in real time.",
       s3Title: "Bet with conviction",

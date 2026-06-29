@@ -68,19 +68,35 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Real, data-derived figures only.
+  // Real, data-derived figures only. Undecided knockout slots are excluded so
+  // "prochain match" always shows a real fixture, never "à déterminer".
   const nextMatch = [...matches]
-    .filter((m) => (m.status ?? "NS") === "NS")
+    .filter(
+      (m) =>
+        (m.status ?? "NS") === "NS" &&
+        !m.homeTeam.isPlaceholder &&
+        !m.awayTeam.isPlaceholder
+    )
     .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime())[0];
   const nationsCount = new Set(
-    matches.flatMap((m) => [m.homeTeam.id, m.awayTeam.id])
+    matches
+      .flatMap((m) => [m.homeTeam, m.awayTeam])
+      .filter((t) => !t.isPlaceholder)
+      .map((t) => t.id)
   ).size;
+
+  // Current phase = the round of the next upcoming fixture (or the latest one).
+  const currentRound =
+    nextMatch?.round ??
+    [...matches]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.round ??
+    "Coupe du Monde";
 
   const statsBar = [
     {
       icon: Trophy,
-      label: "Phase de groupes",
-      value: `${matches.filter((m) => m.group !== "—").length} matchs`,
+      label: "Phase en cours",
+      value: currentRound,
       color: "#ffd700",
     },
     {

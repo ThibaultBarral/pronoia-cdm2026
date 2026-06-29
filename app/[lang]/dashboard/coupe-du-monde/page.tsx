@@ -10,7 +10,7 @@ import FeatureGate from "@/components/feature-gate";
 import { getAllTeams } from "@/lib/groups";
 import { getGroupStandings } from "@/lib/group-standings";
 import { getSimulation, getTopFavorites } from "@/lib/simulation";
-import { getBracket } from "@/lib/bracket";
+import { getRealBracket } from "@/lib/bracket";
 
 export const metadata: Metadata = {
   title: "Coupe du Monde 2026 — Favoris, groupes & tableau | Copafever",
@@ -30,7 +30,7 @@ export default async function CoupeDuMondePage() {
     getAllTeams(),
     getSimulation(),
     getTopFavorites(3),
-    getBracket(),
+    getRealBracket(),
   ]);
 
   const simBySlug = new Map(sim.map((s) => [s.slug, s]));

@@ -51,7 +51,12 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   // Hero "next big match" — soonest upcoming fixture, strongest pairing among the
   // next dozen (lowest summed FIFA rank). Real data; falls back to the demo if none.
   const upcoming = matches
-    .filter((m) => (m.status ?? "NS") === "NS")
+    .filter(
+      (m) =>
+        (m.status ?? "NS") === "NS" &&
+        !m.homeTeam.isPlaceholder &&
+        !m.awayTeam.isPlaceholder,
+    )
     .sort(
       (a, b) =>
         new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime(),

@@ -9,7 +9,7 @@ import SocialProofGate from "@/components/social-proof/social-proof-gate";
 
 export const metadata: Metadata = {
   title: "Dashboard — Copafever CDM 2026",
-  description: "Analysez les 72 matchs de groupe de la CDM 2026 avec l'IA",
+  description: "Analysez chaque match de la CDM 2026 avec l'IA — phase de groupes et phases finales.",
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

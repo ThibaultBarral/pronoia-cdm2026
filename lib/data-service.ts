@@ -64,6 +64,79 @@ interface OFData {
   matches: OFMatch[];
 }
 
+// ─── Knockout rounds (48-team WC: Round of 32 → Final) ────────────────────────
+
+/** OpenFootball `round` label → French display label. Order = bracket progression. */
+const KNOCKOUT_ROUNDS: Record<string, string> = {
+  "Round of 32": "16es de finale",
+  "Round of 16": "8es de finale",
+  "Quarter-final": "Quart de finale",
+  "Quarter-finals": "Quart de finale",
+  "Semi-final": "Demi-finale",
+  "Semi-finals": "Demi-finale",
+  "Match for third place": "Match pour la 3e place",
+  "Third place": "Match pour la 3e place",
+  Final: "Finale",
+};
+
+function isKnockout(round: string | undefined): boolean {
+  return Boolean(round && round in KNOCKOUT_ROUNDS);
+}
+
+/** French round label for any fixture (group or knockout). */
+function roundLabelFr(m: OFMatch): string {
+  if (m.group?.startsWith("Group")) return "Phase de groupes";
+  return (m.round && KNOCKOUT_ROUNDS[m.round]) ?? m.round ?? "Phase finale";
+}
+
+/**
+ * Knockout fixtures whose participants aren't decided yet carry placeholder
+ * codes instead of real nations (e.g. "W89", "1A", "3C/E/F"). A name is a
+ * placeholder when it isn't a known WC team. We render these as a neutral
+ * "à déterminer" slot rather than treating the code as a country.
+ */
+function isPlaceholderName(name: string): boolean {
+  return !(name in TEAM_META);
+}
+
+/** Human-readable French label for a knockout placeholder code. */
+function placeholderLabel(code: string): string {
+  const c = code.trim();
+  let m: RegExpMatchArray | null;
+  if ((m = c.match(/^W(\d+)$/i))) return `Vainqueur match ${m[1]}`;
+  if ((m = c.match(/^L(\d+)$/i))) return `Perdant match ${m[1]}`;
+  if ((m = c.match(/^([123])([A-L])$/i))) {
+    const pos = m[1] === "1" ? "1er" : m[1] === "2" ? "2e" : "3e";
+    return `${pos} groupe ${m[2].toUpperCase()}`;
+  }
+  if ((m = c.match(/^3([A-L/]+)$/i))) return `3e (gr. ${m[1].toUpperCase()})`;
+  return c;
+}
+
+/** Neutral "à déterminer" team for an undecided knockout slot. */
+function placeholderTeam(name: string, group: string): Team {
+  return {
+    id: name,
+    name: placeholderLabel(name),
+    nameEn: name,
+    shortName: name.toUpperCase().slice(0, 6),
+    flag: "🏳️",
+    group,
+    fifaRanking: 999,
+    coach: "",
+    recentForm: [],
+    stats: {
+      possession: 50, goalsScored: 0, goalsConceded: 0,
+      xGFor: 0, xGAgainst: 0, qualificationPath: "", cleanSheets: 0,
+    },
+    lineup: { formation: "4-3-3", players: [] },
+    keyPlayers: [],
+    injuries: [],
+    suspensions: [],
+    isPlaceholder: true,
+  };
+}
+
 // ─── OpenFootball fetch (24h ISR cache) ───────────────────────────────────────
 
 async function fetchOpenFootball(): Promise<OFMatch[]> {
@@ -71,7 +144,11 @@ async function fetchOpenFootball(): Promise<OFMatch[]> {
     const res = await fetch(OPENFOOTBALL_URL, { next: { revalidate: 86400 } });
     if (!res.ok) throw new Error(`OpenFootball HTTP ${res.status}`);
     const data: OFData = await res.json();
-    return data.matches.filter((m) => m.group?.startsWith("Group"));
+    // Group stage AND knockout rounds (Round of 32 → Final). Knockout matches
+    // have no `group` field; they're identified by their `round` label.
+    return data.matches.filter(
+      (m) => m.group?.startsWith("Group") || isKnockout(m.round)
+    );
   } catch (err) {
     console.warn("[data-service] OpenFootball fetch failed:", err);
     return [];
@@ -486,7 +563,8 @@ export async function getMatches(): Promise<Match[]> {
   }
 
   return fixtures.map((f): Match => {
-    const group = (f.group ?? "").replace("Group ", "");
+    const isGroupStage = Boolean(f.group?.startsWith("Group"));
+    const group = isGroupStage ? (f.group ?? "").replace("Group ", "") : "—";
     const meta1 = getTeamMeta(f.team1);
     const meta2 = getTeamMeta(f.team2);
 
@@ -496,6 +574,8 @@ export async function getMatches(): Promise<Match[]> {
     const live = apiFx ? orientResult(apiFx, meta1.apiId) : null;
 
     const makeShell = (name: string, meta: ReturnType<typeof getTeamMeta>): Team => {
+      // Undetermined knockout slot (e.g. "W89", "1A") → neutral placeholder.
+      if (isPlaceholderName(name)) return placeholderTeam(name, group);
       const p = getTeamProfile(name);
       return {
         id: String(meta.apiId || name),
@@ -527,6 +607,7 @@ export async function getMatches(): Promise<Match[]> {
     };
 
     const kickoff = toParisDateTime(f.date, f.time);
+    const hasFtScore = Boolean(f.score);
 
     return {
       id: matchSlug(f.team1, f.team2),
@@ -538,11 +619,13 @@ export async function getMatches(): Promise<Match[]> {
       city: venueToCity(f.ground),
       country: venueToCountry(f.ground),
       group,
-      round: "Phase de groupes",
+      round: roundLabelFr(f),
       h2h: [],
       odds: [],
       apiFixtureId: live?.apiFixtureId,
-      status: live?.status ?? "NS",
+      // Prefer live API status; fall back to FT when OpenFootball already has a
+      // final score (so finished matches never display as "à venir").
+      status: live?.status ?? (hasFtScore ? "FT" : "NS"),
       score:
         live && live.score.home != null
           ? live.score
@@ -580,14 +663,20 @@ export async function getMatchData(id: string): Promise<Match | null> {
     return mockMatch ?? null;
   }
 
-  const group = (fixture.group ?? "").replace("Group ", "");
+  const isGroupStage = Boolean(fixture.group?.startsWith("Group"));
+  const group = isGroupStage ? (fixture.group ?? "").replace("Group ", "") : "—";
   const meta1 = getTeamMeta(fixture.team1);
   const meta2 = getTeamMeta(fixture.team2);
 
-  // Build teams — API-Football calls (squad + coach) run in parallel
+  // Build teams — API-Football calls (squad + coach) run in parallel. Undecided
+  // knockout slots ("W89", "1A"…) resolve to a neutral placeholder, not the API.
   const [homeTeam, awayTeam] = await Promise.all([
-    buildTeam(fixture.team1, group, true, meta2.apiId),
-    buildTeam(fixture.team2, group, false, meta1.apiId),
+    isPlaceholderName(fixture.team1)
+      ? Promise.resolve(placeholderTeam(fixture.team1, group))
+      : buildTeam(fixture.team1, group, true, meta2.apiId),
+    isPlaceholderName(fixture.team2)
+      ? Promise.resolve(placeholderTeam(fixture.team2, group))
+      : buildTeam(fixture.team2, group, false, meta1.apiId),
   ]);
 
   // H2H, odds and live score — REAL only (no mock fallback). Empty = the UI shows
@@ -640,11 +729,11 @@ export async function getMatchData(id: string): Promise<Match | null> {
     city: venueToCity(fixture.ground),
     country: venueToCountry(fixture.ground),
     group,
-    round: "Phase de groupes",
+    round: roundLabelFr(fixture),
     h2h,
     odds,
     apiFixtureId,
-    status: liveStatus ?? "NS",
+    status: liveStatus ?? (fixture.score ? "FT" : "NS"),
     score:
       liveScore ??
       (fixture.score

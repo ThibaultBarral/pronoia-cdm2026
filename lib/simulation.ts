@@ -195,6 +195,10 @@ function resolveSlot(slot: string, ctx: SimContext): string {
   if (/^[12][A-L]$/.test(slot)) {
     return ctx.standings[slot[1]][Number(slot[0]) - 1];
   }
+  // Once a knockout match's participants are decided, OpenFootball replaces the
+  // positional code with the REAL team name (e.g. "South Africa"). Anything that
+  // isn't a positional third-place slot ("3A/B/…") is a literal team → use it.
+  if (!/^3[A-L]/.test(slot)) return slot;
   // Third-place slot: pick the strongest qualified, unused third among candidates.
   const candidates = slot
     .replace(/^3/, "")

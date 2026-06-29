@@ -26,7 +26,12 @@ export interface OnboardMatch {
 export async function getOnboardingMatches(): Promise<OnboardMatch[]> {
   const matches = await getMatches().catch(() => [] as Match[]);
   return matches
-    .filter((m) => (m.status ?? "NS") === "NS")
+    .filter(
+      (m) =>
+        (m.status ?? "NS") === "NS" &&
+        !m.homeTeam.isPlaceholder &&
+        !m.awayTeam.isPlaceholder,
+    )
     .sort(
       (a, b) =>
         new Date(`${a.date}T${a.time}`).getTime() -
@@ -51,7 +56,12 @@ export async function getOnboardingMatches(): Promise<OnboardMatch[]> {
 export async function getFeaturedMatchId(): Promise<string | null> {
   const matches = await getMatches().catch(() => [] as Match[]);
   const upcoming = matches
-    .filter((m) => (m.status ?? "NS") === "NS")
+    .filter(
+      (m) =>
+        (m.status ?? "NS") === "NS" &&
+        !m.homeTeam.isPlaceholder &&
+        !m.awayTeam.isPlaceholder,
+    )
     .sort(
       (a, b) =>
         new Date(`${a.date}T${a.time}`).getTime() -

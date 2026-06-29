@@ -84,6 +84,8 @@ export interface Team {
   weaknesses?: string[];
   /** "live" when recentForm/stats come from API-Football, "static" when from team-data.ts */
   dataSource?: "live" | "static";
+  /** True when this slot is an undetermined knockout placeholder (e.g. "Vainqueur match 89"). */
+  isPlaceholder?: boolean;
 }
 
 export interface Match {

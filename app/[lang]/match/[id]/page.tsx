@@ -67,6 +67,8 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
   if (!match) notFound();
 
   const finished = FINISHED.has(match.status ?? "");
+  // Knockout fixture whose participants aren't known yet → no analysis to run.
+  const decided = !match.homeTeam.isPlaceholder && !match.awayTeam.isPlaceholder;
   // Signed-in users came from the dashboard → send "Retour" back there (not to
   // the public marketing landing, which looks like being logged out).
   const backHref = user ? "/dashboard" : "/";
@@ -155,27 +157,50 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
         {/* Analysis first — it's the core value. Keeps the user from scrolling
             past form/H2H/stats/squad (the supporting context, now below). */}
         <div className="animate-fade-in-up">
-          {finished ? (
+          {!decided ? (
+            <div className="rounded-2xl glass p-6 md:p-8 text-center space-y-3">
+              <div className="text-3xl">🏆</div>
+              <h2 className="text-lg font-bold text-[#f0f0f0]">
+                Affiche à venir — adversaires à déterminer
+              </h2>
+              <p className="text-sm text-[#888] max-w-md mx-auto">
+                Ce match de {match.round} oppose {match.homeTeam.name} à{" "}
+                {match.awayTeam.name}. L&apos;analyse IA complète (forme, stats,
+                cotes et recommandation) sera générée dès que les deux qualifiés
+                seront connus.
+              </p>
+              <Link
+                href="/dashboard/coupe-du-monde"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--accent)] hover:underline"
+              >
+                Voir le tableau final →
+              </Link>
+            </div>
+          ) : finished ? (
             <MatchResult match={match} canShare={Boolean(user)} />
           ) : (
             <AIAnalysis match={match} autoStart={welcome === "1"} />
           )}
         </div>
 
-        {/* Supporting context below the analysis. */}
-        <div className="pt-2 text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
-          Les données derrière l&apos;analyse
-        </div>
+        {/* Supporting context below the analysis — only when both teams exist. */}
+        {decided && (
+          <>
+            <div className="pt-2 text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
+              Les données derrière l&apos;analyse
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
-          <TeamForm team={match.homeTeam} />
-          <TeamForm team={match.awayTeam} />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
+              <TeamForm team={match.homeTeam} />
+              <TeamForm team={match.awayTeam} />
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up delay-100">
-          <H2HStats match={match} />
-          <MatchStats homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up delay-100">
+              <H2HStats match={match} />
+              <MatchStats homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+            </div>
+          </>
+        )}
 
         {!finished && match.odds.length > 0 && (
           <div className="animate-fade-in-up delay-200">
