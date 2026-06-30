@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminDashboard from "@/components/admin/admin-dashboard";
-import RecoverablePayments from "@/components/admin/recoverable-payments";
 import EmailCampaigns from "@/components/admin/email-campaigns";
 import UsersTable from "@/components/admin/users-table";
 import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
@@ -15,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   if (!(await isAdmin())) notFound();
 
-  const [{ users, totalRevenue, recoverable }, campaignStats] = await Promise.all([
+  const [{ users, totalRevenue }, campaignStats] = await Promise.all([
     getAdminData(),
     getCampaignStats(),
   ]);
@@ -41,9 +40,6 @@ export default async function AdminPage() {
 
           {/* Analytics dashboard */}
           <AdminDashboard stats={stats} />
-
-          {/* Argent à récupérer : paiements échoués (3DS, carte refusée…) */}
-          <RecoverablePayments rows={recoverable} />
 
           {/* Campagnes e-mail : conversion des gratuits + churned (envoi manuel) */}
           <EmailCampaigns

@@ -225,67 +225,6 @@ export default function AdminDashboard({ stats }: { stats: AdminStats }) {
 
       {/* Acquisition channels — classés par CA généré (quel canal rapporte le plus) */}
       <AcquisitionByRevenue stats={stats} />
-
-      {/* Pourquoi pas d'abonnement ? */}
-      <div className="rounded-2xl glass px-5 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-[#9aa3b2]">
-            Pourquoi pas d&apos;abonnement ?
-          </h3>
-          <span className="text-[11px] text-[#5a6472]">
-            {stats.noSubAnswered} réponse{stats.noSubAnswered > 1 ? "s" : ""}
-          </span>
-        </div>
-
-        {stats.noSubBreakdown.length === 0 ? (
-          <p className="text-xs text-[#5a6472] py-4 text-center">
-            Aucune réponse — les non-abonnés répondront après quelques jours sur l&apos;app.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
-            {stats.noSubBreakdown.map((r) => {
-              const share = stats.noSubAnswered
-                ? Math.round((r.count / stats.noSubAnswered) * 100)
-                : 0;
-              const maxReason = Math.max(1, ...stats.noSubBreakdown.map((x) => x.count));
-              return (
-                <div key={r.id}>
-                  <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-[#f0f0f0] font-semibold">
-                      {r.emoji} {r.label}
-                    </span>
-                    <span className="tabular-nums text-[#9aa3b2]">
-                      {r.count} · {share}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[#ffd700]"
-                      style={{ width: `${(r.count / maxReason) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {stats.noSubDetails.length > 0 && (
-          <div className="mt-4 border-t border-white/5 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5a6472] mb-2">
-              Réponses libres
-            </p>
-            <ul className="flex flex-col gap-1.5">
-              {stats.noSubDetails.map((d, i) => (
-                <li key={i} className="text-[11px] text-[#9aa3b2] leading-snug">
-                  <span className="text-[#5a6472]">{d.emoji} {d.label} —</span>{" "}
-                  <span className="text-[#e0e0e0]">«&nbsp;{d.detail}&nbsp;»</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

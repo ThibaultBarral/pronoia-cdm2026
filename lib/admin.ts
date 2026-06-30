@@ -39,68 +39,15 @@ export async function isAdmin(): Promise<boolean> {
   return Boolean(user?.app_metadata?.is_admin === true);
 }
 
-/** Aggregated failed/abandoned payment attempts for one would-be customer. */
-interface FailedAttempt {
-  userId: string;
-  attempts: number; // nombre de tentatives non abouties
-  lastAmount: number; // montant de la dernière tentative (€)
-  lastOffer: string; // intitulé de l'offre tentée
-  lastReason: string; // catégorie d'échec (3DS, carte refusée, …)
-  lastAt: string; // ISO de la dernière tentative
-}
-
-/** Extract our Supabase userId from a Whop payment's metadata (object or JSON string). */
-function whopUserId(p: Record<string, unknown>): string | null {
-  const m = p.metadata;
-  if (m && typeof m === "object") {
-    const id = (m as Record<string, unknown>).userId;
-    return typeof id === "string" ? id : null;
-  }
-  if (typeof m === "string") {
-    try {
-      const id = JSON.parse(m)?.userId;
-      return typeof id === "string" ? id : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-/** Short, human label for why a payment attempt failed. */
-function failureCategory(p: Record<string, unknown>): string {
-  const raw = [
-    p.failure_reason, p.failure_message, p.last_payment_error,
-    (p.error as { message?: string } | null)?.message,
-  ]
-    .map((x) => (typeof x === "string" ? x : ""))
-    .join(" ")
-    .toLowerCase();
-  if (/3d ?secure|3ds|verify your identity|verification/.test(raw)) return "3D Secure (vérif. bancaire)";
-  if (/insufficient funds/.test(raw)) return "Fonds insuffisants";
-  if (/declined/.test(raw)) return "Carte refusée";
-  if (String(p.status) === "open" || String(p.status) === "incomplete") return "Abandon en cours de paiement";
-  return "Autre échec";
-}
-
 /**
  * Real revenue from Whop: sum of paid payments (creator subtotal − refunds),
- * total + per membership id. Also surfaces would-be customers whose payment
- * attempts all failed (3DS, declined…) — money to recover. Empty when there
- * are no real payments yet.
+ * total + per membership id. Empty/0 when there are no real payments yet.
  */
-async function fetchWhopRevenue(): Promise<{
-  total: number;
-  byMembership: Map<string, number>;
-  paidUserIds: Set<string>;
-  failedByUser: Map<string, FailedAttempt>;
-}> {
+async function fetchWhopRevenue(): Promise<{ total: number; byMembership: Map<string, number> }> {
   const byMembership = new Map<string, number>();
-  const paidUserIds = new Set<string>();
-  const failedByUser = new Map<string, FailedAttempt>();
   let total = 0;
   const key = process.env.WHOP_API_KEY;
-  if (!key) return { total, byMembership, paidUserIds, failedByUser };
+  if (!key) return { total, byMembership };
 
   let cursor: string | null = null;
   try {
@@ -119,41 +66,15 @@ async function fetchWhopRevenue(): Promise<{
       const data: Array<Record<string, unknown>> = json.data ?? [];
 
       for (const p of data) {
-        const uid = whopUserId(p);
-
-        if (p.status === "paid") {
-          if (uid) paidUserIds.add(uid);
-          const subtotal = typeof p.subtotal === "number" ? p.subtotal : 0;
-          const refunded = typeof p.refunded_amount === "number" ? p.refunded_amount : 0;
-          const net = subtotal - refunded;
-          if (net <= 0) continue;
-          total += net;
-          const m = p.membership as { id?: string } | string | null;
-          const mid = typeof m === "string" ? m : m?.id;
-          if (mid) byMembership.set(mid, (byMembership.get(mid) ?? 0) + net);
-          continue;
-        }
-
-        // Non-paid attempt (open / failed / pending / incomplete) → recovery candidate.
-        if (!uid) continue;
-        const amount = typeof p.subtotal === "number" ? p.subtotal : 0;
-        const at = typeof p.created_at === "string" ? p.created_at : "";
-        const offer = typeof p.description === "string" && p.description ? p.description : "Offre";
-        const prev = failedByUser.get(uid);
-        if (!prev) {
-          failedByUser.set(uid, {
-            userId: uid, attempts: 1, lastAmount: amount, lastOffer: offer,
-            lastReason: failureCategory(p), lastAt: at,
-          });
-        } else {
-          prev.attempts += 1;
-          if (at >= prev.lastAt) {
-            prev.lastAmount = amount;
-            prev.lastOffer = offer;
-            prev.lastReason = failureCategory(p);
-            prev.lastAt = at;
-          }
-        }
+        if (p.status !== "paid") continue;
+        const subtotal = typeof p.subtotal === "number" ? p.subtotal : 0;
+        const refunded = typeof p.refunded_amount === "number" ? p.refunded_amount : 0;
+        const net = subtotal - refunded;
+        if (net <= 0) continue;
+        total += net;
+        const m = p.membership as { id?: string } | string | null;
+        const mid = typeof m === "string" ? m : m?.id;
+        if (mid) byMembership.set(mid, (byMembership.get(mid) ?? 0) + net);
       }
 
       cursor = (json.pagination?.next_cursor as string | null) ?? null;
@@ -162,7 +83,7 @@ async function fetchWhopRevenue(): Promise<{
   } catch (err) {
     console.warn("[admin] Whop revenue fetch failed:", err);
   }
-  return { total, byMembership, paidUserIds, failedByUser };
+  return { total, byMembership };
 }
 
 /** Total real Whop revenue (€), payé − remboursé. For the costs dashboard. */
@@ -170,42 +91,20 @@ export async function getWhopRevenueTotal(): Promise<number> {
   return (await fetchWhopRevenue()).total;
 }
 
-/** A would-be customer whose payment attempts all failed — money to recover. */
-export interface RecoverablePayment {
-  userId: string;
-  email: string | null;
-  name: string | null;
-  amount: number; // montant de la dernière tentative (€)
-  offer: string; // intitulé de l'offre tentée
-  reason: string; // catégorie d'échec (3DS, carte refusée…)
-  attempts: number; // nombre de tentatives non abouties
-  lastAt: string; // ISO de la dernière tentative
-  sentAt: string | null; // ISO du dernier e-mail de relance envoyé (persisté)
-}
-
 /** All users + subscription/usage stats + real Whop revenue. Admin only. */
 export async function getAdminData(): Promise<{
   users: AdminUserRow[];
   totalRevenue: number;
-  recoverable: RecoverablePayment[];
 }> {
-  if (!(await isAdmin())) return { users: [], totalRevenue: 0, recoverable: [] };
+  if (!(await isAdmin())) return { users: [], totalRevenue: 0 };
 
   const admin = createAdminClient();
 
-  const [{ data: list }, { data: subs }, revenue, { data: sentEvents }] = await Promise.all([
+  const [{ data: list }, { data: subs }, revenue] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from("subscriptions").select("user_id, plan, status, analyses_count, free_analyses_used, visit_days, winback_popup_seen_at, whop_membership_id, vip"),
     fetchWhopRevenue(),
-    admin.from("app_events").select("user_id, created_at").eq("name", "recovery_email_sent").order("created_at", { ascending: false }),
   ]);
-
-  // Dernier e-mail de relance envoyé par utilisateur (badge "Relancé" persistant).
-  const recoveryByUser = new Map<string, string>();
-  for (const e of sentEvents ?? []) {
-    const uid = e.user_id as string | null;
-    if (uid && !recoveryByUser.has(uid)) recoveryByUser.set(uid, e.created_at as string);
-  }
 
   const byId = new Map((subs ?? []).map((s) => [s.user_id as string, s]));
   const users = (list?.users ?? [])
@@ -243,28 +142,7 @@ export async function getAdminData(): Promise<{
     })
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
-  // Clients qui ont tenté de payer sans jamais aboutir → à relancer.
-  const usersById = new Map(users.map((u) => [u.id, u]));
-  const recoverable: RecoverablePayment[] = [...revenue.failedByUser.values()]
-    .filter((f) => !revenue.paidUserIds.has(f.userId))
-    .map((f) => {
-      const u = usersById.get(f.userId);
-      return {
-        userId: f.userId,
-        email: u?.email ?? null,
-        name: u?.name ?? null,
-        amount: f.lastAmount,
-        offer: f.lastOffer,
-        reason: f.lastReason,
-        attempts: f.attempts,
-        lastAt: f.lastAt,
-        sentAt: recoveryByUser.get(f.userId) ?? null,
-      };
-    })
-    // Plus de tentatives = client le plus motivé → en haut.
-    .sort((a, b) => b.attempts - a.attempts || (b.lastAt ?? "").localeCompare(a.lastAt ?? ""));
-
-  return { users, totalRevenue: revenue.total, recoverable };
+  return { users, totalRevenue: revenue.total };
 }
 
 // ─── Aggregated dashboard stats (pure, derived from the user rows) ─────────────
