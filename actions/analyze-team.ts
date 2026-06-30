@@ -24,7 +24,7 @@ Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte 
   "betIdeas": [{"label": "idée de pari concrète sur CETTE équipe", "rationale": "pourquoi, en clair", "confidence": "Faible|Moyen|Élevé"}]
 }
 
-RÈGLES : 2 à 3 forces, 2 à 3 faiblesses, 2 à 3 joueurs (tirés de l'effectif fourni, sans inventer de stats), 2 à 3 idées de paris (ex. se qualifie de son groupe, atteint les 8es, marque +1.5 but, tel joueur buteur). Base-toi UNIQUEMENT sur les données fournies. Si une info manque, reste prudent. Pas de stat inventée.`;
+RÈGLES : 2 à 3 forces, 2 à 3 faiblesses, 2 à 3 joueurs choisis EXCLUSIVEMENT dans la liste "JOUEURS RÉELLEMENT EN FORME" (privilégie ceux avec le plus de matchs/buts ; n'invente JAMAIS un nom et ne cite JAMAIS un grand nom du passé absent de la liste — s'il n'y est pas, il ne joue pas), 2 à 3 idées de paris (ex. se qualifie de son groupe, atteint les 8es, marque +1.5 but, tel joueur buteur). Base-toi UNIQUEMENT sur les données fournies. Si une info manque, reste prudent. Pas de stat inventée.`;
 
 function buildPrompt(team: Team, sim: TeamSimResult | null): string {
   const formStr = team.recentForm.length
@@ -39,16 +39,37 @@ function buildPrompt(team: Team, sim: TeamSimResult | null): string {
     ? `${m.last5Pts}/15 pts (5 derniers) · ${m.goalsForAvg} but marqué / ${m.goalsAgainstAvg} encaissé par match · ${m.cleanSheets} clean sheets · ${m.trend === "hot" ? "en forme 🔥" : m.trend === "cold" ? "en méforme ❄️" : "irrégulier"}`
     : "—";
 
-  const squad = team.lineup.players.length
-    ? team.lineup.players.slice(0, 26).map((p) => `${p.name} (${p.position})`).join(", ")
-    : "Effectif non communiqué";
+  // Prefer real WC 2026 involvement (who actually plays/scores) over the raw
+  // registered roster, so the AI never highlights an uncapped / bench name.
+  const contributors = team.recentContributors ?? [];
+  const squad = contributors.length
+    ? contributors
+        .slice(0, 20)
+        .map((p) => {
+          const bits = [`${p.apps} match${p.apps > 1 ? "s" : ""}`];
+          if (p.goals) bits.push(`${p.goals} but${p.goals > 1 ? "s" : ""}`);
+          return `${p.name} (${p.position}, ${bits.join(", ")})`;
+        })
+        .join(", ")
+    : team.lineup.players.length
+      ? team.lineup.players.slice(0, 26).map((p) => `${p.name} (${p.position})`).join(", ")
+      : "Effectif non communiqué";
 
+  // Prefer the REAL tournament top scorer (involvement is sorted goals-first) over
+  // the static keyPlayers[0] guess, so the "buteur probable" hint never names a
+  // player who isn't actually scoring.
+  const realTopScorer = contributors.find((p) => p.goals > 0);
+  const scorerHint = realTopScorer
+    ? ` · meilleur buteur réel : ${realTopScorer.name} (${realTopScorer.goals} but${realTopScorer.goals > 1 ? "s" : ""} CDM)`
+    : sim?.probableScorer
+      ? ` · buteur probable : ${sim.probableScorer.name} (~${sim.probableScorer.expectedGoals} buts)`
+      : "";
   const simStr = sim
     ? `NOTRE SIMULATION (probabilités, à lire en clair) :
 - Victoire finale : ${sim.title}% · Étape probable : ${sim.probableStage}
 - Atteindre : 16es ${sim.reachR32}% · 8es ${sim.reachR16}% · 1/4 ${sim.reachQF}% · 1/2 ${sim.reachSF}% · finale ${sim.reachFinal}%
 - 1er de son groupe : ${sim.winGroup}% · qualifié (top 2) : ${(sim.winGroup + sim.runnerUp).toFixed(0)}%
-- Buts projetés sur le tournoi : ${sim.projGoals}${sim.probableScorer ? ` · buteur probable : ${sim.probableScorer.name} (~${sim.probableScorer.expectedGoals} buts)` : ""}`
+- Buts projetés sur le tournoi : ${sim.projGoals}${scorerHint}`
     : "Simulation non disponible.";
 
   return `ÉQUIPE : ${team.flag} ${team.name} — #${team.fifaRanking} FIFA${team.coach ? ` · Sélectionneur : ${team.coach}` : ""}
@@ -58,7 +79,7 @@ ${formStr}
 
 MOMENTUM : ${momentumStr}
 
-EFFECTIF (noms et postes réels) :
+JOUEURS RÉELLEMENT EN FORME (classés par implication CDM 2026 : matchs joués, buts — cite UNIQUEMENT ces joueurs, jamais un grand nom absent de la liste) :
 ${squad}
 
 ${simStr}`;
@@ -89,7 +110,7 @@ export async function analyzeTeam(team: Team, slug: string, locale: Locale = def
   // Re-key by finished WC matches AND locale so each language refreshes/caches apart.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:team:${slug}:${day}:wc${finished}:${locale}`;
+  const key = `analysis:team:${slug}:${day}:wc${finished}:realpool1:${locale}`;
 
   try {
     // Shared daily cache → one Claude call per team per day per language, reused by everyone.

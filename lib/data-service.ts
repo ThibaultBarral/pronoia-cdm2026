@@ -16,6 +16,7 @@ import type {
 import {
   fetchSquad,
   fetchCoach,
+  fetchPlayerInvolvement,
   fetchRecentMatches,
   fetchH2H,
   fetchFixtures,
@@ -38,6 +39,7 @@ import type {
   Player,
   Lineup,
   TeamMomentum,
+  RecentContributor,
 } from "./types";
 import { MATCHES as MOCK_MATCHES, getMatchById as getMockById } from "./mock-data";
 
@@ -82,6 +84,33 @@ const KNOCKOUT_ROUNDS: Record<string, string> = {
 function isKnockout(round: string | undefined): boolean {
   return Boolean(round && round in KNOCKOUT_ROUNDS);
 }
+
+/**
+ * API-Football `league.round` label → our French round key (matches the values
+ * produced by `roundLabelFr`). Lets us line up a live API knockout fixture with
+ * the corresponding OpenFootball skeleton slot. Exact-match only — substring
+ * matching would confuse "Final" with "Semi-finals".
+ */
+const API_KO_ROUND_TO_FR: Record<string, string> = {
+  "Round of 32": "16es de finale",
+  "Round of 16": "8es de finale",
+  "Quarter-finals": "Quart de finale",
+  "Quarter-final": "Quart de finale",
+  "Semi-finals": "Demi-finale",
+  "Semi-final": "Demi-finale",
+  "3rd Place Final": "Match pour la 3e place",
+  "3rd Place": "Match pour la 3e place",
+  Final: "Finale",
+};
+
+function apiRoundFr(round: string): string | null {
+  return API_KO_ROUND_TO_FR[round] ?? null;
+}
+
+/** Reverse lookup: API-Football team id → our canonical English team name. */
+const NAME_BY_API_ID: Map<number, string> = new Map(
+  Object.entries(TEAM_META).map(([name, meta]) => [meta.apiId, name])
+);
 
 /** French round label for any fixture (group or knockout). */
 function roundLabelFr(m: OFMatch): string {
@@ -511,7 +540,7 @@ async function buildTeam(
 
   if (!hasApiKey() || !teamId) return emptyTeam;
 
-  const [squadRes, coachRes, formRes] = await Promise.allSettled([
+  const [squadRes, coachRes, formRes, involvementRes] = await Promise.allSettled([
     getCachedOrFetch(`squad:${teamId}`, 86400, () => fetchSquad(teamId)),
     getCachedOrFetch(`coach:${teamId}`, 604800, () => fetchCoach(teamId)),
     // Real recent matches across all competitions — cached 1h so the form
@@ -519,12 +548,26 @@ async function buildTeam(
     getCachedOrFetch(`recent:${teamId}`, 3600, () => fetchRecentMatches(teamId, 10)).catch(
       () => [] as ApiFixtureResponse[]
     ),
+    // Real WC 2026 player involvement (who actually plays/scores) — cached 1h so
+    // the AI's probable scorers / key players follow the tournament, not a stale
+    // registered roster. Empty before the team has played a WC match.
+    getCachedOrFetch(`involvement:${teamId}`, 3600, () => fetchPlayerInvolvement(teamId)).catch(
+      () => [] as RecentContributor[]
+    ),
   ]);
 
   const squad = squadRes.status === "fulfilled" ? squadRes.value : null;
   const coach = coachRes.status === "fulfilled" ? coachRes.value : null;
   const fixtures =
     formRes.status === "fulfilled" ? (formRes.value as ApiFixtureResponse[]) : [];
+  // Keep only players who actually featured, ranked by goals then minutes — the
+  // real "who plays" pool. Fringe / uncapped names (0 minutes) drop out.
+  const recentContributors =
+    involvementRes.status === "fulfilled"
+      ? (involvementRes.value as RecentContributor[])
+          .filter((p) => p.minutes > 0 || p.apps > 0)
+          .sort((p1, p2) => p2.goals - p1.goals || p2.minutes - p1.minutes)
+      : [];
 
   const realForm = fixtures.length ? mapForm(fixtures, teamId) : [];
   const momentum = computeMomentum(realForm);
@@ -548,7 +591,42 @@ async function buildTeam(
     momentum,
     stats: realForm.length ? liveStats : emptyTeam.stats,
     lineup: mapSquad(squad),
+    recentContributors,
     dataSource: realForm.length ? "live" : "static",
+  };
+}
+
+/**
+ * Resolve an undecided OpenFootball knockout slot from the LIVE API-Football
+ * bracket. OpenFootball lags: its R16+ fixtures still read "Canada vs W75" long
+ * after the real draw is known. API-Football carries the resolved nations and
+ * scores, so for any knockout slot that already has at least one decided side we
+ * find the matching API fixture (same round, contains the known team) and return
+ * the real pairing + live result. Returns null when the tie is genuinely still
+ * undetermined (both sides placeholders) or there's no API key.
+ */
+function resolveKnockoutSlot(
+  f: OFMatch,
+  wc: ApiFixtureResponse[]
+): { home: string; away: string; live: LiveResult } | null {
+  const frRound = roundLabelFr(f);
+  const knownIds = [
+    isPlaceholderName(f.team1) ? 0 : getTeamMeta(f.team1).apiId,
+    isPlaceholderName(f.team2) ? 0 : getTeamMeta(f.team2).apiId,
+  ].filter(Boolean);
+  if (!knownIds.length) return null; // both sides still undecided
+
+  const fx = wc.find(
+    (x) =>
+      apiRoundFr(x.league.round) === frRound &&
+      (knownIds.includes(x.teams.home.id) || knownIds.includes(x.teams.away.id))
+  );
+  if (!fx) return null;
+
+  return {
+    home: NAME_BY_API_ID.get(fx.teams.home.id) ?? fx.teams.home.name,
+    away: NAME_BY_API_ID.get(fx.teams.away.id) ?? fx.teams.away.name,
+    live: orientResult(fx, fx.teams.home.id),
   };
 }
 
@@ -609,6 +687,31 @@ export async function getMatches(): Promise<Match[]> {
     const kickoff = toParisDateTime(f.date, f.time);
     const hasFtScore = Boolean(f.score);
 
+    // Knockout slot OpenFootball hasn't resolved yet ("Canada vs Vainqueur
+    // match 75"): pull the real nations + live score from API-Football.
+    if (!isGroupStage && (isPlaceholderName(f.team1) || isPlaceholderName(f.team2))) {
+      const resolved = resolveKnockoutSlot(f, wc);
+      if (resolved) {
+        return {
+          id: matchSlug(resolved.home, resolved.away),
+          homeTeam: makeShell(resolved.home, getTeamMeta(resolved.home)),
+          awayTeam: makeShell(resolved.away, getTeamMeta(resolved.away)),
+          date: kickoff.date,
+          time: kickoff.time,
+          stadium: venueToStadium(f.ground),
+          city: venueToCity(f.ground),
+          country: venueToCountry(f.ground),
+          group,
+          round: roundLabelFr(f),
+          h2h: [],
+          odds: [],
+          apiFixtureId: resolved.live.apiFixtureId,
+          status: resolved.live.status,
+          score: resolved.live.score,
+        };
+      }
+    }
+
     return {
       id: matchSlug(f.team1, f.team2),
       homeTeam: makeShell(f.team1, meta1),
@@ -656,47 +759,72 @@ export async function getMatchData(id: string): Promise<Match | null> {
 
   // Fetch OpenFootball to find the real match
   const fixtures = await fetchOpenFootball();
-  const fixture = fixtures.find((f) => matchSlug(f.team1, f.team2) === id);
+  let fixture = fixtures.find((f) => matchSlug(f.team1, f.team2) === id) ?? null;
 
-  if (!fixture) {
+  // The two nations for this match. Usually the OpenFootball names, but for a
+  // resolved knockout slug (id like "canada-vs-morocco" while OpenFootball still
+  // reads "Canada vs W75") we recover them from the live API-Football bracket.
+  let team1 = fixture?.team1;
+  let team2 = fixture?.team2;
+  let preLive: LiveResult | null = null;
+
+  if (!fixture && hasApiKey()) {
+    const wc = await getWcFixtures();
+    for (const of of fixtures) {
+      if (of.group?.startsWith("Group")) continue;
+      const resolved = resolveKnockoutSlot(of, wc);
+      if (resolved && matchSlug(resolved.home, resolved.away) === id) {
+        fixture = of;
+        team1 = resolved.home;
+        team2 = resolved.away;
+        preLive = resolved.live;
+        break;
+      }
+    }
+  }
+
+  if (!fixture || !team1 || !team2) {
     // Fall back to mock
     return mockMatch ?? null;
   }
 
   const isGroupStage = Boolean(fixture.group?.startsWith("Group"));
   const group = isGroupStage ? (fixture.group ?? "").replace("Group ", "") : "—";
-  const meta1 = getTeamMeta(fixture.team1);
-  const meta2 = getTeamMeta(fixture.team2);
+  const meta1 = getTeamMeta(team1);
+  const meta2 = getTeamMeta(team2);
 
   // Build teams — API-Football calls (squad + coach) run in parallel. Undecided
   // knockout slots ("W89", "1A"…) resolve to a neutral placeholder, not the API.
   const [homeTeam, awayTeam] = await Promise.all([
-    isPlaceholderName(fixture.team1)
-      ? Promise.resolve(placeholderTeam(fixture.team1, group))
-      : buildTeam(fixture.team1, group, true, meta2.apiId),
-    isPlaceholderName(fixture.team2)
-      ? Promise.resolve(placeholderTeam(fixture.team2, group))
-      : buildTeam(fixture.team2, group, false, meta1.apiId),
+    isPlaceholderName(team1)
+      ? Promise.resolve(placeholderTeam(team1, group))
+      : buildTeam(team1, group, true, meta2.apiId),
+    isPlaceholderName(team2)
+      ? Promise.resolve(placeholderTeam(team2, group))
+      : buildTeam(team2, group, false, meta1.apiId),
   ]);
 
   // H2H, odds and live score — REAL only (no mock fallback). Empty = the UI shows
   // an honest "indisponible" state. All API-Football calls are Supabase-cached.
   let h2h: HH2Match[] = [];
   let odds: Match["odds"] = [];
-  let apiFixtureId: number | undefined;
-  let liveStatus: Match["status"] | undefined;
-  let liveScore: Match["score"] | undefined;
+  // Resolved knockout slots already carry the live result from the bracket lookup.
+  let apiFixtureId: number | undefined = preLive?.apiFixtureId;
+  let liveStatus: Match["status"] | undefined = preLive?.status;
+  let liveScore: Match["score"] | undefined = preLive?.score;
 
   if (hasApiKey() && meta1.apiId && meta2.apiId) {
     // Resolve this match's API-Football fixture → unlocks odds + live score.
     // Short-cached (60s) + oriented to OUR home team so the score isn't flipped.
-    const wc = await getWcFixtures();
-    const apiFixture = findWcFixture(wc, meta1.apiId, meta2.apiId);
-    if (apiFixture) {
-      const live = orientResult(apiFixture, meta1.apiId);
-      apiFixtureId = live.apiFixtureId;
-      liveStatus = live.status;
-      liveScore = live.score;
+    if (!apiFixtureId) {
+      const wc = await getWcFixtures();
+      const apiFixture = findWcFixture(wc, meta1.apiId, meta2.apiId);
+      if (apiFixture) {
+        const live = orientResult(apiFixture, meta1.apiId);
+        apiFixtureId = live.apiFixtureId;
+        liveStatus = live.status;
+        liveScore = live.score;
+      }
     }
 
     const [h2hRes, oddsRes] = await Promise.allSettled([

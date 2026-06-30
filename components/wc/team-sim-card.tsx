@@ -59,6 +59,10 @@ export default function TeamSimCard({
   }
   const last5 = form.slice(0, 5).reverse();
 
+  // Prefer the REAL tournament top scorer (recentContributors is sorted goals-first)
+  // over the static keyPlayers[0] guess, so we never label a non-scorer "buteur".
+  const realScorer = team.recentContributors?.find((p) => p.goals > 0) ?? null;
+
   return (
     <section className="rounded-2xl glass overflow-hidden">
       <div className="px-5 py-4 border-b border-white/5">
@@ -93,7 +97,16 @@ export default function TeamSimCard({
                 <div className="text-lg font-black text-[var(--text)] tabular-nums">{sim.projGoals}</div>
                 <div className="text-[10px] text-[var(--text-muted)]">Buts projetés</div>
               </div>
-              {sim.probableScorer && (
+              {realScorer ? (
+                <div className="rounded-xl glass p-3 text-center">
+                  <div className="text-sm font-black text-[var(--text)] truncate">
+                    {realScorer.name}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    meilleur buteur · {realScorer.goals} but{realScorer.goals > 1 ? "s" : ""} CDM
+                  </div>
+                </div>
+              ) : sim.probableScorer ? (
                 <div className="rounded-xl glass p-3 text-center">
                   <div className="text-sm font-black text-[var(--text)] truncate">
                     {sim.probableScorer.name}
@@ -102,7 +115,7 @@ export default function TeamSimCard({
                     buteur probable · ~{sim.probableScorer.expectedGoals} buts
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Run gauges */}

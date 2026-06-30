@@ -73,7 +73,7 @@ Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte 
 }
 
 RÈGLES : 2 à 3 secondaryScenarios, 3 à 5 factors, "home"=équipe à domicile/1ère citée. Base-toi UNIQUEMENT sur les données et chiffres fournis.
-RÈGLE JOUEURS (capitale) : pour "probableScorers", "firstScorer" et "keyPlayers", choisis EXCLUSIVEMENT des noms présents dans l'EFFECTIF fourni plus bas — n'INVENTE JAMAIS un joueur, ne devine pas un nom de mémoire. Si aucun effectif n'est fourni, renvoie [] pour probableScorers/keyPlayers et "" pour firstScorer. 2 à 4 probableScorers (favorise les attaquants/ailiers et le côté favori), 2 à 4 keyPlayers répartis entre les 2 équipes. Recopie les noms à l'identique.
+RÈGLE JOUEURS (capitale) : pour "probableScorers", "firstScorer" et "keyPlayers", choisis EXCLUSIVEMENT des noms de la liste "JOUEURS RÉELLEMENT EN FORME" fournie plus bas — n'INVENTE JAMAIS un joueur et ne devine pas un nom de mémoire (un grand nom du passé qui n'apparaît PAS dans la liste = il ne joue pas, ne le cite pas). Cette liste est classée par implication réelle (matchs joués, buts) : privilégie les joueurs avec le plus de matchs/buts, JAMAIS un remplaçant peu utilisé. Si la liste est vide, renvoie [] pour probableScorers/keyPlayers et "" pour firstScorer. 2 à 4 probableScorers (favorise les buteurs réels et le côté favori), 2 à 4 keyPlayers répartis entre les 2 équipes. Recopie les noms à l'identique.
 RÈGLE VALUE (capitale) : chaque profil a SON pari, imposé par le VERDICT VALUE de notre moteur (fourni plus bas, un par profil). Pour CHAQUE profil, rédige le "rationale" en cohérence STRICTE avec SON verdict — ne propose JAMAIS un autre pari, ne contredis pas l'EV. Si l'EV d'un profil est ≤ 0 ("Pas de value"), explique honnêtement que ce pari n'a pas de valeur au prix actuel et conseille de NE PAS miser — n'écris JAMAIS "value", "bon pari" ou "ça sent la value" dans ce cas. Une probabilité de victoire élevée n'est PAS une value si la cote est trop basse. Seul ton "rationale" est conservé (le moteur réécrit bet/odds/confidence/stake).`;
 
 function buildPrompt(match: Match, pred: MatchPrediction): string {
@@ -97,10 +97,26 @@ function buildPrompt(match: Match, pred: MatchPrediction): string {
 
   const cmp = pred.comparison.map((c) => `${c.label} ${c.home}/${c.away}`).join(" · ");
 
-  // Real squad pool so Claude picks scorers/key players from actual names — never
-  // invents one. Attacking players first (likelier scorers), capped to bound tokens.
+  // Pool the AI must pick scorers / key players from. PREFER real WC involvement
+  // (who actually plays + scores this tournament) so it can't elevate uncapped /
+  // bench names. Each line carries minutes + goals so Claude favours the regulars
+  // and real scorers. Falls back to the registered squad only before kick-off.
   const ATTACK = /(ATT|FW|ST|CF|SS|LW|RW|RF|LF|AIL|AM|CAM|MO|MF|CM|LM|RM|MIL)/i;
   const squadStr = (team: typeof h): string => {
+    const contributors = team.recentContributors ?? [];
+    if (contributors.length) {
+      // Already ranked by goals then minutes upstream — keep the real regulars.
+      return contributors
+        .slice(0, 16)
+        .map((p) => {
+          const bits = [`${p.apps} match${p.apps > 1 ? "s" : ""}`];
+          if (p.goals) bits.push(`${p.goals} but${p.goals > 1 ? "s" : ""}`);
+          if (p.assists) bits.push(`${p.assists} passe${p.assists > 1 ? "s" : ""} D`);
+          return `${p.name} (${p.position}, ${bits.join(", ")})`;
+        })
+        .join(", ");
+    }
+    // Pre-tournament fallback: registered squad, attackers first.
     const players = team.lineup?.players ?? [];
     if (!players.length) {
       return team.keyPlayers?.length ? `joueurs connus : ${team.keyPlayers.join(", ")}` : "effectif non disponible";
@@ -122,7 +138,7 @@ ${a.flag} ${a.name}: ${formStr(a)}
 H2H : ${h2hStr}
 COTES : ${oddsStr}
 
-EFFECTIF (choisis buteurs & joueurs clés UNIQUEMENT dans ces listes — noms exacts) :
+JOUEURS RÉELLEMENT EN FORME (classés par implication CDM 2026 : matchs joués, buts, passes — choisis buteurs & joueurs clés UNIQUEMENT ici, noms exacts, PRIVILÉGIE ceux qui jouent et marquent vraiment, jamais un remplaçant inutilisé) :
 ${h.flag} ${h.name}: ${squadStr(h)}
 ${a.flag} ${a.name}: ${squadStr(a)}
 
@@ -279,7 +295,7 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
   // across all users — the UI toggles between profiles client-side.
   const day = new Date().toISOString().slice(0, 10);
   const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:profiles3sc:${locale}`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:realpool1:${locale}`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));

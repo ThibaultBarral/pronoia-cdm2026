@@ -13,6 +13,8 @@
  *   - Odds: 30min
  */
 
+import type { RecentContributor } from "./types";
+
 const BASE = "https://v3.football.api-sports.io";
 export const WC_LEAGUE = 1;
 export const WC_SEASON = 2026;
@@ -231,6 +233,65 @@ export async function fetchSquad(teamId: number): Promise<ApiSquadResponse | nul
     43200
   );
   return results[0] ?? null;
+}
+
+interface ApiPlayerStatsRow {
+  player: { id: number; name: string };
+  statistics: Array<{
+    games?: {
+      appearences?: number | null;
+      minutes?: number | null;
+      position?: string | null;
+      rating?: string | null;
+    };
+    goals?: { total?: number | null; assists?: number | null };
+  }>;
+}
+
+/**
+ * Real WC 2026 player involvement for a national team — appearances, minutes,
+ * goals, assists and average rating per player (from `/players`). Unlike
+ * `/players/squads` (a registered roster that lists uncapped / fringe names),
+ * this reflects who ACTUALLY plays and scores in the tournament, so the AI can
+ * pick probable scorers / key players from real contributors. Paginated (20 per
+ * page) — we walk every page. Cached upstream by the caller.
+ */
+export async function fetchPlayerInvolvement(
+  teamId: number
+): Promise<RecentContributor[]> {
+  const apiKey = process.env.API_FOOTBALL_KEY;
+  if (!apiKey) throw new Error("API_FOOTBALL_KEY not set");
+
+  const out: RecentContributor[] = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const res = await fetch(
+      `${BASE}/players?team=${teamId}&league=${WC_LEAGUE}&season=${WC_SEASON}&page=${page}`,
+      { headers: { "x-apisports-key": apiKey, Accept: "application/json" }, next: { revalidate: 3600 } }
+    );
+    if (!res.ok) throw new Error(`API-Football HTTP ${res.status} for /players`);
+    const json = await res.json();
+    if (json.errors && typeof json.errors === "object" && Object.keys(json.errors).length > 0) {
+      throw new Error(`API-Football error: ${JSON.stringify(json.errors)}`);
+    }
+    totalPages = json.paging?.total ?? 1;
+    for (const r of (json.response as ApiPlayerStatsRow[]) ?? []) {
+      const s = r.statistics?.[0] ?? {};
+      out.push({
+        name: r.player.name,
+        position: s.games?.position ?? "",
+        apps: s.games?.appearences ?? 0,
+        minutes: s.games?.minutes ?? 0,
+        goals: s.goals?.total ?? 0,
+        assists: s.goals?.assists ?? 0,
+        rating: s.games?.rating ? Number(s.games.rating) : null,
+      });
+    }
+    page += 1;
+  } while (page <= totalPages && page <= 5); // hard cap: never more than 5 pages
+
+  return out;
 }
 
 /**

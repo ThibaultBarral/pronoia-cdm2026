@@ -84,8 +84,30 @@ export interface Team {
   weaknesses?: string[];
   /** "live" when recentForm/stats come from API-Football, "static" when from team-data.ts */
   dataSource?: "live" | "static";
+  /**
+   * Real WC 2026 player involvement (appearances, minutes, goals, rating) — who
+   * ACTUALLY plays/scores in the tournament. The pool the AI must pick scorers /
+   * key players from, instead of the raw registered squad (which lists uncapped
+   * fringe names). Empty before the team has played.
+   */
+  recentContributors?: RecentContributor[];
   /** True when this slot is an undetermined knockout placeholder (e.g. "Vainqueur match 89"). */
   isPlaceholder?: boolean;
+}
+
+/** One player's real recent involvement for a national team (from API-Football /players). */
+export interface RecentContributor {
+  name: string;
+  /** API-Football position label (Goalkeeper / Defender / Midfielder / Attacker). */
+  position: string;
+  /** Matches actually appeared in. */
+  apps: number;
+  /** Total minutes played. */
+  minutes: number;
+  goals: number;
+  assists: number;
+  /** Average match rating (null when unrated). */
+  rating: number | null;
 }
 
 export interface Match {
