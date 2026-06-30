@@ -37,3 +37,32 @@ export async function sendEmail(opts: {
     return { ok: false, error: (err as Error).message };
   }
 }
+
+/**
+ * Envoi en masse via l'API batch de Resend (≤100 par appel). Personnalisé :
+ * chaque destinataire a son propre sujet + HTML. Renvoie le nombre envoyé.
+ */
+export async function sendEmailBatch(
+  messages: { to: string; subject: string; html: string }[],
+): Promise<{ ok: boolean; sent: number; error?: string }> {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!key || !from) return { ok: false, sent: 0, error: "Email non configuré." };
+  if (messages.length === 0) return { ok: true, sent: 0 };
+
+  const resend = new Resend(key);
+  let sent = 0;
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100).map((m) => ({ from, to: m.to, subject: m.subject, html: m.html }));
+    try {
+      const { error } = await resend.batch.send(chunk);
+      if (error) return { ok: false, sent, error: error.message };
+      sent += chunk.length;
+    } catch (err) {
+      return { ok: false, sent, error: (err as Error).message };
+    }
+    // Respecte le rate-limit Resend entre deux lots.
+    if (i + 100 < messages.length) await new Promise((r) => setTimeout(r, 700));
+  }
+  return { ok: true, sent };
+}

@@ -1,0 +1,184 @@
+"use server";
+
+import { isAdmin } from "@/lib/admin";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail, sendEmailBatch } from "@/lib/email";
+import { unsubUrl } from "@/lib/email-token";
+import {
+  getCampaign, getUpcomingMatches, renderSubject, shell,
+  type CampaignContext,
+} from "@/lib/email-campaigns";
+import type { Plan } from "@/lib/plans";
+
+interface Recipient {
+  id: string;
+  email: string;
+  firstName: string;
+}
+
+function firstNameFrom(meta: Record<string, unknown>): string {
+  const n =
+    (meta.pseudo as string | undefined) ||
+    (meta.full_name as string | undefined) ||
+    (meta.name as string | undefined) ||
+    "";
+  return n.trim().split(/\s+/)[0] ?? "";
+}
+
+/**
+ * Destinataires d'une campagne : tous les comptes qui ne sont PAS des clients
+ * payants actifs et ne sont pas VIP → les Gratuits + les churned (annulés /
+ * expirés). Exclut les désinscrits (RGPD) et les comptes sans e-mail.
+ */
+async function getRecipients(): Promise<Recipient[]> {
+  const admin = createAdminClient();
+  const [{ data: list }, { data: subs }] = await Promise.all([
+    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    admin.from("subscriptions").select("user_id, plan, status, vip"),
+  ]);
+  const byId = new Map((subs ?? []).map((s) => [s.user_id as string, s]));
+
+  const out: Recipient[] = [];
+  for (const u of list?.users ?? []) {
+    if (!u.email) continue;
+    const meta = u.user_metadata ?? {};
+    if (meta.email_opt_out) continue;
+
+    const s = byId.get(u.id);
+    const plan = ((s?.plan as Plan) ?? "free") as Plan;
+    const status = (s?.status as string | null) ?? null;
+    const vip = Boolean(s?.vip);
+    const isActivePaid = plan !== "free" && (status === "active" || status === "trialing");
+    if (vip || isActivePaid) continue; // on ne re-démarche pas les clients actifs / VIP
+
+    out.push({ id: u.id, email: u.email, firstName: firstNameFrom(meta) });
+  }
+  return out;
+}
+
+export interface CampaignStats {
+  audience: number;
+  sentByCampaign: Record<string, number>;
+}
+
+/** Taille de l'audience + nombre d'envois déjà faits par campagne. Admin only. */
+export async function getCampaignStats(): Promise<CampaignStats> {
+  if (!(await isAdmin())) return { audience: 0, sentByCampaign: {} };
+  const [recipients, { data: events }] = await Promise.all([
+    getRecipients(),
+    createAdminClient().from("app_events").select("props").eq("name", "campaign_blast"),
+  ]);
+  const sentByCampaign: Record<string, number> = {};
+  for (const e of events ?? []) {
+    const key = (e.props as { campaign?: string } | null)?.campaign;
+    if (key) sentByCampaign[key] = (sentByCampaign[key] ?? 0) + 1;
+  }
+  return { audience: recipients.length, sentByCampaign };
+}
+
+export interface SendResult {
+  ok: boolean;
+  sent: number;
+  error?: string;
+}
+
+/**
+ * Envoie une campagne. mode="test" → uniquement vers l'admin connecté (les 2
+ * variantes A/B pour preview). mode="live" → toute l'audience, split A/B 50/50.
+ * Admin only. Trace l'envoi dans app_events.
+ */
+export async function sendCampaign(input: {
+  campaignKey: string;
+  mode: "test" | "live";
+}): Promise<SendResult> {
+  if (!(await isAdmin())) return { ok: false, sent: 0, error: "Non autorisé." };
+
+  const campaign = getCampaign(input.campaignKey);
+  if (!campaign) return { ok: false, sent: 0, error: "Campagne inconnue." };
+
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (!base) return { ok: false, sent: 0, error: "NEXT_PUBLIC_APP_URL manquant." };
+  const url = `${base}/tarifs`;
+
+  const matches = await getUpcomingMatches(3);
+
+  const ctxFor = (userId: string, firstName: string): CampaignContext => ({
+    firstName,
+    url,
+    unsubUrl: unsubUrl(base, userId),
+    matches,
+  });
+
+  // ── TEST : envoi des 2 variantes à l'admin connecté ──────────────────────
+  if (input.mode === "test") {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return { ok: false, sent: 0, error: "Email admin introuvable." };
+
+    const ctx = ctxFor(user.id, firstNameFrom(user.user_metadata ?? {}));
+    const html = campaign.build(ctx);
+    let sent = 0;
+    for (let v = 0; v < 2; v++) {
+      const subject = `[TEST ${v === 0 ? "A" : "B"}] ` + renderSubject(campaign.subjects[v], ctx.firstName);
+      const r = await sendEmail({ to: user.email, subject, html });
+      if (!r.ok) return { ok: false, sent, error: r.error };
+      sent++;
+    }
+    return { ok: true, sent };
+  }
+
+  // ── LIVE : toute l'audience, A/B 50/50 ───────────────────────────────────
+  const recipients = await getRecipients();
+  if (recipients.length === 0) return { ok: true, sent: 0 };
+
+  const messages = recipients.map((r, i) => {
+    const variant = i % 2; // 0 = A, 1 = B
+    const ctx = ctxFor(r.id, r.firstName);
+    return {
+      to: r.email,
+      subject: renderSubject(campaign.subjects[variant], r.firstName),
+      html: campaign.build(ctx),
+      _userId: r.id,
+      _variant: variant === 0 ? "A" : "B",
+    };
+  });
+
+  const res = await sendEmailBatch(messages.map((m) => ({ to: m.to, subject: m.subject, html: m.html })));
+
+  // Trace : une ligne par destinataire + un récap "campaign_blast".
+  try {
+    const admin = createAdminClient();
+    const sentSlice = messages.slice(0, res.sent);
+    if (sentSlice.length) {
+      await admin.from("app_events").insert(
+        sentSlice.map((m) => ({
+          user_id: m._userId,
+          name: "campaign_send",
+          props: { campaign: campaign.key, variant: m._variant },
+        })),
+      );
+    }
+    await admin.from("app_events").insert({
+      user_id: null,
+      name: "campaign_blast",
+      props: { campaign: campaign.key, sent: res.sent, audience: recipients.length },
+    });
+  } catch (err) {
+    console.warn("[campaign] tracking failed:", err);
+  }
+
+  return res;
+}
+
+/** Re-synchronise les statuts d'abonnement depuis Whop (détecte les annulations). */
+export async function syncWhopMembershipsAction(): Promise<{
+  ok: boolean;
+  synced: number;
+  canceled: number;
+  error?: string;
+}> {
+  if (!(await isAdmin())) return { ok: false, synced: 0, canceled: 0, error: "Non autorisé." };
+  const { syncAllWhopMemberships } = await import("@/lib/whop-sync");
+  return syncAllWhopMemberships();
+}

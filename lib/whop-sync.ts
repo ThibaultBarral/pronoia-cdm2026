@@ -96,3 +96,97 @@ export async function syncMembershipToDb(
   }
   return { ok: true, userId };
 }
+
+const WHOP_COMPANY_ID = "biz_2exftzpAHl23k9";
+
+/** Adapt a raw Whop API membership object into our WhopMembership shape. */
+function normalizeMembership(raw: Record<string, unknown>): WhopMembership | null {
+  const id = typeof raw.id === "string" ? raw.id : null;
+  if (!id) return null;
+  const planField = raw.plan;
+  const planId =
+    typeof planField === "string"
+      ? planField
+      : typeof (planField as { id?: string } | null)?.id === "string"
+        ? (planField as { id: string }).id
+        : typeof raw.plan_id === "string"
+          ? (raw.plan_id as string)
+          : null;
+  if (!planId) return null;
+  const meta = raw.metadata;
+  return {
+    id,
+    status: typeof raw.status === "string" ? raw.status : "expired",
+    plan: { id: planId },
+    metadata:
+      meta && typeof meta === "object"
+        ? (meta as Record<string, unknown>)
+        : typeof meta === "string"
+          ? safeJson(meta)
+          : null,
+    manage_url: typeof raw.manage_url === "string" ? raw.manage_url : null,
+    cancel_at_period_end: Boolean(raw.cancel_at_period_end),
+    renewal_period_end:
+      typeof raw.renewal_period_end === "string" ? raw.renewal_period_end : null,
+  };
+}
+
+function safeJson(s: string): Record<string, unknown> | null {
+  try {
+    const v = JSON.parse(s);
+    return v && typeof v === "object" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Re-sync ALL Whop memberships into our subscriptions table. Catches statuses
+ * that a missed webhook left stale (e.g. a cancellation) so /admin reflects the
+ * truth. Admin-triggered; paginates the Whop API. Returns simple counts.
+ */
+export async function syncAllWhopMemberships(): Promise<{
+  ok: boolean;
+  synced: number;
+  canceled: number;
+  error?: string;
+}> {
+  const key = process.env.WHOP_API_KEY;
+  if (!key) return { ok: false, synced: 0, canceled: 0, error: "WHOP_API_KEY manquant." };
+
+  let synced = 0;
+  let canceled = 0;
+  let cursor: string | null = null;
+  try {
+    for (let page = 0; page < 25; page++) {
+      const url = new URL("https://api.whop.com/api/v1/memberships");
+      url.searchParams.set("company_id", WHOP_COMPANY_ID);
+      url.searchParams.set("limit", "100");
+      if (cursor) url.searchParams.set("starting_after", cursor);
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!res.ok) return { ok: false, synced, canceled, error: `Whop API ${res.status}` };
+      const json = await res.json();
+      const data: Array<Record<string, unknown>> = json.data ?? [];
+
+      for (const raw of data) {
+        const m = normalizeMembership(raw);
+        if (!m) continue;
+        const r = await syncMembershipToDb(m);
+        if (r.ok) {
+          synced++;
+          if (toStatus(m.status) === "canceled" || toStatus(m.status) === "expired") canceled++;
+        }
+      }
+
+      cursor = (json.pagination?.next_cursor as string | null) ?? null;
+      if (!cursor || data.length === 0) break;
+    }
+    return { ok: true, synced, canceled };
+  } catch (err) {
+    return { ok: false, synced, canceled, error: (err as Error).message };
+  }
+}

@@ -29,6 +29,7 @@ export interface AdminUserRow {
   acquisitionDetail: string | null; // précision libre saisie par l'utilisateur
   noSubReason: string | null; // raison de non-abonnement | "skip" | null
   noSubDetail: string | null; // précision libre saisie par l'utilisateur
+  emailOptOut: boolean; // s'est désinscrit des e-mails marketing (RGPD)
 }
 
 /** True if the currently authenticated user is an admin (app_metadata only). */
@@ -237,6 +238,7 @@ export async function getAdminData(): Promise<{
         acquisitionDetail: (meta.acquisition_detail as string | null) ?? null,
         noSubReason: (meta.no_sub_reason as string | null) ?? null,
         noSubDetail: (meta.no_sub_detail as string | null) ?? null,
+        emailOptOut: Boolean(meta.email_opt_out),
       };
     })
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));

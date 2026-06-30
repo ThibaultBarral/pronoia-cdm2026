@@ -3,8 +3,11 @@ import type { Metadata } from "next";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import RecoverablePayments from "@/components/admin/recoverable-payments";
+import EmailCampaigns from "@/components/admin/email-campaigns";
 import UsersTable from "@/components/admin/users-table";
 import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
+import { getCampaignStats } from "@/lib/campaign-actions";
+import { CAMPAIGNS } from "@/lib/email-campaigns";
 
 export const metadata: Metadata = { title: "Admin — Copafever", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -12,8 +15,17 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   if (!(await isAdmin())) notFound();
 
-  const { users, totalRevenue, recoverable } = await getAdminData();
+  const [{ users, totalRevenue, recoverable }, campaignStats] = await Promise.all([
+    getAdminData(),
+    getCampaignStats(),
+  ]);
   const stats = computeAdminStats(users, totalRevenue);
+  const campaignMeta = CAMPAIGNS.map((c) => ({
+    key: c.key,
+    label: c.label,
+    description: c.description,
+    subjects: c.subjects,
+  }));
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
@@ -32,6 +44,13 @@ export default async function AdminPage() {
 
           {/* Argent à récupérer : paiements échoués (3DS, carte refusée…) */}
           <RecoverablePayments rows={recoverable} />
+
+          {/* Campagnes e-mail : conversion des gratuits + churned (envoi manuel) */}
+          <EmailCampaigns
+            campaigns={campaignMeta}
+            audience={campaignStats.audience}
+            sentByCampaign={campaignStats.sentByCampaign}
+          />
 
           {/* Users table — sortable + filterable (toggles admin/VIP par ligne) */}
           <UsersTable users={users} />
