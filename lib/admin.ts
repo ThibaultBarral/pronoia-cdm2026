@@ -179,6 +179,7 @@ export interface RecoverablePayment {
   reason: string; // catégorie d'échec (3DS, carte refusée…)
   attempts: number; // nombre de tentatives non abouties
   lastAt: string; // ISO de la dernière tentative
+  sentAt: string | null; // ISO du dernier e-mail de relance envoyé (persisté)
 }
 
 /** All users + subscription/usage stats + real Whop revenue. Admin only. */
@@ -191,11 +192,19 @@ export async function getAdminData(): Promise<{
 
   const admin = createAdminClient();
 
-  const [{ data: list }, { data: subs }, revenue] = await Promise.all([
+  const [{ data: list }, { data: subs }, revenue, { data: sentEvents }] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from("subscriptions").select("user_id, plan, status, analyses_count, free_analyses_used, visit_days, winback_popup_seen_at, whop_membership_id, vip"),
     fetchWhopRevenue(),
+    admin.from("app_events").select("user_id, created_at").eq("name", "recovery_email_sent").order("created_at", { ascending: false }),
   ]);
+
+  // Dernier e-mail de relance envoyé par utilisateur (badge "Relancé" persistant).
+  const recoveryByUser = new Map<string, string>();
+  for (const e of sentEvents ?? []) {
+    const uid = e.user_id as string | null;
+    if (uid && !recoveryByUser.has(uid)) recoveryByUser.set(uid, e.created_at as string);
+  }
 
   const byId = new Map((subs ?? []).map((s) => [s.user_id as string, s]));
   const users = (list?.users ?? [])
@@ -247,6 +256,7 @@ export async function getAdminData(): Promise<{
         reason: f.lastReason,
         attempts: f.attempts,
         lastAt: f.lastAt,
+        sentAt: recoveryByUser.get(f.userId) ?? null,
       };
     })
     // Plus de tentatives = client le plus motivé → en haut.

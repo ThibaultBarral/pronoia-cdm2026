@@ -1,6 +1,7 @@
 "use server";
 
 import { isAdmin } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, type SendEmailResult } from "@/lib/email";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -37,6 +38,7 @@ function recoveryHtml({
  * Admin uniquement. Envoie via Resend un lien vers /tarifs (Apple Pay / SEPA).
  */
 export async function sendRecoveryEmail(input: {
+  userId?: string;
   email: string;
   name: string | null;
   offer: string;
@@ -52,9 +54,23 @@ export async function sendRecoveryEmail(input: {
   const url = `${base}/tarifs`;
 
   const first = input.name?.trim().split(/\s+/)[0] ?? "";
-  return sendEmail({
+  const res = await sendEmail({
     to: email,
     subject: "Ton accès Copafever t'attend ⚽",
     html: recoveryHtml({ first, offer: input.offer || "ton abonnement", amount: input.amount, url }),
   });
+
+  // Trace l'envoi pour que le badge "Relancé" persiste après rechargement.
+  if (res.ok) {
+    try {
+      await createAdminClient().from("app_events").insert({
+        user_id: input.userId ?? null,
+        name: "recovery_email_sent",
+        props: { email, offer: input.offer, amount: input.amount },
+      });
+    } catch (err) {
+      console.warn("[recovery] event log failed:", err);
+    }
+  }
+  return res;
 }

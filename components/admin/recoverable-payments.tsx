@@ -78,7 +78,14 @@ export default function RecoverablePayments({ rows }: { rows: RecoverablePayment
               </span>
 
               {r.email && (
-                <RecoverButton email={r.email} name={r.name} offer={r.offer} amount={r.amount} />
+                <RecoverButton
+                  userId={r.userId}
+                  email={r.email}
+                  name={r.name}
+                  offer={r.offer}
+                  amount={r.amount}
+                  sentAt={r.sentAt}
+                />
               )}
             </div>
           );
