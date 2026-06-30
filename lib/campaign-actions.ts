@@ -3,10 +3,10 @@
 import { isAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail, sendEmailBatch } from "@/lib/email";
+import { sendEmail, sendEmailBatch, listRecentEmails } from "@/lib/email";
 import { unsubUrl } from "@/lib/email-token";
 import {
-  getCampaign, getUpcomingMatches, renderSubject, shell,
+  CAMPAIGNS, getCampaign, getUpcomingMatches, renderSubject,
   type CampaignContext,
 } from "@/lib/email-campaigns";
 import type { Plan } from "@/lib/plans";
@@ -71,6 +71,64 @@ async function getSentUserIds(campaignKey: string): Promise<Set<string>> {
     if (uid && key === campaignKey) set.add(uid);
   }
   return set;
+}
+
+/** Signatures stables d'une campagne (sujets A/B sans le prénom) pour matcher Resend. */
+function campaignSignatures(campaignKey: string): string[] {
+  const c = getCampaign(campaignKey);
+  if (!c) return [];
+  return c.subjects
+    .map((s) => s.replace(/\{firstName\}/g, "").replace(/^[\s,]+/, "").trim().toLowerCase())
+    .filter((s) => s.length >= 8);
+}
+
+const FAILED_EVENTS = new Set(["bounced", "failed", "canceled", "suppressed"]);
+
+/**
+ * Répare le tracking : reconstruit les campaign_send manquants à partir des
+ * e-mails réellement envoyés par Resend (couvre un blast coupé par le quota,
+ * où l'envoi a partiellement réussi mais n'a pas été tracé). Anti-doublon.
+ */
+async function reconcileCampaignSends(campaignKey: string): Promise<number> {
+  const signatures = campaignSignatures(campaignKey);
+  if (signatures.length === 0) return 0;
+
+  const [recent, { data: list }, alreadySent] = await Promise.all([
+    listRecentEmails(5),
+    createAdminClient().auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    getSentUserIds(campaignKey),
+  ]);
+
+  const idByEmail = new Map<string, string>();
+  for (const u of list?.users ?? []) {
+    if (u.email) idByEmail.set(u.email.toLowerCase(), u.id);
+  }
+
+  const toInsert: { user_id: string; name: string; props: Record<string, unknown> }[] = [];
+  const seen = new Set<string>();
+  for (const e of recent) {
+    if (FAILED_EVENTS.has(e.lastEvent)) continue;
+    const subj = e.subject.toLowerCase();
+    if (!signatures.some((sig) => subj.includes(sig))) continue;
+    const uid = idByEmail.get(e.to.toLowerCase());
+    if (!uid || alreadySent.has(uid) || seen.has(uid)) continue;
+    seen.add(uid);
+    toInsert.push({
+      user_id: uid,
+      name: "campaign_send",
+      props: { campaign: campaignKey, variant: "?", reconciled: true },
+    });
+  }
+
+  if (toInsert.length) {
+    try {
+      await createAdminClient().from("app_events").insert(toInsert);
+    } catch (err) {
+      console.warn("[campaign] reconcile insert failed:", err);
+      return 0;
+    }
+  }
+  return toInsert.length;
 }
 
 /** Traduit une erreur d'envoi technique en message lisible (quota Resend…). */
@@ -155,6 +213,8 @@ export async function sendCampaign(input: {
   }
 
   // ── LIVE : audience restante (exclut ceux déjà touchés), A/B 50/50 ───────
+  // Auto-répare d'abord le tracking depuis Resend (blast coupé par le quota…).
+  await reconcileCampaignSends(campaign.key);
   const alreadySent = await getSentUserIds(campaign.key);
   const recipients = await getRecipients(alreadySent);
   if (recipients.length === 0) {
@@ -198,6 +258,18 @@ export async function sendCampaign(input: {
   }
 
   return { ...res, error: friendlyError(res.error) };
+}
+
+/**
+ * Répare le tracking de TOUTES les campagnes depuis Resend. À lancer après un
+ * blast coupé par le quota pour garantir qu'aucun destinataire déjà touché ne
+ * sera re-contacté. Admin only.
+ */
+export async function reconcileAllAction(): Promise<{ ok: boolean; healed: number; error?: string }> {
+  if (!(await isAdmin())) return { ok: false, healed: 0, error: "Non autorisé." };
+  let healed = 0;
+  for (const c of CAMPAIGNS) healed += await reconcileCampaignSends(c.key);
+  return { ok: true, healed };
 }
 
 /** Re-synchronise les statuts d'abonnement depuis Whop (détecte les annulations). */

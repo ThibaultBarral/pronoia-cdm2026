@@ -66,3 +66,42 @@ export async function sendEmailBatch(
   }
   return { ok: true, sent };
 }
+
+export interface SentEmail {
+  to: string;
+  subject: string;
+  lastEvent: string;
+  createdAt: string;
+}
+
+/** Liste les e-mails récemment envoyés via Resend (pour réconcilier le tracking). */
+export async function listRecentEmails(maxPages = 5): Promise<SentEmail[]> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return [];
+  const resend = new Resend(key);
+  const out: SentEmail[] = [];
+  let after: string | undefined;
+  try {
+    for (let p = 0; p < maxPages; p++) {
+      const { data, error } = await resend.emails.list(
+        after ? { limit: 100, after } : { limit: 100 },
+      );
+      if (error || !data) break;
+      const items = data.data ?? [];
+      for (const e of items) {
+        out.push({
+          to: Array.isArray(e.to) ? e.to[0] ?? "" : String(e.to ?? ""),
+          subject: e.subject ?? "",
+          lastEvent: e.last_event ?? "",
+          createdAt: e.created_at ?? "",
+        });
+      }
+      if (!data.has_more || items.length === 0) break;
+      after = items[items.length - 1]?.id;
+      if (!after) break;
+    }
+  } catch (err) {
+    console.warn("[email] list failed:", err);
+  }
+  return out;
+}

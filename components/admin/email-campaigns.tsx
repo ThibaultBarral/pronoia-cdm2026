@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Mail, Send, FlaskConical, Loader2, Check, AlertCircle, RefreshCw, Users } from "lucide-react";
-import { sendCampaign, syncWhopMembershipsAction } from "@/lib/campaign-actions";
+import { Mail, Send, FlaskConical, Loader2, Check, AlertCircle, RefreshCw, Users, ShieldCheck } from "lucide-react";
+import { sendCampaign, syncWhopMembershipsAction, reconcileAllAction } from "@/lib/campaign-actions";
 
 export interface CampaignMeta {
   key: string;
@@ -103,6 +103,8 @@ export default function EmailCampaigns({
 }) {
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncing, startSync] = useTransition();
+  const [fixMsg, setFixMsg] = useState<string | null>(null);
+  const [fixing, startFix] = useTransition();
 
   const resync = () =>
     startSync(async () => {
@@ -111,6 +113,17 @@ export default function EmailCampaigns({
       setSyncMsg(
         r.ok
           ? `Sync OK · ${r.synced} abos vérifiés · ${r.canceled} annulés/expirés`
+          : `Erreur : ${r.error ?? "inconnue"}`,
+      );
+    });
+
+  const repair = () =>
+    startFix(async () => {
+      setFixMsg(null);
+      const r = await reconcileAllAction();
+      setFixMsg(
+        r.ok
+          ? `${r.healed} envoi(s) déjà faits protégés du doublon`
           : `Erreur : ${r.error ?? "inconnue"}`,
       );
     });
@@ -137,7 +150,16 @@ export default function EmailCampaigns({
         ))}
       </div>
 
-      <div className="mt-4 border-t border-white/5 pt-3 flex items-center gap-3">
+      <div className="mt-4 border-t border-white/5 pt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <button
+          onClick={repair}
+          disabled={fixing}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-1.5 text-[12px] font-semibold text-[#9aa3b2] hover:bg-white/[0.08] disabled:opacity-60 transition-colors"
+        >
+          {fixing ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
+          Réparer le tracking (anti-doublon)
+        </button>
+        {fixMsg && <span className="text-[11px] text-[var(--accent)]">{fixMsg}</span>}
         <button
           onClick={resync}
           disabled={syncing}
