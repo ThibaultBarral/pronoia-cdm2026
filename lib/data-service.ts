@@ -52,6 +52,8 @@ const hasApiKey = () => Boolean(process.env.API_FOOTBALL_KEY);
 
 interface OFMatch {
   round: string;
+  /** FIFA match number (1-104). Knockout placeholders reference it, e.g. "W76". */
+  num?: number;
   date: string;
   time: string;
   team1: string;
@@ -85,32 +87,6 @@ function isKnockout(round: string | undefined): boolean {
   return Boolean(round && round in KNOCKOUT_ROUNDS);
 }
 
-/**
- * API-Football `league.round` label → our French round key (matches the values
- * produced by `roundLabelFr`). Lets us line up a live API knockout fixture with
- * the corresponding OpenFootball skeleton slot. Exact-match only — substring
- * matching would confuse "Final" with "Semi-finals".
- */
-const API_KO_ROUND_TO_FR: Record<string, string> = {
-  "Round of 32": "16es de finale",
-  "Round of 16": "8es de finale",
-  "Quarter-finals": "Quart de finale",
-  "Quarter-final": "Quart de finale",
-  "Semi-finals": "Demi-finale",
-  "Semi-final": "Demi-finale",
-  "3rd Place Final": "Match pour la 3e place",
-  "3rd Place": "Match pour la 3e place",
-  Final: "Finale",
-};
-
-function apiRoundFr(round: string): string | null {
-  return API_KO_ROUND_TO_FR[round] ?? null;
-}
-
-/** Reverse lookup: API-Football team id → our canonical English team name. */
-const NAME_BY_API_ID: Map<number, string> = new Map(
-  Object.entries(TEAM_META).map(([name, meta]) => [meta.apiId, name])
-);
 
 /** French round label for any fixture (group or knockout). */
 function roundLabelFr(m: OFMatch): string {
@@ -597,37 +573,93 @@ async function buildTeam(
 }
 
 /**
- * Resolve an undecided OpenFootball knockout slot from the LIVE API-Football
- * bracket. OpenFootball lags: its R16+ fixtures still read "Canada vs W75" long
- * after the real draw is known. API-Football carries the resolved nations and
- * scores, so for any knockout slot that already has at least one decided side we
- * find the matching API fixture (same round, contains the known team) and return
- * the real pairing + live result. Returns null when the tie is genuinely still
- * undetermined (both sides placeholders) or there's no API key.
+ * Knockout propagation context: which real nation won / lost each finished match
+ * number. OpenFootball codes undecided knockout slots as "W76" (= winner of
+ * match 76) and "L101" (= loser of match 101); resolving those codes lets a R32
+ * winner flow into its R16 slot even when OpenFootball left that slot blank.
  */
-function resolveKnockoutSlot(
+interface KoContext {
+  winnerByNum: Map<number, string>; // FIFA match num → winning team (English name)
+  loserByNum: Map<number, string>; // FIFA match num → losing team (English name)
+}
+
+/** A "W76" / "L101" code → the referenced match number and side. */
+function parseSlotCode(code: string): { num: number; side: "W" | "L" } | null {
+  const m = code.match(/^([WL])(\d+)$/i);
+  return m ? { num: parseInt(m[2], 10), side: m[1].toUpperCase() as "W" | "L" } : null;
+}
+
+/** Resolve a knockout slot label to a real English team name, or null if undecided. */
+function resolveSlotName(code: string, ko: KoContext): string | null {
+  if (!isPlaceholderName(code)) return code; // already a real nation
+  const parsed = parseSlotCode(code);
+  if (!parsed) return null; // group-position code (1A, 3C…) — not propagated here
+  return (parsed.side === "W" ? ko.winnerByNum : ko.loserByNum).get(parsed.num) ?? null;
+}
+
+/**
+ * Walk the knockout matches in match-number order and record each finished
+ * match's winner + loser, so later-round "W{n}" / "L{n}" codes resolve to real
+ * nations. The qualifier comes from API-Football's winner flag (correct even on
+ * penalty shootouts); we fall back to OpenFootball's decisive full-time score.
+ */
+function buildKoContext(ko: OFMatch[], wc: ApiFixtureResponse[]): KoContext {
+  const ctx: KoContext = { winnerByNum: new Map(), loserByNum: new Map() };
+  const byNum = [...ko]
+    .filter((m) => typeof m.num === "number")
+    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0));
+
+  for (const m of byNum) {
+    const home = resolveSlotName(m.team1, ctx);
+    const away = resolveSlotName(m.team2, ctx);
+    if (!home || !away) continue; // teams not both decided yet
+
+    const hId = getTeamMeta(home).apiId;
+    const aId = getTeamMeta(away).apiId;
+    let winner: string | null = null;
+
+    const apiFx = hId && aId ? findWcFixture(wc, hId, aId) : null;
+    if (apiFx && WC_FINISHED.has(apiFx.fixture.status.short)) {
+      if (apiFx.teams.home.winner === true) winner = apiFx.teams.home.id === hId ? home : away;
+      else if (apiFx.teams.away.winner === true) winner = apiFx.teams.away.id === hId ? home : away;
+    }
+    // Fallback: OpenFootball decisive 90-min score (no shootout info there).
+    if (!winner && m.score) {
+      const [g1, g2] = m.score.ft;
+      if (g1 > g2) winner = home;
+      else if (g2 > g1) winner = away;
+    }
+
+    if (winner && typeof m.num === "number") {
+      ctx.winnerByNum.set(m.num, winner);
+      ctx.loserByNum.set(m.num, winner === home ? away : home);
+    }
+  }
+  return ctx;
+}
+
+/**
+ * Resolve a knockout fixture's two slots using the propagation context. Returns
+ * the (possibly still-placeholder) slot labels plus the live result when BOTH
+ * sides are decided real nations. `home`/`away` keep the OpenFootball order.
+ */
+function resolveKoMatch(
   f: OFMatch,
+  ko: KoContext,
   wc: ApiFixtureResponse[]
-): { home: string; away: string; live: LiveResult } | null {
-  const frRound = roundLabelFr(f);
-  const knownIds = [
-    isPlaceholderName(f.team1) ? 0 : getTeamMeta(f.team1).apiId,
-    isPlaceholderName(f.team2) ? 0 : getTeamMeta(f.team2).apiId,
-  ].filter(Boolean);
-  if (!knownIds.length) return null; // both sides still undecided
+): { home: string; away: string; bothReal: boolean; live: LiveResult | null } {
+  const home = resolveSlotName(f.team1, ko) ?? f.team1;
+  const away = resolveSlotName(f.team2, ko) ?? f.team2;
+  const bothReal = !isPlaceholderName(home) && !isPlaceholderName(away);
 
-  const fx = wc.find(
-    (x) =>
-      apiRoundFr(x.league.round) === frRound &&
-      (knownIds.includes(x.teams.home.id) || knownIds.includes(x.teams.away.id))
-  );
-  if (!fx) return null;
-
-  return {
-    home: NAME_BY_API_ID.get(fx.teams.home.id) ?? fx.teams.home.name,
-    away: NAME_BY_API_ID.get(fx.teams.away.id) ?? fx.teams.away.name,
-    live: orientResult(fx, fx.teams.home.id),
-  };
+  let live: LiveResult | null = null;
+  if (bothReal) {
+    const hId = getTeamMeta(home).apiId;
+    const aId = getTeamMeta(away).apiId;
+    const apiFx = hId && aId ? findWcFixture(wc, hId, aId) : null;
+    if (apiFx) live = orientResult(apiFx, hId);
+  }
+  return { home, away, bothReal, live };
 }
 
 // ─── getMatches — all 72 WC 2026 group-stage matches ─────────────────────────
@@ -639,6 +671,12 @@ export async function getMatches(): Promise<Match[]> {
     console.warn("[data-service] OpenFootball empty — using mock");
     return MOCK_MATCHES;
   }
+
+  // Propagate finished-match winners into later-round slots ("W76" → Brazil).
+  const ko = buildKoContext(
+    fixtures.filter((m) => !m.group?.startsWith("Group")),
+    wc
+  );
 
   return fixtures.map((f): Match => {
     const isGroupStage = Boolean(f.group?.startsWith("Group"));
@@ -687,15 +725,16 @@ export async function getMatches(): Promise<Match[]> {
     const kickoff = toParisDateTime(f.date, f.time);
     const hasFtScore = Boolean(f.score);
 
-    // Knockout slot OpenFootball hasn't resolved yet ("Canada vs Vainqueur
-    // match 75"): pull the real nations + live score from API-Football.
+    // Knockout slot OpenFootball hasn't resolved yet ("W76 vs W78" or "Canada vs
+    // W75"): fill in the real qualifiers it references + the live score. Sides
+    // still undecided stay as a "Vainqueur match N" placeholder.
     if (!isGroupStage && (isPlaceholderName(f.team1) || isPlaceholderName(f.team2))) {
-      const resolved = resolveKnockoutSlot(f, wc);
-      if (resolved) {
+      const r = resolveKoMatch(f, ko, wc);
+      if (r.home !== f.team1 || r.away !== f.team2 || r.live) {
         return {
-          id: matchSlug(resolved.home, resolved.away),
-          homeTeam: makeShell(resolved.home, getTeamMeta(resolved.home)),
-          awayTeam: makeShell(resolved.away, getTeamMeta(resolved.away)),
+          id: matchSlug(r.home, r.away),
+          homeTeam: makeShell(r.home, getTeamMeta(r.home)),
+          awayTeam: makeShell(r.away, getTeamMeta(r.away)),
           date: kickoff.date,
           time: kickoff.time,
           stadium: venueToStadium(f.ground),
@@ -705,9 +744,11 @@ export async function getMatches(): Promise<Match[]> {
           round: roundLabelFr(f),
           h2h: [],
           odds: [],
-          apiFixtureId: resolved.live.apiFixtureId,
-          status: resolved.live.status,
-          score: resolved.live.score,
+          apiFixtureId: r.live?.apiFixtureId,
+          status: r.live?.status ?? (hasFtScore ? "FT" : "NS"),
+          score:
+            r.live?.score ??
+            (f.score ? { home: f.score.ft[0], away: f.score.ft[1] } : { home: null, away: null }),
         };
       }
     }
@@ -770,14 +811,18 @@ export async function getMatchData(id: string): Promise<Match | null> {
 
   if (!fixture && hasApiKey()) {
     const wc = await getWcFixtures();
+    const ko = buildKoContext(
+      fixtures.filter((m) => !m.group?.startsWith("Group")),
+      wc
+    );
     for (const of of fixtures) {
       if (of.group?.startsWith("Group")) continue;
-      const resolved = resolveKnockoutSlot(of, wc);
-      if (resolved && matchSlug(resolved.home, resolved.away) === id) {
+      const r = resolveKoMatch(of, ko, wc);
+      if (r.bothReal && matchSlug(r.home, r.away) === id) {
         fixture = of;
-        team1 = resolved.home;
-        team2 = resolved.away;
-        preLive = resolved.live;
+        team1 = r.home;
+        team2 = r.away;
+        preLive = r.live;
         break;
       }
     }
