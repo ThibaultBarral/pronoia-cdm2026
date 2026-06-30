@@ -31,7 +31,7 @@ function firstNameFrom(meta: Record<string, unknown>): string {
  * payants actifs et ne sont pas VIP → les Gratuits + les churned (annulés /
  * expirés). Exclut les désinscrits (RGPD) et les comptes sans e-mail.
  */
-async function getRecipients(): Promise<Recipient[]> {
+async function getRecipients(excludeUserIds?: Set<string>): Promise<Recipient[]> {
   const admin = createAdminClient();
   const [{ data: list }, { data: subs }] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
@@ -42,6 +42,7 @@ async function getRecipients(): Promise<Recipient[]> {
   const out: Recipient[] = [];
   for (const u of list?.users ?? []) {
     if (!u.email) continue;
+    if (excludeUserIds?.has(u.id)) continue; // a déjà reçu cette campagne
     const meta = u.user_metadata ?? {};
     if (meta.email_opt_out) continue;
 
@@ -55,6 +56,31 @@ async function getRecipients(): Promise<Recipient[]> {
     out.push({ id: u.id, email: u.email, firstName: firstNameFrom(meta) });
   }
   return out;
+}
+
+/** Ensemble des userId ayant DÉJÀ reçu cette campagne (pour reprendre sans doublon). */
+async function getSentUserIds(campaignKey: string): Promise<Set<string>> {
+  const { data } = await createAdminClient()
+    .from("app_events")
+    .select("user_id, props")
+    .eq("name", "campaign_send");
+  const set = new Set<string>();
+  for (const e of data ?? []) {
+    const uid = e.user_id as string | null;
+    const key = (e.props as { campaign?: string } | null)?.campaign;
+    if (uid && key === campaignKey) set.add(uid);
+  }
+  return set;
+}
+
+/** Traduit une erreur d'envoi technique en message lisible (quota Resend…). */
+function friendlyError(error?: string): string | undefined {
+  if (!error) return error;
+  const low = error.toLowerCase();
+  if (low.includes("quota") || low.includes("daily") || low.includes("limit") || low.includes("429")) {
+    return "Quota Resend du jour atteint. Passe en plan payant Resend, ou réessaie demain : l'envoi reprendra automatiquement où il s'est arrêté (pas de doublon).";
+  }
+  return error;
 }
 
 export interface CampaignStats {
@@ -122,15 +148,18 @@ export async function sendCampaign(input: {
     for (let v = 0; v < 2; v++) {
       const subject = `[TEST ${v === 0 ? "A" : "B"}] ` + renderSubject(campaign.subjects[v], ctx.firstName);
       const r = await sendEmail({ to: user.email, subject, html });
-      if (!r.ok) return { ok: false, sent, error: r.error };
+      if (!r.ok) return { ok: false, sent, error: friendlyError(r.error) };
       sent++;
     }
     return { ok: true, sent };
   }
 
-  // ── LIVE : toute l'audience, A/B 50/50 ───────────────────────────────────
-  const recipients = await getRecipients();
-  if (recipients.length === 0) return { ok: true, sent: 0 };
+  // ── LIVE : audience restante (exclut ceux déjà touchés), A/B 50/50 ───────
+  const alreadySent = await getSentUserIds(campaign.key);
+  const recipients = await getRecipients(alreadySent);
+  if (recipients.length === 0) {
+    return { ok: true, sent: 0, error: "Tous les destinataires ont déjà reçu cette campagne." };
+  }
 
   const messages = recipients.map((r, i) => {
     const variant = i % 2; // 0 = A, 1 = B
@@ -168,7 +197,7 @@ export async function sendCampaign(input: {
     console.warn("[campaign] tracking failed:", err);
   }
 
-  return res;
+  return { ...res, error: friendlyError(res.error) };
 }
 
 /** Re-synchronise les statuts d'abonnement depuis Whop (détecte les annulations). */
