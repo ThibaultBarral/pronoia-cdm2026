@@ -1,11 +1,56 @@
 "use server";
 
-import { getMatches } from "@/lib/data-service";
+import { getMatches, getMatchData } from "@/lib/data-service";
+import { predictMatch } from "@/lib/match-model";
+import { getTrackRecordStats } from "@/lib/track-record";
 import type { Match } from "@/lib/types";
 
 /** Server action so the (client) dashboard never bundles server-only data code. */
 export async function getMatchesAction(): Promise<Match[]> {
   return getMatches();
+}
+
+/** Plain, client-safe model prediction for the onboarding reveal. */
+export interface OnboardPrediction {
+  home: { name: string; flag: string };
+  away: { name: string; flag: string };
+  round: string;
+  favorite: "home" | "draw" | "away";
+  probabilities: { home: number; draw: number; away: number };
+  expectedGoals: { home: number; away: number };
+  over25: number;
+  confidence: string;
+}
+
+/**
+ * Deterministic model prediction for one fixture (id → real numbers). Zero LLM
+ * tokens — used by the onboarding "analysis" reveal so it's instant and free.
+ */
+export async function getOnboardingPrediction(
+  matchId: string,
+): Promise<OnboardPrediction | null> {
+  const match = await getMatchData(matchId).catch(() => null);
+  if (!match) return null;
+  const pred = predictMatch(match);
+  const { home, draw, away } = pred.probabilities;
+  const favorite: OnboardPrediction["favorite"] =
+    home >= away && home >= draw ? "home" : away >= home && away >= draw ? "away" : "draw";
+  return {
+    home: { name: match.homeTeam.name, flag: match.homeTeam.flag },
+    away: { name: match.awayTeam.name, flag: match.awayTeam.flag },
+    round: match.round,
+    favorite,
+    probabilities: pred.probabilities,
+    expectedGoals: pred.expectedGoals,
+    over25: pred.markets.over25,
+    confidence: pred.confidence,
+  };
+}
+
+/** Real social-proof numbers for the onboarding loader (honest, not invented). */
+export async function getOnboardingStats(): Promise<{ verified: number; winRate: number }> {
+  const s = await getTrackRecordStats().catch(() => null);
+  return { verified: s?.verified ?? 0, winRate: s?.winRate ?? 0 };
 }
 
 /** Lean match shape for the nation→match onboarding (no heavy Team objects). */
