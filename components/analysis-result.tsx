@@ -66,10 +66,11 @@ function PremiumUpsell({ title, subtitle }: { title: string; subtitle: string })
   );
 }
 
-/** A team's identity as used by the analysis result (name + short name). */
+/** A team's identity as used by the analysis result (name + short name + flag). */
 interface TeamLite {
   name: string;
   shortName: string;
+  flag: string;
 }
 
 /**
@@ -89,21 +90,35 @@ export default function AnalysisResult({
   canPlayers: boolean;
 }) {
   const probs = [
-    { label: `Victoire ${h.shortName}`, pct: data.probabilities.home },
-    { label: "Match nul", pct: data.probabilities.draw },
-    { label: `Victoire ${a.shortName}`, pct: data.probabilities.away },
+    { flag: h.flag, label: `Victoire ${h.shortName}`, pct: data.probabilities.home },
+    { flag: `${h.flag} ${a.flag}`, label: "Match nul", pct: data.probabilities.draw },
+    { flag: a.flag, label: `Victoire ${a.shortName}`, pct: data.probabilities.away },
   ];
   const fav = probs.reduce((m, p) => (p.pct > m.pct ? p : m), probs[0]);
   const conf = CONFIDENCE_FILL[data.confidence] ?? 55;
 
   return (
     <>
+      {/* Matchup — big flags, TikTok/Insta vibe */}
+      <div className="flex items-center justify-center gap-4 pt-1">
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-4xl leading-none drop-shadow">{h.flag}</span>
+          <span className="text-[11px] font-black uppercase tracking-wide text-[var(--accent)]">{h.shortName}</span>
+        </div>
+        <span className="text-xs font-black text-[var(--text-muted)]">VS</span>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-4xl leading-none drop-shadow">{a.flag}</span>
+          <span className="text-[11px] font-black uppercase tracking-wide text-[#ef4444]">{a.shortName}</span>
+        </div>
+      </div>
+
       {/* Summary */}
       <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.summary}</p>
 
       {/* Hero — big headline numbers (favorite win % + AI confidence) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl glass p-5 text-center">
+          <div className="text-3xl leading-none mb-1.5">{fav.flag}</div>
           <div className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-1.5 truncate">
             {fav.label}
           </div>
@@ -131,9 +146,9 @@ export default function AnalysisResult({
           Probabilités exactes
         </h3>
         <div className="space-y-2.5">
-          <ProbRow label={`Victoire ${h.name}`} pct={data.probabilities.home} accent />
-          <ProbRow label="Match nul" pct={data.probabilities.draw} />
-          <ProbRow label={`Victoire ${a.name}`} pct={data.probabilities.away} />
+          <ProbRow label={`${h.flag} Victoire ${h.name}`} pct={data.probabilities.home} accent />
+          <ProbRow label={`${h.flag} ${a.flag} Match nul`} pct={data.probabilities.draw} />
+          <ProbRow label={`${a.flag} Victoire ${a.name}`} pct={data.probabilities.away} />
         </div>
       </div>
 
@@ -163,7 +178,7 @@ export default function AnalysisResult({
           {data.keyStrengths.map((ks, i) => (
             <div key={i} className="rounded-xl glass p-3.5">
               <div className="text-xs font-black text-[var(--accent)] mb-1.5">
-                {ks.team === "home" ? h.name : a.name}
+                {ks.team === "home" ? `${h.flag} ${h.name}` : `${a.flag} ${a.name}`}
               </div>
               <ul className="space-y-1">
                 {ks.points.map((p, j) => (
@@ -231,7 +246,7 @@ export default function AnalysisResult({
                   <div className="text-sm font-bold text-[#f0f0f0]">
                     {s.name}{" "}
                     <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-                      · {s.team === "home" ? h.shortName : a.shortName}
+                      · {s.team === "home" ? `${h.flag} ${h.shortName}` : `${a.flag} ${a.shortName}`}
                     </span>
                   </div>
                   <p className="text-xs text-[#999] mt-0.5 leading-relaxed">{s.note}</p>
@@ -254,7 +269,7 @@ export default function AnalysisResult({
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-[#f0f0f0]">{p.name}</span>
                   <span className="ml-auto text-[10px] font-semibold text-[var(--text-muted)]">
-                    {p.team === "home" ? h.shortName : a.shortName}
+                    {p.team === "home" ? `${h.flag} ${h.shortName}` : `${a.flag} ${a.shortName}`}
                   </span>
                 </div>
                 {p.role && (
@@ -280,11 +295,11 @@ export default function AnalysisResult({
         {/* Comparison */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-black text-[var(--accent)]">{h.name}</span>
+            <span className="text-xs font-black text-[var(--accent)]">{h.flag} {h.name}</span>
             <span className="text-xs font-black uppercase tracking-wide text-[var(--text-muted)]">
               <TrendingUp size={12} className="inline mr-1" />Comparaison
             </span>
-            <span className="text-xs font-black text-[#ef4444]">{a.name}</span>
+            <span className="text-xs font-black text-[#ef4444]">{a.name} {a.flag}</span>
           </div>
           <div className="space-y-2.5">
             {data.comparison.map((c) => (
@@ -297,11 +312,11 @@ export default function AnalysisResult({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="rounded-xl glass p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">{data.expectedGoals.home}</div>
-            <div className="text-[10px] text-[var(--text-muted)] truncate mt-2">Buts {h.shortName}</div>
+            <div className="text-[10px] text-[var(--text-muted)] truncate mt-2">Buts {h.flag} {h.shortName}</div>
           </div>
           <div className="rounded-xl glass p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">{data.expectedGoals.away}</div>
-            <div className="text-[10px] text-[var(--text-muted)] truncate mt-2">Buts {a.shortName}</div>
+            <div className="text-[10px] text-[var(--text-muted)] truncate mt-2">Buts {a.flag} {a.shortName}</div>
           </div>
           <div className="rounded-xl glass p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">

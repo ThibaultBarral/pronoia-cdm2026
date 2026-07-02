@@ -28,16 +28,20 @@ function ModelPreview({
   preview,
   homeName,
   awayName,
+  homeFlag,
+  awayFlag,
 }: {
   preview: MatchPreview;
   homeName: string;
   awayName: string;
+  homeFlag: string;
+  awayFlag: string;
 }) {
   const favLabel =
     preview.favorite === "home"
-      ? homeName
+      ? `${homeFlag} ${homeName}`
       : preview.favorite === "away"
-        ? awayName
+        ? `${awayFlag} ${awayName}`
         : "Match nul";
   return (
     <div className="space-y-4">
@@ -59,18 +63,18 @@ function ModelPreview({
           Confiance&nbsp;: <span className="font-bold text-[#cdd3db]">{preview.confidence}</span>.
         </p>
         <div className="space-y-2.5">
-          <ProbRow label={`Victoire ${homeName}`} pct={preview.probabilities.home} accent={preview.favorite === "home"} />
-          <ProbRow label="Match nul" pct={preview.probabilities.draw} accent={preview.favorite === "draw"} />
-          <ProbRow label={`Victoire ${awayName}`} pct={preview.probabilities.away} accent={preview.favorite === "away"} />
+          <ProbRow label={`${homeFlag} Victoire ${homeName}`} pct={preview.probabilities.home} accent={preview.favorite === "home"} />
+          <ProbRow label={`${homeFlag} ${awayFlag} Match nul`} pct={preview.probabilities.draw} accent={preview.favorite === "draw"} />
+          <ProbRow label={`${awayFlag} Victoire ${awayName}`} pct={preview.probabilities.away} accent={preview.favorite === "away"} />
         </div>
         <div className="grid grid-cols-3 gap-2.5 mt-4">
           <div className="rounded-xl glass p-3 text-center">
             <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.expectedGoals.home}</div>
-            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {homeName}</div>
+            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {homeFlag} {homeName}</div>
           </div>
           <div className="rounded-xl glass p-3 text-center">
             <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.expectedGoals.away}</div>
-            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {awayName}</div>
+            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {awayFlag} {awayName}</div>
           </div>
           <div className="rounded-xl glass p-3 text-center">
             <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.over25}%</div>
@@ -190,7 +194,7 @@ export default function AIAnalysis({
         {!hasPaidAccess && !data && (
           <div className="space-y-5">
             {preview ? (
-              <ModelPreview preview={preview} homeName={h.name} awayName={a.name} />
+              <ModelPreview preview={preview} homeName={h.name} awayName={a.name} homeFlag={h.flag} awayFlag={a.flag} />
             ) : (
               <div className="flex justify-center py-6">
                 <div className="w-6 h-6 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
