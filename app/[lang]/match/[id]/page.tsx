@@ -8,7 +8,6 @@ import MatchHeader from "@/components/match-header";
 import TeamForm from "@/components/team-form";
 import H2HStats from "@/components/h2h-stats";
 import MatchStats from "@/components/match-stats";
-import OddsTable from "@/components/odds-table";
 import Lineup from "@/components/lineup";
 import AIAnalysis from "@/components/ai-analysis";
 import MatchResult from "@/components/match-result";
@@ -31,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA & pronostic CDM 2026 | Copafever`;
   const description = done
     ? `Résultat, stats et forme pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`
-    : `Analyse IA complète : forme, stats, cotes et recommandation pari pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`;
+    : `Analyse IA complète : forme, stats et prédiction pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`;
   const canonical = `/match/${id}`;
   return {
     title,
@@ -165,8 +164,8 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
               </h2>
               <p className="text-sm text-[#888] max-w-md mx-auto">
                 Ce match de {match.round} oppose {match.homeTeam.name} à{" "}
-                {match.awayTeam.name}. L&apos;analyse IA complète (forme, stats,
-                cotes et recommandation) sera générée dès que les deux qualifiés
+                {match.awayTeam.name}. L&apos;analyse IA complète (forme, stats
+                et prédiction) sera générée dès que les deux qualifiés
                 seront connus.
               </p>
               <Link
@@ -202,9 +201,16 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
           </>
         )}
 
-        {!finished && match.odds.length > 0 && (
+        {/* Betting toolkit lives in its own section — kept off the analysis
+            page. Discreet entry point only (never a betting-first framing). */}
+        {!finished && decided && (
           <div className="animate-fade-in-up delay-200">
-            <OddsTable match={match} />
+            <Link
+              href={`/match/${id}/paris`}
+              className="flex items-center justify-center gap-2 rounded-xl border border-[#1f1f1f] bg-[#0f0f0f] px-4 py-3 text-xs text-[#666] hover:border-[var(--accent)]/25 hover:text-[var(--accent)] transition-colors"
+            >
+              🎲 Pari conseillé &amp; cotes du match →
+            </Link>
           </div>
         )}
 

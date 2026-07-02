@@ -36,8 +36,8 @@ export default function MatchResult({
           : `Match nul ${h}–${a}.`}
       </p>
       <p className="text-xs text-[var(--text-muted)] mt-2 max-w-md mx-auto">
-        L&apos;analyse pré-match (value bets, pronostic) n&apos;est disponible que pour les
-        matchs à venir. Pour parier malin, vise les prochaines affiches.
+        L&apos;analyse pré-match (prédiction IA, buts attendus) n&apos;est disponible que pour
+        les matchs à venir. Direction les prochaines affiches.
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-2 mt-5">

@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  Bot, Sparkles, RefreshCw, AlertCircle, Gauge,
-  Coins, Target, TrendingUp, Wallet, Sliders, Goal, Users, Star,
-} from "lucide-react";
+import { Bot, Sparkles, RefreshCw, AlertCircle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
@@ -14,89 +10,15 @@ import { getMatchPreview, type MatchPreview } from "@/actions/match-preview";
 import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import { useSubscription } from "@/lib/use-subscription";
-import { computeStats, loadBankroll, PLAYSTYLES, type Playstyle } from "@/lib/bankroll";
-import { loadUserBankroll } from "@/lib/supabase/bankroll-db";
-import { createClient } from "@/lib/supabase/client";
-import { recommendStake, parseOdds } from "@/lib/staking";
 import AskAiModal from "@/components/ask-ai-modal";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import AnalysisLoader from "@/components/analysis-loader";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
 import LockedFullAnalysis from "@/components/locked-full-analysis";
-import { valueBadge, fmtCote } from "@/lib/value";
+import AnalysisResult, { ProbRow } from "@/components/analysis-result";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { useLocalizedHref } from "@/lib/i18n/navigation";
-import {
-  DISCLAIMER, type Confidence, type MatchAnalysisData,
-} from "@/lib/analysis-schema";
-
-const PLAYSTYLE_LABEL = Object.fromEntries(
-  PLAYSTYLES.map((p) => [p.id, p.label])
-) as Record<Playstyle, string>;
-
-const CONFIDENCE_FILL: Record<Confidence, number> = {
-  "Faible": 35,
-  "Moyen": 55,
-  "Élevé": 78,
-  "Très élevé": 92,
-};
-
-function ProbRow({ label, pct, accent }: { label: string; pct: number; accent?: boolean }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-[#c0c0c0]">{label}</span>
-        <span className={`font-black tabular-nums ${accent ? "text-[var(--accent)]" : "text-[#c0c0c0]"}`}>
-          {pct}%
-        </span>
-      </div>
-      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, background: accent ? "var(--accent)" : "#6b7280" }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function CompareRow({ label, home, away }: { label: string; home: number; away: number }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between text-[11px] mb-1">
-        <span className="text-[var(--accent)] font-bold tabular-nums">{home}%</span>
-        <span className="text-[var(--text-muted)] uppercase tracking-wide font-bold">{label}</span>
-        <span className="text-[#ef4444] font-bold tabular-nums">{away}%</span>
-      </div>
-      <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.06]">
-        <div className="h-full bg-[var(--accent)]" style={{ width: `${home}%` }} />
-        <div className="h-full bg-[#ef4444]" style={{ width: `${away}%` }} />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Inline upsell shown to Essential members in place of a Premium-only block
- * (value bets, probable scorers, key players, Chat IA…).
- */
-function PremiumUpsell({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <Link
-      href="/dashboard/pricing"
-      className="flex items-center gap-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.05] p-4 hover:bg-[var(--accent)]/[0.09] transition-colors"
-    >
-      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--accent)]/12 shrink-0">
-        <Sparkles size={15} className="text-[var(--accent)]" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-bold text-[#f0f0f0]">{title}</div>
-        <div className="text-xs text-[var(--text-muted)]">{subtitle}</div>
-      </div>
-      <span className="text-[var(--accent)] text-sm font-bold shrink-0">Premium →</span>
-    </Link>
-  );
-}
+import { type MatchAnalysisData } from "@/lib/analysis-schema";
 
 /**
  * Free, model-only preview shown to non-members (zero Claude cost). Reveals the
@@ -175,10 +97,9 @@ export default function AIAnalysis({
   // Treat anyone without a confirmed active entitlement as a non-member (a
   // signed-out visitor returns null too). Full analysis is paid-only.
   const hasPaidAccess = sub?.access === true;
-  // Feature-tiered gating: Essential has access but not the betting toolkit
-  // (value bets, scorers/key players, Chat IA). Every other paid plan + VIP do.
+  // Feature-tiered gating: Essential has access but not the Premium toolkit
+  // (scorers/key players, Chat IA). Every other paid plan + VIP do.
   const hasToolkit = sub?.access === true && sub.plan !== "essential";
-  const canValueBets = hasToolkit;
   const canPlayers = hasToolkit;
   const canChat = hasToolkit;
   const [preview, setPreview] = useState<MatchPreview | null>(null);
@@ -200,12 +121,6 @@ export default function AIAnalysis({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPaidAccess, match.id]);
-  // Live bankroll + bettor profile → personalised € stake on the recommendation.
-  const [bankroll, setBankroll] = useState<{ amount: number; playstyle?: Playstyle } | null>(null);
-  const [bankrollReady, setBankrollReady] = useState(false);
-  // Which profile's recommendation is being previewed (null → follow the user's
-  // saved profile). Lets users compare play styles without changing their default.
-  const [activeProfile, setActiveProfile] = useState<Playstyle | null>(null);
 
   // Auto-launch once when arriving from onboarding (?welcome=1) → instant value.
   const autoStartedRef = useRef(false);
@@ -217,57 +132,13 @@ export default function AIAnalysis({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoStart]);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const supabase = createClient();
-        const [{ data: { user } }, br] = await Promise.all([
-          supabase.auth.getUser(),
-          loadUserBankroll(),
-        ]);
-        if (!active) return;
-        const profile =
-          (user?.user_metadata?.bettor_profile as Playstyle | undefined) ??
-          br?.playstyle;
-        const source = br ?? loadBankroll();
-        if (source) {
-          setBankroll({ amount: computeStats(source).currentAmount, playstyle: profile });
-        } else if (profile) {
-          setBankroll({ amount: 0, playstyle: profile });
-        }
-      } catch {
-        /* no bankroll → the block shows a setup CTA */
-      } finally {
-        if (active) setBankrollReady(true);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const h = match.homeTeam;
   const a = match.awayTeam;
-
-  // The profile being previewed defaults to the user's saved profile, then to
-  // the canonical value pick. Per-profile recs are absent on older analyses.
-  const profileRecs = data?.recommendationsByProfile;
-  const effectiveProfile: Playstyle = activeProfile ?? bankroll?.playstyle ?? "opportunist";
-  const rec = profileRecs?.[effectiveProfile] ?? data?.recommendation;
-  // "Banker" = the Prudent pick: the most likely outcome, proposed even without
-  // value → shown as a probability-based pick, never as "no value / don't bet".
-  const isBanker = rec?.basis === "probability";
-  const stakeAdvice =
-    rec && bankroll && bankroll.amount > 0
-      ? recommendStake(bankroll.amount, effectiveProfile, rec.confidence, parseOdds(rec.odds))
-      : null;
 
   function handleGenerate() {
     setData(null);
     setError(null);
     setLocked(false);
-    setActiveProfile(null);
     trackEvent("analysis_start", { match_id: match.id });
     startTransition(async () => {
       try {
@@ -295,19 +166,23 @@ export default function AIAnalysis({
   return (
     <section className="rounded-2xl glass overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 bg-gradient-to-r from-[var(--accent)]/5 to-transparent">
-        <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
-          <Bot size={18} className="text-[var(--accent)]" />
+      <div className="flex items-start gap-3 px-5 py-4 border-b border-white/5 bg-gradient-to-r from-[var(--accent)]/6 to-transparent">
+        <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center shrink-0">
+          <Bot size={19} className="text-[var(--accent)]" />
         </div>
-        <div>
-          <div className="font-semibold text-[#f0f0f0] text-sm">Analyse Copafever IA</div>
-          <div className="text-[10px] text-[#555]">Probabilités, comparaison & recommandation pari</div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#f0f0f0] text-sm truncate">Analyse Copafever IA</span>
+            {data && (
+              <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5 rounded-full">
+                Analyse complète
+              </span>
+            )}
+          </div>
+          <div className="text-[11px] text-[#666] mt-0.5">
+            Probabilités · Buts attendus · Scénarios
+          </div>
         </div>
-        {data && (
-          <span className="ml-auto text-[10px] text-[var(--accent)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5 rounded-full">
-            Analyse complète
-          </span>
-        )}
       </div>
 
       <div className="p-5">
@@ -337,7 +212,7 @@ export default function AIAnalysis({
             <div>
               <p className="text-[#f0f0f0] font-semibold mb-1">Prêt à analyser</p>
               <p className="text-xs text-[#666] max-w-xs leading-relaxed">
-                Probabilités · Comparaison · Buts attendus · Value bet & recommandation
+                Probabilités · Confiance IA · Buts attendus · Scénarios & joueurs clés
               </p>
             </div>
             <Button
@@ -363,379 +238,7 @@ export default function AIAnalysis({
         {/* Result */}
         {data && (
           <div className="space-y-6">
-            {/* Summary */}
-            <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.summary}</p>
-
-            {/* Confidence gauge */}
-            <div className="rounded-xl glass p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--text-muted)]">
-                  <Gauge size={13} /> Confiance de l&apos;IA
-                </span>
-                <span className="text-xs font-black text-[var(--accent)]">{data.confidence}</span>
-              </div>
-              <div className="h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent-strong)] to-[var(--accent-soft)]"
-                  style={{ width: `${CONFIDENCE_FILL[data.confidence] ?? 55}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Probabilities */}
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
-                Probabilités exactes
-              </h3>
-              <div className="space-y-2.5">
-                <ProbRow label={`Victoire ${h.name}`} pct={data.probabilities.home} accent />
-                <ProbRow label="Match nul" pct={data.probabilities.draw} />
-                <ProbRow label={`Victoire ${a.name}`} pct={data.probabilities.away} />
-              </div>
-            </div>
-
-            {/* Scenario */}
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">
-                Scénario probable
-              </h3>
-              <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.scenario}</p>
-            </div>
-
-            {/* Secondary scenarios */}
-            {data.secondaryScenarios.length > 0 && (
-              <div className="space-y-2">
-                {data.secondaryScenarios.map((s, i) => (
-                  <div key={i} className="rounded-xl glass p-3.5">
-                    <div className="text-sm font-bold text-[#f0f0f0]">{s.title}</div>
-                    <p className="text-xs text-[#999] mt-1 leading-relaxed">{s.detail}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Key strengths */}
-            {data.keyStrengths.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {data.keyStrengths.map((ks, i) => (
-                  <div key={i} className="rounded-xl glass p-3.5">
-                    <div className="text-xs font-black text-[var(--accent)] mb-1.5">
-                      {ks.team === "home" ? h.name : a.name}
-                    </div>
-                    <ul className="space-y-1">
-                      {ks.points.map((p, j) => (
-                        <li key={j} className="text-xs text-[#c0c0c0] flex gap-1.5">
-                          <span className="text-[var(--accent)]">•</span> {p}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Factors */}
-            {data.factors.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {data.factors.map((f, i) => (
-                  <span
-                    key={i}
-                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-                    style={
-                      f.kind === "pos"
-                        ? { color: "var(--accent)", borderColor: "rgba(22,193,114,0.3)", background: "rgba(22,193,114,0.08)" }
-                        : f.kind === "neg"
-                          ? { color: "#ef4444", borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)" }
-                          : { color: "#9aa3af", borderColor: "rgba(154,163,175,0.25)", background: "rgba(154,163,175,0.06)" }
-                    }
-                  >
-                    {f.label}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Essential : pas la boîte à outils paris → upsell vers Premium */}
-            {!canPlayers && (
-              <PremiumUpsell
-                title="Buteurs probables & joueurs clés"
-                subtitle="Le 1er buteur, les buteurs probables et les joueurs à suivre"
-              />
-            )}
-
-            {/* Buteurs probables & 1er buteur — depuis l'effectif réel */}
-            {canPlayers && data.probableScorers && data.probableScorers.length > 0 && (
-              <div>
-                <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
-                  <Goal size={13} className="text-[var(--accent)]" /> Buteurs probables
-                </h3>
-                {data.firstScorer && (
-                  <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/[0.06] px-3.5 py-2.5">
-                    <Star size={14} className="text-[var(--accent)] shrink-0" />
-                    <span className="text-xs text-[#c0c0c0]">
-                      1<sup>er</sup> buteur le plus probable&nbsp;:{" "}
-                      <span className="font-black text-[#f0f0f0]">{data.firstScorer}</span>
-                    </span>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  {data.probableScorers.map((s, i) => (
-                    <div key={i} className="flex items-start gap-3 rounded-xl glass p-3.5">
-                      <span className="mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--accent)]/12 shrink-0">
-                        <Goal size={12} className="text-[var(--accent)]" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-[#f0f0f0]">
-                          {s.name}{" "}
-                          <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-                            · {s.team === "home" ? h.shortName : a.shortName}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#999] mt-0.5 leading-relaxed">{s.note}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Joueurs clés à suivre — depuis l'effectif réel */}
-            {canPlayers && data.keyPlayers && data.keyPlayers.length > 0 && (
-              <div>
-                <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
-                  <Users size={13} className="text-[var(--accent)]" /> Joueurs clés à suivre
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {data.keyPlayers.map((p, i) => (
-                    <div key={i} className="rounded-xl glass p-3.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#f0f0f0]">{p.name}</span>
-                        <span className="ml-auto text-[10px] font-semibold text-[var(--text-muted)]">
-                          {p.team === "home" ? h.shortName : a.shortName}
-                        </span>
-                      </div>
-                      {p.role && (
-                        <div className="text-[10px] font-semibold text-[var(--accent)] mt-0.5">{p.role}</div>
-                      )}
-                      <p className="text-xs text-[#999] mt-1 leading-relaxed">{p.note}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Prédiction Gold — bloc premium (xG, marchés, comparaison des forces) */}
-            <div className="rounded-2xl p-4 space-y-5 border border-[#ffd700]/25 bg-gradient-to-b from-[#ffd700]/[0.06] to-transparent">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[#ffd700]/15 shrink-0">
-                <Sparkles size={13} className="text-[#ffd700]" />
-              </span>
-              <span className="text-xs font-black uppercase tracking-wide text-[#ffd700]">Prédiction Gold</span>
-              <span className="ml-auto text-[10px] text-[var(--text-muted)]">xG · marchés · forces</span>
-            </div>
-
-            {/* Comparison */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black text-[var(--accent)]">{h.name}</span>
-                <span className="text-xs font-black uppercase tracking-wide text-[var(--text-muted)]">
-                  <TrendingUp size={12} className="inline mr-1" />Comparaison
-                </span>
-                <span className="text-xs font-black text-[#ef4444]">{a.name}</span>
-              </div>
-              <div className="space-y-2.5">
-                {data.comparison.map((c) => (
-                  <CompareRow key={c.label} label={c.label} home={c.home} away={c.away} />
-                ))}
-              </div>
-            </div>
-
-            {/* Expected goals & markets */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="rounded-xl glass p-3 text-center">
-                <Target size={13} className="text-[var(--text-muted)] mx-auto mb-1" />
-                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.expectedGoals.home}</div>
-                <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {h.shortName}</div>
-              </div>
-              <div className="rounded-xl glass p-3 text-center">
-                <Target size={13} className="text-[var(--text-muted)] mx-auto mb-1" />
-                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.expectedGoals.away}</div>
-                <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {a.shortName}</div>
-              </div>
-              <div className="rounded-xl glass p-3 text-center">
-                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.markets.over25}%</div>
-                <div className="text-[10px] text-[var(--text-muted)]">+2.5 buts</div>
-              </div>
-              <div className="rounded-xl glass p-3 text-center">
-                <div className="text-lg font-black text-[var(--text)] tabular-nums">{data.markets.bttsYes}%</div>
-                <div className="text-[10px] text-[var(--text-muted)]">Les 2 marquent</div>
-              </div>
-            </div>
-            </div>
-
-            {/* Essential : la reco value bet est réservée à Premium */}
-            {!canValueBets && (
-              <PremiumUpsell
-                title="Value bets & recommandation de pari"
-                subtitle="Le pari à miser, la cote, la value détectée et la mise conseillée"
-              />
-            )}
-
-            {/* Recommendation — with a per-profile toggle (preview only, never
-                changes the user's saved profile). */}
-            {canValueBets && rec && (
-            <div>
-              {profileRecs && (
-                <div className="mb-2.5">
-                  <div className="flex items-center gap-1.5 mb-2 text-[10px] font-black uppercase tracking-wide text-[var(--text-muted)]">
-                    <Sliders size={12} className="text-[var(--accent)]" /> Voir selon ton style de pari
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PLAYSTYLES.map((ps) => {
-                      const isActive = ps.id === effectiveProfile;
-                      return (
-                        <button
-                          key={ps.id}
-                          onClick={() => setActiveProfile(ps.id)}
-                          aria-pressed={isActive}
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
-                            isActive
-                              ? "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40"
-                              : "glass text-[var(--text-muted)] border border-transparent hover:text-[#cdd3db] hover:bg-white/[0.06]"
-                          }`}
-                        >
-                          <span>{ps.emoji}</span> {ps.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {bankroll?.playstyle && effectiveProfile !== bankroll.playstyle && (
-                    <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
-                      Aperçu — ton profil reste «&nbsp;{PLAYSTYLE_LABEL[bankroll.playstyle]}&nbsp;».
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div
-                className={`rounded-2xl p-4 ${
-                  isBanker
-                    ? "glass border border-[var(--accent)]/25"
-                    : rec.valueTier === "none"
-                      ? "glass border border-[#ef4444]/20"
-                      : rec.valueTier === "marginal"
-                        ? "glass border border-[#ffd700]/25"
-                        : "glass-neon glow-neon"
-                }`}
-              >
-              <div className="flex items-center gap-1.5 text-[var(--accent)] mb-2">
-                <Coins size={15} />
-                <span className="text-xs font-black uppercase tracking-wide">Notre recommandation</span>
-              </div>
-
-              {isBanker ? (
-                <span className="inline-block text-[11px] font-black px-2.5 py-1 rounded-full mb-2 bg-[var(--accent)]/12 text-[var(--accent)]">
-                  🛡️ Le pari le plus probable
-                </span>
-              ) : (() => {
-                const tier = rec.valueTier;
-                if (!tier) return null;
-                const b = valueBadge(tier);
-                const cls =
-                  b.tone === "ok"
-                    ? "bg-[var(--accent)]/12 text-[var(--accent)]"
-                    : b.tone === "warn"
-                      ? "bg-[#ffd700]/12 text-[#ffd700]"
-                      : "bg-[#ef4444]/12 text-[#ef4444]";
-                return (
-                  <span className={`inline-block text-[11px] font-black px-2.5 py-1 rounded-full mb-2 ${cls}`}>
-                    {b.label}
-                  </span>
-                );
-              })()}
-
-              <div className="text-base font-black text-[#f0f0f0]">
-                {rec.bet}
-                {rec.odds && (
-                  <span className="text-[var(--accent)]">
-                    {" "}— cote {rec.odds}
-                    {rec.bookmaker ? ` (${rec.bookmaker})` : ""}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[#aaa] mt-1.5 leading-relaxed">{rec.rationale}</p>
-
-              {/* Banker → on montre la probabilité ; value → cote mini vs actuelle */}
-              {isBanker ? (
-                rec.probaModele != null && (
-                  <p className="text-[11px] text-[var(--text-muted)] mt-2">
-                    Probabilité estimée :{" "}
-                    <span className="font-bold text-[#cdd3db]">{rec.probaModele}%</span>
-                    {rec.odds ? <> · Cote : <span className="font-bold text-[#cdd3db]">{rec.odds}</span></> : null}
-                  </p>
-                )
-              ) : (
-                rec.coteMin != null && rec.odds && (
-                  <p className="text-[11px] text-[var(--text-muted)] mt-2">
-                    Cote min. pour value :{" "}
-                    <span className="font-bold text-[#cdd3db]">{fmtCote(rec.coteMin)}</span>{" "}
-                    · Cote actuelle : <span className="font-bold text-[#cdd3db]">{rec.odds}</span>
-                  </p>
-                )
-              )}
-
-              <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px]">
-                <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] font-bold">
-                  Confiance : {rec.confidence}
-                </span>
-                {(!stakeAdvice || (rec.valueTier === "none" && !isBanker)) && (
-                  <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-[var(--text-muted)] font-bold">
-                    Mise indicative : {rec.stake}
-                  </span>
-                )}
-              </div>
-
-              {/* Personalised € stake — for value bets AND the Prudent banker
-                  (never for a no-value bet in a value profile). */}
-              {stakeAdvice && (rec.valueTier !== "none" || isBanker) ? (
-                <div className="mt-3 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-3.5">
-                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--accent)] mb-1.5">
-                    <Wallet size={12} /> Mise conseillée pour toi
-                  </div>
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-2xl font-black text-[#f0f0f0] tabular-nums">
-                      {stakeAdvice.amount} €
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {stakeAdvice.pct.toLocaleString("fr-FR")}% de ta bankroll ({stakeAdvice.bankroll.toLocaleString("fr-FR")} €)
-                    </span>
-                  </div>
-                  {stakeAdvice.potentialGain != null && (
-                    <div className="mt-1.5 text-[11px] text-[var(--text-muted)]">
-                      Si ça passe : <span className="text-[var(--accent)] font-bold">+{stakeAdvice.potentialGain.toLocaleString("fr-FR")} €</span>
-                      {" "}· retour {stakeAdvice.potentialReturn?.toLocaleString("fr-FR")} €
-                    </div>
-                  )}
-                  <p className="mt-2 text-[10px] text-[#5a6472] leading-relaxed">
-                    Calculé sur ta bankroll actuelle, le profil «&nbsp;{PLAYSTYLE_LABEL[effectiveProfile]}&nbsp;» et la confiance du pari · plafonné à 5% pour ta sécurité.
-                  </p>
-                </div>
-              ) : bankrollReady && (!bankroll || bankroll.amount <= 0) ? (
-                <Link
-                  href="/dashboard/bankroll"
-                  className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.04] p-3 text-xs text-[var(--text-muted)] hover:bg-[var(--accent)]/[0.08] transition-colors"
-                >
-                  <Wallet size={14} className="text-[var(--accent)] shrink-0" />
-                  <span>
-                    <span className="text-[var(--accent)] font-bold">Configure ta bankroll</span> pour voir le montant exact à miser sur ce pari.
-                  </span>
-                </Link>
-              ) : null}
-              </div>
-            </div>
-            )}
-
-            <p className="text-[10px] text-[var(--text-muted)] text-center">{DISCLAIMER}</p>
+            <AnalysisResult data={data} home={h} away={a} canPlayers={canPlayers} />
 
             {/* Ask AI + regenerate */}
             <div className="pt-4 border-t border-[#1a1a1a] flex flex-col sm:flex-row items-center justify-center gap-3">
