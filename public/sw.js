@@ -1,38 +1,23 @@
-const CACHE = "copafever-v1";
-const PRECACHE = ["/dashboard", "/dashboard/bankroll"];
+// Minimal, deploy-safe service worker.
+//
+// It deliberately does NOT cache HTML navigations. A cached HTML shell embeds
+// hashed CSS/JS chunk URLs (/_next/static/chunks/<hash>.css) that 404 after the
+// next deploy — which renders the page completely UNSTYLED. So every request
+// goes straight to the network and the browser's own HTTP cache handles the
+// immutable /_next/static assets. On activation we also purge any cache left by
+// older SW versions (which may still hold a stale, style-breaking HTML shell).
 
-self.addEventListener("install", (e) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE).catch(() => {}))
-  );
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches
       .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-      )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
-  if (e.request.url.includes("/_next/")) return; // don't cache Next.js chunks
-  if (e.request.url.includes("/api/")) return;    // don't cache API calls
-
-  e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        if (e.request.mode === "navigate") {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, clone));
-        }
-        return res;
-      })
-      .catch(() => caches.match(e.request))
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   );
 });
+
+// No `fetch` handler → the browser always fetches fresh HTML and current assets.
