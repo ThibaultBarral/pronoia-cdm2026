@@ -3,7 +3,6 @@
 import { Zap } from "lucide-react";
 import { LocaleLink } from "@/lib/i18n/navigation";
 import { useTranslations } from "@/lib/i18n/locale-provider";
-import LanguageSwitcher from "@/components/language-switcher";
 
 export default function Navbar() {
   const t = useTranslations();
@@ -26,7 +25,6 @@ export default function Navbar() {
 
         {/* CTAs */}
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
           <LocaleLink href="/login" className="hidden sm:inline-flex text-sm text-[#7a8290] hover:text-[#f0f0f0] transition-colors px-2">
             {t("navbar.signIn")}
           </LocaleLink>

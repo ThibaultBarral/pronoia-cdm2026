@@ -27,14 +27,13 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
 };
 
-/** hreflang map: FR at root, EN under /en. */
+/** hreflang map: French-only site, served at the root. */
 function alternateUrls(path = "/") {
   const clean = path === "/" ? "" : path;
   return {
     canonical: clean || "/",
     languages: {
       fr: `${SITE}${clean || "/"}`,
-      en: `${SITE}/en${clean}`,
       "x-default": `${SITE}${clean || "/"}`,
     },
   };
@@ -47,23 +46,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : defaultLocale;
-  const en = locale === "en";
 
-  const title = en
-    ? "Copafever — AI analysis & betting picks for the 2026 World Cup"
-    : "Copafever — Analyses IA & paris de la Coupe du Monde 2026";
-  const description = en
-    ? "Copafever: AI analysis, value bets, live odds, lineups and real stats for every 2026 World Cup match. Bet smarter."
-    : "Copafever : analyses IA, value bets, cotes en direct, compositions et stats réelles pour chaque match de la Coupe du Monde 2026. Parie plus malin.";
+  const title = "Copafever — Analyses IA & paris de la Coupe du Monde 2026";
+  const description =
+    "Copafever : analyses IA, value bets, cotes en direct, compositions et stats réelles pour chaque match de la Coupe du Monde 2026. Parie plus malin.";
 
   return {
     metadataBase: new URL(SITE),
     title: { default: title, template: "%s | Copafever" },
     description,
     applicationName: "Copafever",
-    keywords: en
-      ? ["Copafever", "World Cup 2026", "AI football analysis", "sports betting 2026", "value bets", "World Cup odds", "World Cup 2026 predictions"]
-      : ["Copafever", "Coupe du Monde 2026", "CDM 2026", "analyse IA football", "paris sportifs CDM 2026", "value bets", "cotes Coupe du Monde", "pronostics CDM 2026"],
+    keywords: ["Copafever", "Coupe du Monde 2026", "CDM 2026", "analyse IA football", "paris sportifs CDM 2026", "value bets", "cotes Coupe du Monde", "pronostics CDM 2026"],
     authors: [{ name: "Copafever" }],
     creator: "Copafever",
     publisher: "Copafever",
@@ -75,15 +68,13 @@ export async function generateMetadata({
       siteName: "Copafever",
       title,
       description,
-      url: en ? `${SITE}/en` : SITE,
+      url: SITE,
       locale: localeMeta[locale].ogLocale,
     },
     twitter: {
       card: "summary_large_image",
-      title: en ? "Copafever — AI analysis 2026 World Cup" : "Copafever — Analyses IA CDM 2026",
-      description: en
-        ? "AI analysis, value bets and live odds for the 2026 World Cup."
-        : "Analyses IA, value bets et cotes en direct pour la Coupe du Monde 2026.",
+      title: "Copafever — Analyses IA CDM 2026",
+      description: "Analyses IA, value bets et cotes en direct pour la Coupe du Monde 2026.",
     },
     robots: {
       index: true,
@@ -126,10 +117,7 @@ export default async function RootLayout({
                   alternateName: "Copa Fever",
                   url: SITE,
                   logo: `${SITE}/copafever-icon.svg`,
-                  description:
-                    locale === "en"
-                      ? "AI analysis and value bets for the 2026 World Cup."
-                      : "Analyses IA et value bets pour la Coupe du Monde 2026.",
+                  description: "Analyses IA et value bets pour la Coupe du Monde 2026.",
                 },
                 {
                   "@type": "WebSite",

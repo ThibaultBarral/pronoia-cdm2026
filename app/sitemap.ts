@@ -78,19 +78,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   );
 
-  // Annotate every entry with its English (/en) alternate so Google indexes
-  // both languages and links them via hreflang. French stays at the root URL.
-  const all = [...staticPages, ...competitionPages, ...matchPages, ...teamPages];
-  return all.map((entry) => {
-    const path = entry.url === BASE ? "" : entry.url.slice(BASE.length);
-    return {
-      ...entry,
-      alternates: {
-        languages: {
-          fr: entry.url,
-          en: `${BASE}/en${path}`,
-        },
-      },
-    };
-  });
+  // French-only site — every page lives at the root URL.
+  return [...staticPages, ...competitionPages, ...matchPages, ...teamPages];
 }

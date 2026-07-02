@@ -1,14 +1,13 @@
 import "server-only";
 import type { Locale } from "./config";
-import { deepMerge, makeT, type Dictionary, type TFunction } from "./resolve";
+import { makeT, type Dictionary, type TFunction } from "./resolve";
 import { fr } from "./dictionaries/fr";
-import { en } from "./dictionaries/en";
 
-// English inherits French for any key it hasn't translated yet, so the app is
-// always renderable in both locales and never shows a raw key.
+// French-only site — the legacy "en" locale falls back to the French dictionary
+// (it is never actually served; see lib/i18n/config.ts).
 const dictionaries: Record<Locale, Dictionary> = {
   fr,
-  en: deepMerge(fr, en),
+  en: fr,
 };
 
 export function getDictionary(locale: Locale): Dictionary {

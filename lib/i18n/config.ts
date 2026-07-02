@@ -1,16 +1,22 @@
 /**
  * i18n configuration — shared between server, client and middleware.
  *
- * Routing strategy: French is the DEFAULT locale and is served at the root
- * with NO URL prefix (so every historical URL like `/match/123` is preserved
- * and keeps its SEO). English lives under the `/en` prefix and is indexable
- * separately. The middleware rewrites unprefixed requests to the internal
- * `/[lang]` segment (lang=fr) so the visible URL never changes.
+ * The site is French-only. French is served at the root with NO URL prefix and
+ * the middleware rewrites unprefixed requests to the internal `/[lang]` segment
+ * (lang=fr) so the visible URL never changes. Any legacy `/en/*` URL is
+ * redirected back to its French equivalent by the proxy.
  */
 
-export const locales = ["fr", "en"] as const;
+/** The only locale actually served/routed. The site is French-only. */
+export const locales = ["fr"] as const;
 
-export type Locale = (typeof locales)[number];
+/**
+ * `"en"` is kept in the TYPE only as a legacy no-op: the codebase still has many
+ * `locale === "en"` guards, and keeping the union lets them compile as dead
+ * branches that never execute (routing only ever yields "fr"; any `/en/*` URL is
+ * redirected to French by the proxy). It is intentionally NOT in `locales`.
+ */
+export type Locale = "fr" | "en";
 
 export const defaultLocale: Locale = "fr";
 
@@ -21,7 +27,7 @@ export function isLocale(value: string | undefined | null): value is Locale {
 /** BCP-47 tag for `<html lang>`, OpenGraph and JSON-LD. */
 export const localeMeta: Record<Locale, { htmlLang: string; ogLocale: string; label: string }> = {
   fr: { htmlLang: "fr-FR", ogLocale: "fr_FR", label: "Français" },
-  en: { htmlLang: "en-US", ogLocale: "en_US", label: "English" },
+  en: { htmlLang: "fr-FR", ogLocale: "fr_FR", label: "Français" },
 };
 
 /**

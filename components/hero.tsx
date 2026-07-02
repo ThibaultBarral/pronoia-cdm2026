@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Sparkles, Search, Target, Wallet, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import PhoneMockup from "@/components/landing/phone-mockup";
 import { type FeaturedMatch } from "@/components/landing/featured-match-card";
 import { trackEvent } from "@/lib/analytics";
@@ -50,42 +49,21 @@ const headlineStagger = {
   show: { transition: { staggerChildren: 0.14, delayChildren: 0.12 } },
 };
 
-// Animated value loop — communicates: AI analyses → you bet right → you cash in.
-const STEPS = [
-  { icon: Search, key: "hero.loopAnalyze" },
-  { icon: Target, key: "hero.loopBet" },
-  { icon: Wallet, key: "hero.loopCash" },
-];
-
-function ValueLoop() {
+/** What the AI predicts — the three green pills under the headline. */
+function PredictPills() {
   const t = useTranslations();
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setActive((a) => (a + 1) % STEPS.length), 1300);
-    return () => clearInterval(id);
-  }, []);
+  const pills = [t("hero.pill1"), t("hero.pill2"), t("hero.pill3")];
   return (
-    <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-3 flex-wrap">
-      {STEPS.map((s, i) => {
-        const on = i === active;
-        const Icon = s.icon;
-        return (
-          <div key={i} className="flex items-center gap-2 sm:gap-3">
-            <motion.div
-              animate={{ scale: on ? 1.06 : 1, opacity: on ? 1 : 0.5 }}
-              transition={{ duration: 0.4 }}
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2 border ${on ? "glass-neon glow-neon" : "glass"}`}
-              style={on ? { borderColor: "rgba(var(--accent-rgb),0.5)" } : undefined}
-            >
-              <Icon size={15} className={on ? "text-[var(--accent)]" : "text-[#6a7488]"} />
-              <span className={`text-xs sm:text-sm font-bold ${on ? "text-[var(--accent)]" : "text-[#6a7488]"}`}>
-                {t(s.key)}
-              </span>
-            </motion.div>
-            {i < STEPS.length - 1 && <ArrowRight size={14} className="text-[#2a3550] shrink-0" />}
-          </div>
-        );
-      })}
+    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
+      {pills.map((p) => (
+        <span
+          key={p}
+          className="inline-flex items-center gap-2 rounded-full glass px-4 py-2 text-sm font-semibold text-[#d8dde5]"
+        >
+          <span className="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" />
+          {p}
+        </span>
+      ))}
     </div>
   );
 }
@@ -126,38 +104,34 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
 
             <motion.h1
               variants={headlineStagger} initial="hidden" animate="show"
-              className="text-[2.5rem] sm:text-6xl lg:text-[3.4rem] xl:text-6xl font-black leading-[1.05] tracking-tight mb-5"
+              className="text-[2.6rem] sm:text-6xl lg:text-[3.4rem] xl:text-6xl font-black leading-[1.03] tracking-tight mb-6"
             >
-              <motion.span variants={lineUp} className="block text-[#f0f0f0]">{t("hero.line1")}</motion.span>
-              <motion.span variants={lineUp} className="block text-[#f0f0f0]">{t("hero.line2")}</motion.span>
+              <motion.span variants={lineUp} className="block text-[#f4f5f7]">{t("hero.line1")}</motion.span>
               <motion.span
                 variants={lineUp}
-                className="block text-glow-neon"
+                className="block text-glow-neon relative w-fit mx-auto lg:mx-0"
                 style={{
                   background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                {t("hero.line3")}
+                {t("hero.line2")}
+                <span className="absolute left-0 -bottom-1 h-1.5 w-full rounded-full bg-[var(--accent)]/25" />
               </motion.span>
+              <motion.span variants={lineUp} className="block text-[#f4f5f7]">{t("hero.line3")}</motion.span>
             </motion.h1>
 
-            <motion.p
-              variants={fadeUp} initial="hidden" animate="show" custom={2}
-              className="text-[#9aa3b2] text-base md:text-lg max-w-xl mx-auto lg:mx-0 mb-7 leading-relaxed"
-            >
-              {t("hero.subheadPre")}{" "}
-              <span className="text-[var(--accent)] font-semibold">{t("hero.subheadEmphasis")}</span>{" "}
-              {t("hero.subheadPost")}
-            </motion.p>
-
-            <motion.div
-              variants={fadeUp} initial="hidden" animate="show" custom={2.4}
-              className="mb-8"
-            >
-              <ValueLoop />
+            <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2} className="mb-6">
+              <PredictPills />
             </motion.div>
+
+            <motion.p
+              variants={fadeUp} initial="hidden" animate="show" custom={2.4}
+              className="text-[#9aa3b2] text-base md:text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed"
+            >
+              {t("hero.subhead")}
+            </motion.p>
 
             <motion.div
               variants={fadeUp} initial="hidden" animate="show" custom={3}
@@ -170,8 +144,8 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
                 whileTap={{ scale: 0.97 }}
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[var(--accent)] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-soft)]"
               >
-                <Zap size={15} />
                 {t("hero.ctaPrimary")}
+                <ArrowRight size={16} />
               </motion.a>
               <motion.a
                 href="#matches"

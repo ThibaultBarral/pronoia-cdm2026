@@ -52,6 +52,21 @@ export async function GET(
   const wantResult =
     forced === "resultat" || (forced !== "prono" && finished);
 
+  // Personalised @handle from the signed-in user (name → email local part).
+  const meta = user.user_metadata ?? {};
+  const rawHandle: string =
+    meta.user_name || meta.preferred_username || meta.name || meta.full_name ||
+    user.email?.split("@")[0] || "";
+  const handle = rawHandle
+    ? "@" + rawHandle.toString().toLowerCase().replace(/[^a-z0-9_]+/g, "").slice(0, 20)
+    : undefined;
+
+  const dateLabel = new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
   const element =
     wantResult && match
       ? ResultCard({
@@ -62,8 +77,9 @@ export async function GET(
           homeFlag,
           awayFlag,
           track: await getTrackRecordStats(),
+          handle,
         })
-      : PronoCard({ data, homeName, awayName, homeFlag, awayFlag });
+      : PronoCard({ data, homeName, awayName, homeFlag, awayFlag, handle, dateLabel });
 
   return new ImageResponse(element, { ...CARD_SIZE, emoji: "twemoji" });
 }

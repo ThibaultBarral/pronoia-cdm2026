@@ -17,6 +17,15 @@ function internalUrl(request: NextRequest, locale: Locale): URL | null {
 
 export async function proxy(request: NextRequest) {
   const rawPath = request.nextUrl.pathname;
+
+  // Site is French-only: permanently redirect any legacy /en or /en/* URL to
+  // its French equivalent so old links and indexed pages don't 404.
+  if (rawPath === "/en" || rawPath.startsWith("/en/")) {
+    const dest = request.nextUrl.clone();
+    dest.pathname = rawPath.slice(3) || "/";
+    return NextResponse.redirect(dest, 308);
+  }
+
   // Resolve the active locale and the locale-stripped "logical" path used by
   // the auth rules below (so /en/dashboard is treated like /dashboard).
   const { locale, pathname: path } = splitLocale(rawPath);

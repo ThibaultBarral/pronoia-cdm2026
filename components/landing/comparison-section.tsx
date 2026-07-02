@@ -5,17 +5,21 @@ import { Check, X } from "lucide-react";
 import { useLocale } from "@/lib/i18n/locale-provider";
 
 /**
- * "Influenceurs vs Copafever" — the Elofoot-style trust section. Attacks the
- * dishonest tipster playbook (only showing winning bets, gut feeling, hidden
- * bookmaker affiliations) and contrasts it with the honest, data-driven product.
- * Bilingual inline (FR/EN) — no dictionary keys needed.
+ * "Why our AI beats the tipsters" — the Elofoot-style trust section. Leads with a
+ * real, honest hit-rate figure, then attacks the dishonest tipster playbook (only
+ * showing winning bets, gut feeling, hidden bookmaker affiliations) and contrasts
+ * it with the honest, data-driven product. Bilingual inline (FR/EN).
  */
-export default function ComparisonSection() {
+export default function ComparisonSection({ winRate = 0 }: { winRate?: number }) {
   const locale = useLocale();
   const en = locale === "en";
 
   const copy = en
     ? {
+        eyebrow: "Numbers in hand",
+        heading: "The AI, not some influencer's gut feeling",
+        headingSub: "Zero hype, zero sponsored bet. Just real data and a public record you can check yourself.",
+        bigStatLabel: "correct calls (winner or draw) on the matches the AI has crunched",
         title: "Influencers sell you dreams.",
         titleAccent: "We give you probabilities.",
         subtitle: "The difference between a tipster and real AI analysis.",
@@ -30,6 +34,10 @@ export default function ComparisonSection() {
         ],
       }
     : {
+        eyebrow: "Chiffres en main",
+        heading: "L'IA, pas le feeling d'un influenceur",
+        headingSub: "Zéro hype, zéro pari sponsorisé. Juste des vraies données et un historique public que tu peux vérifier toi-même.",
+        bigStatLabel: "de résultats corrects (vainqueur ou nul) sur les matchs passés au crible de l'IA",
         title: "Un influenceur te vend du rêve.",
         titleAccent: "Nous, des probabilités.",
         subtitle: "La différence entre un tipster et une vraie analyse par IA.",
@@ -46,9 +54,40 @@ export default function ComparisonSection() {
 
   return (
     <section className="border-t border-white/5 bg-[#060910]">
-      <div className="max-w-4xl mx-auto px-4 py-16">
+      <div className="max-w-4xl mx-auto px-4 py-20">
+        {/* Proof-in-the-facts header */}
+        <div className="max-w-2xl mb-14">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-3">{copy.eyebrow}</p>
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-[#f4f5f7] leading-[1.08]">{copy.heading}</h2>
+          <p className="text-[#9aa3b2] text-base sm:text-lg mt-4 leading-relaxed">{copy.headingSub}</p>
+        </div>
+
+        {winRate > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
+          >
+            <div
+              className="text-7xl sm:text-8xl font-black tabular-nums leading-none"
+              style={{
+                background: "linear-gradient(135deg, var(--accent), var(--accent-soft))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {winRate}%
+            </div>
+            <p className="text-[var(--text-muted)] text-sm sm:text-base mt-4 max-w-md mx-auto leading-relaxed">
+              {copy.bigStatLabel}
+            </p>
+          </motion.div>
+        )}
+
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#f0f0f0] leading-tight">
+          <h3 className="text-2xl md:text-3xl font-bold text-[#f0f0f0] leading-tight">
             {copy.title}{" "}
             <span
               style={{
@@ -59,7 +98,7 @@ export default function ComparisonSection() {
             >
               {copy.titleAccent}
             </span>
-          </h2>
+          </h3>
           <p className="text-sm text-[var(--text-muted)] mt-3 max-w-lg mx-auto">{copy.subtitle}</p>
         </div>
 

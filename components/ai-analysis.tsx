@@ -14,6 +14,7 @@ import AnalysisLoader from "@/components/analysis-loader";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
 import LockedFullAnalysis from "@/components/locked-full-analysis";
 import AnalysisResult, { ProbRow } from "@/components/analysis-result";
+import ShareAnalysisButton from "@/components/share-analysis-button";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { useLocalizedHref } from "@/lib/i18n/navigation";
 import { type MatchAnalysisData } from "@/lib/analysis-schema";
@@ -240,6 +241,13 @@ export default function AIAnalysis({
         {data && (
           <div className="space-y-6">
             <AnalysisResult data={data} home={h} away={a} canPlayers={canPlayers} />
+            <div className="pt-5 border-t border-[#1a1a1a] flex justify-center">
+              <ShareAnalysisButton
+                matchId={match.id}
+                title={`${h.name} vs ${a.name}`}
+                variant="prono"
+              />
+            </div>
           </div>
         )}
       </div>
