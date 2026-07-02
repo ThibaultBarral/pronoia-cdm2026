@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Hero from "@/components/hero";
+import ProductShowcase from "@/components/landing/product-showcase";
 import TikTokReels from "@/components/landing/tiktok-reels";
 import AskFounder from "@/components/landing/ask-founder";
 import FeaturesSection from "@/components/features-section";
@@ -122,6 +123,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
         stats={{ matches: matches.length, verified: trackStats.verified, winRate: trackStats.winRate }}
         featuredMatch={featuredMatch}
       />
+      <ProductShowcase />
       <TikTokReels />
       <AskFounder />
       <FeaturesSection />
