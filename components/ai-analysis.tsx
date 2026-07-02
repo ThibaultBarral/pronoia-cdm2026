@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bot, Sparkles, RefreshCw, AlertCircle, Target } from "lucide-react";
+import { Bot, Sparkles, AlertCircle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
@@ -10,8 +10,6 @@ import { getMatchPreview, type MatchPreview } from "@/actions/match-preview";
 import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import { useSubscription } from "@/lib/use-subscription";
-import AskAiModal from "@/components/ask-ai-modal";
-import ShareAnalysisButton from "@/components/share-analysis-button";
 import AnalysisLoader from "@/components/analysis-loader";
 import LossAversionPaywall from "@/components/loss-aversion-paywall";
 import LockedFullAnalysis from "@/components/locked-full-analysis";
@@ -102,10 +100,9 @@ export default function AIAnalysis({
   // signed-out visitor returns null too). Full analysis is paid-only.
   const hasPaidAccess = sub?.access === true;
   // Feature-tiered gating: Essential has access but not the Premium toolkit
-  // (scorers/key players, Chat IA). Every other paid plan + VIP do.
+  // (scorers/key players). Every other paid plan + VIP do.
   const hasToolkit = sub?.access === true && sub.plan !== "essential";
   const canPlayers = hasToolkit;
-  const canChat = hasToolkit;
   const [preview, setPreview] = useState<MatchPreview | null>(null);
   const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -243,23 +240,6 @@ export default function AIAnalysis({
         {data && (
           <div className="space-y-6">
             <AnalysisResult data={data} home={h} away={a} canPlayers={canPlayers} />
-
-            {/* Ask AI + regenerate */}
-            <div className="pt-4 border-t border-[#1a1a1a] flex flex-col sm:flex-row items-center justify-center gap-3">
-              <ShareAnalysisButton
-                matchId={match.id}
-                title={`${match.homeTeam.name} vs ${match.awayTeam.name}`}
-              />
-              {canChat && <AskAiModal match={match} />}
-              <Button
-                variant="outline"
-                onClick={handleGenerate}
-                disabled={isPending}
-                className="border-[#1f1f1f] text-[#666] hover:border-[var(--accent)]/30 hover:text-[var(--accent)] text-xs"
-              >
-                <RefreshCw size={12} className="mr-1.5" /> Regénérer
-              </Button>
-            </div>
           </div>
         )}
       </div>
