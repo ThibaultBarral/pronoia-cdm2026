@@ -32,11 +32,9 @@ function Wordmark({ size = 44 }: { size?: number }) {
  * section tag right) and the Copafever footer (wordmark + domain + note).
  */
 function Shell({
-  handle,
   tag,
   children,
 }: {
-  handle?: string;
   tag: string;
   children: React.ReactNode;
 }) {
@@ -89,27 +87,7 @@ function Shell({
       >
         {/* Top bar */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-          {handle ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                fontSize: 28,
-                fontWeight: 800,
-                color: "#F4F5F7",
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 999,
-                padding: "12px 28px",
-              }}
-            >
-              <span style={{ display: "flex", width: 14, height: 14, borderRadius: 999, background: ACCENT }} />
-              {handle}
-            </div>
-          ) : (
-            <Wordmark size={40} />
-          )}
+          <Wordmark size={40} />
           <div
             style={{
               display: "flex",
@@ -132,7 +110,8 @@ function Shell({
             flex: 1,
             width: "100%",
             flexDirection: "column",
-            justifyContent: "center",
+            justifyContent: "flex-start",
+            paddingTop: 48,
           }}
         >
           {children}
@@ -253,7 +232,6 @@ export function PronoCard({
   awayName,
   homeFlag,
   awayFlag,
-  handle,
   dateLabel,
 }: {
   data: MatchAnalysisData;
@@ -261,7 +239,6 @@ export function PronoCard({
   awayName: string;
   homeFlag: string;
   awayFlag: string;
-  handle?: string;
   dateLabel?: string;
 }) {
   const p = data.probabilities;
@@ -281,7 +258,7 @@ export function PronoCard({
     : `${homeWins ? homeName : awayName} vainqueur probable`;
 
   return (
-    <Shell handle={handle} tag="CDM 2026">
+    <Shell tag="CDM 2026">
       {/* Eyebrow */}
       <div style={{ display: "flex", flexDirection: "column", marginBottom: 56 }}>
         <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 4, color: ACCENT }}>
@@ -432,7 +409,6 @@ export function ResultCard({
   homeFlag,
   awayFlag,
   track,
-  handle,
 }: {
   match: Match;
   data: MatchAnalysisData;
@@ -441,7 +417,6 @@ export function ResultCard({
   homeFlag: string;
   awayFlag: string;
   track: TrackStats;
-  handle?: string;
 }) {
   const h = match.score?.home ?? 0;
   const a = match.score?.away ?? 0;
@@ -455,7 +430,7 @@ export function ResultCard({
   const correct = predicted === actual;
 
   return (
-    <Shell handle={handle} tag="RÉSULTAT">
+    <Shell tag="RÉSULTAT">
       <Flags
         homeFlag={homeFlag}
         awayFlag={awayFlag}
