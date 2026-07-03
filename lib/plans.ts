@@ -503,6 +503,8 @@ export interface SubscriptionState {
   status: SubStatus | null;
   currentPeriodEnd: string | null;
   trialEnd: string | null;
+  /** Temporary full access earned via the daily pack (jackpot). */
+  bonusAccessUntil?: string | null;
 }
 
 /**
@@ -515,10 +517,15 @@ export interface SubscriptionState {
  * NB: this checks entitlement, not the monthly analysis quota (see ai-guard).
  */
 export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
-  if (!sub || sub.plan === "free") return false;
+  if (!sub) return false;
   const now = Date.now();
   const within = (iso: string | null) => !!iso && now <= Date.parse(iso);
 
+  // Temporary bonus access (daily-pack jackpot) — grants full access even to a
+  // `free` plan while it lasts.
+  if (within(sub.bonusAccessUntil ?? null)) return true;
+
+  if (sub.plan === "free") return false;
   if (sub.status === "expired") return false;
   if (sub.plan === "lifetime") return sub.status !== "canceled";
   if (sub.status === "trialing") return within(sub.trialEnd);
@@ -572,4 +579,6 @@ export interface SubscriptionView extends SubscriptionState {
   cancelAtPeriodEnd: boolean;
   manageUrl: string | null;
   freeAnalysesUsed: number;
+  /** Earned bonus free analyses (daily pack + share). */
+  bonusCredits: number;
 }

@@ -30,7 +30,7 @@ function monthlyUsedNow(usedRaw: number, periodStart: string | null): number {
 
 /** Columns we read for both the gate and the UI view model. */
 const SUB_COLUMNS =
-  "plan, status, current_period_end, trial_end, cancel_at_period_end, manage_url, free_analyses_used, vip";
+  "plan, status, current_period_end, trial_end, cancel_at_period_end, manage_url, free_analyses_used, vip, bonus_credits, bonus_access_until";
 
 /**
  * Read the current user's subscription (view model). Returns null when not
@@ -52,6 +52,7 @@ export async function getSubscription(): Promise<SubscriptionView | null> {
     status: (data?.status as SubStatus | null) ?? null,
     currentPeriodEnd: (data?.current_period_end as string | null) ?? null,
     trialEnd: (data?.trial_end as string | null) ?? null,
+    bonusAccessUntil: (data?.bonus_access_until as string | null) ?? null,
   };
 
   const vip = Boolean(data?.vip);
@@ -63,6 +64,7 @@ export async function getSubscription(): Promise<SubscriptionView | null> {
     cancelAtPeriodEnd: Boolean(data?.cancel_at_period_end),
     manageUrl: (data?.manage_url as string | null) ?? null,
     freeAnalysesUsed: (data?.free_analyses_used as number | null) ?? 0,
+    bonusCredits: (data?.bonus_credits as number | null) ?? 0,
   };
 }
 
@@ -82,7 +84,7 @@ export async function requireAnalysisAccess(): Promise<
 
   const { data } = await supabase
     .from("subscriptions")
-    .select("plan, status, current_period_end, trial_end, vip")
+    .select("plan, status, current_period_end, trial_end, vip, bonus_access_until")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -91,6 +93,7 @@ export async function requireAnalysisAccess(): Promise<
     status: (data?.status as SubStatus | null) ?? null,
     currentPeriodEnd: (data?.current_period_end as string | null) ?? null,
     trialEnd: (data?.trial_end as string | null) ?? null,
+    bonusAccessUntil: (data?.bonus_access_until as string | null) ?? null,
   };
 
   const vip = Boolean(data?.vip);
@@ -145,7 +148,7 @@ export async function getAnalysisAccess(): Promise<AnalysisGrant | { error: stri
   const { data } = await supabase
     .from("subscriptions")
     .select(
-      "plan, status, current_period_end, trial_end, vip, free_analyses_used, monthly_analyses_used, monthly_period_start"
+      "plan, status, current_period_end, trial_end, vip, free_analyses_used, monthly_analyses_used, monthly_period_start, bonus_credits, bonus_access_until"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -155,6 +158,7 @@ export async function getAnalysisAccess(): Promise<AnalysisGrant | { error: stri
     status: (data?.status as SubStatus | null) ?? null,
     currentPeriodEnd: (data?.current_period_end as string | null) ?? null,
     trialEnd: (data?.trial_end as string | null) ?? null,
+    bonusAccessUntil: (data?.bonus_access_until as string | null) ?? null,
   };
 
   // VIP → unlimited, no meter to consume.
@@ -173,8 +177,10 @@ export async function getAnalysisAccess(): Promise<AnalysisGrant | { error: stri
     return { userId: user.id, meter: "none" }; // unlimited paid plan
   }
 
+  // Free tier: base "1er match offert" + earned bonus credits (daily pack / share).
   const used = (data?.free_analyses_used as number | null) ?? 0;
-  if (used < FREE_ANALYSES_LIMIT) return { userId: user.id, meter: "free" };
+  const bonus = (data?.bonus_credits as number | null) ?? 0;
+  if (used < FREE_ANALYSES_LIMIT + bonus) return { userId: user.id, meter: "free" };
 
   return { error: PAYWALL_REQUIRED };
 }

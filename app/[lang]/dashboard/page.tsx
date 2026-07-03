@@ -10,6 +10,7 @@ import MatchRow from "@/components/dashboard/match-row";
 import MatchAnalyzer from "@/components/match-analyzer";
 import PremiumSpotlight from "@/components/dashboard/premium-spotlight";
 import LaunchPricingBanner from "@/components/dashboard/launch-pricing-banner";
+import DailyPack from "@/components/dashboard/daily-pack";
 import LiveTicker from "@/components/dashboard/live-ticker";
 import BankrollWidget from "@/components/dashboard/bankroll-widget";
 import UserMenu from "@/components/auth/user-menu";
@@ -195,6 +196,9 @@ export default function DashboardPage() {
 
           {/* Launch-pricing urgency (dismissible, hidden for lifetime) */}
           <LaunchPricingBanner />
+
+          {/* Daily reward pack — retention loop */}
+          <DailyPack />
 
           {/* Premium spotlight — countdown + top analyses (conversion & retention) */}
           {!loading && <PremiumSpotlight matches={matches} />}
