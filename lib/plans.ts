@@ -1,18 +1,24 @@
 /**
  * Monetization model (Whop) — single source of truth.
  *
- * Duration-based grid: the SAME full product for every paid plan, differentiated
- * only by billing period — Hebdo (weekly recurring), Mensuel (monthly recurring)
- * and À vie (one-time lifetime, the only non-recurring offer). No feature gating
- * between plans: paying unlocks everything (unlimited analyses, Chat IA,
- * simulator, bracket, value bets, bankroll).
+ * Tier × duration grid, mirrored on the main competitor:
+ *   Découverte (entry, capped) < Pro (full toolkit) < Elite (+ live & perks)
+ * offered in Semaine (weekly) / Mensuel (monthly) / À vie (one-time) durations.
+ *
+ * Gating has two axes:
+ *   1. Feature gating — Découverte gets the AI analysis but NOT the betting
+ *      toolkit (value bets, scorers, chat, simulator, bracket, bankroll); Pro
+ *      unlocks the toolkit; Elite adds live prediction + perks.
+ *   2. A monthly analysis quota — only Découverte is capped (MONTHLY_ANALYSIS_LIMIT);
+ *      Pro/Elite are unlimited (our edge vs the competitor, who caps every tier).
  *
  * Signing up is free and gives ONE free full analysis ("1er match offert"), then
  * the paywall kicks in. Match facts (stats, form, H2H, line-ups) stay public so
  * pages remain indexable for SEO.
  *
- * Legacy plans (pass_cdm / season) are kept `hidden` for grandfathering only:
- * existing members keep their entitlements via webhooks / restore / hasFeature.
+ * Legacy plans (essential / weekly / pass_cdm / season) are kept `hidden` for
+ * grandfathering only: existing members keep their entitlements via webhooks /
+ * restore / hasFeature.
  *
  * Display fields are safe for client components. Real Whop plan IDs live in
  * server-only env vars (WHOP_PLAN_*), resolved via planIdForPlan / planForPlanId
@@ -23,11 +29,15 @@ import type { Locale } from "@/lib/i18n/config";
 
 export type Plan =
   | "free"
-  // current plans — feature ladder: Essential (basic) < Premium (full) < À vie
-  | "essential"
-  | "monthly"
-  | "lifetime"
+  // current grid — tier × duration
+  | "decouverte" // entry, monthly, capped
+  | "monthly" // = Pro monthly (key kept for grandfathering existing Pro/Premium subs)
+  | "elite" // Elite monthly
+  | "pro_weekly" // Pro weekly
+  | "elite_weekly" // Elite weekly
+  | "lifetime" // = Elite lifetime (one-time)
   // legacy (grandfathered, hidden from sale)
+  | "essential"
   | "weekly"
   | "pass_cdm"
   | "season";
@@ -43,6 +53,15 @@ export type SubStatus = "active" | "trialing" | "expired" | "canceled";
  */
 export const FREE_ANALYSES_LIMIT: number = 1;
 
+/**
+ * Monthly analysis quota per paid plan. Absent = unlimited. Only the entry tier
+ * (Découverte) is capped, to create upgrade pressure while protecting margin.
+ * Enforcement lives server-side (ai-guard); this map is the single source.
+ */
+export const MONTHLY_ANALYSIS_LIMIT: Partial<Record<PaidPlan, number>> = {
+  decouverte: 20,
+};
+
 /** Pass CDM is sold as a tournament pass: access through this instant (incl.). */
 export const PASS_CDM_END = "2026-07-19T23:59:59Z";
 
@@ -54,14 +73,19 @@ export function cdmIntroActive(now: number = Date.now()): boolean {
   return now <= Date.parse(PASS_CDM_END);
 }
 
+/** Billing duration — drives the Semaine / Mensuel / À vie toggle in the UI. */
+export type Duration = "week" | "month" | "lifetime";
+
 export interface Offer {
   plan: PaidPlan;
   name: string;
+  /** Which duration tab this offer belongs to. */
+  duration: Duration;
   /** Display price only — the real charge is configured on Whop. */
   priceLabel: string;
   /** Higher "anchor" price shown struck-through next to the real one (urgency). */
   anchorPrice?: string;
-  /** Small discount pill next to the anchor, e.g. "-40%". */
+  /** Small discount pill next to the anchor, e.g. "-50%". */
   discountLabel?: string;
   /** Urgency line under the price, e.g. "Tarif Coupe du Monde · offre limitée". */
   urgencyLabel?: string;
@@ -89,95 +113,174 @@ export interface Offer {
   envKey: string;
 }
 
+// Reusable feature bullet lists (kept DRY across the weekly/monthly variants).
+const PRO_FEATURES = [
+  "Analyses IA illimitées",
+  "Value bets & cotes + niveau de confiance",
+  "Buteurs probables & joueurs clés",
+  "Chat IA contextuel",
+  "Simulateur & bracket interactif",
+  "Suivi bankroll & ROI",
+  "Toutes les compétitions, aussi après la Coupe du Monde",
+];
+const PRO_LOCKED = [
+  "Prédiction en direct pendant le match",
+  "Support prioritaire & badge fondateur",
+];
+const ELITE_FEATURES = [
+  "Tout Pro, et en plus :",
+  "Prédiction en direct pendant le match (score + minute)",
+  "Support prioritaire",
+  "Badge membre fondateur",
+  "Accès anticipé aux futures fonctions",
+];
+
 /**
- * Display order = paywall hierarchy: Hebdo (gauche), Mensuel (centre/hero),
- * À vie (droite). Legacy plans are `hidden` (retired from sale) but kept in the
- * array so webhooks / restore / hasFeature keep resolving existing memberships.
+ * Display order = paywall hierarchy. The UI groups by `duration` (Semaine /
+ * Mensuel / À vie tabs); within a tab, order = Découverte, Pro (hero), Elite.
+ * Legacy plans are `hidden` (retired from sale) but kept in the array so
+ * webhooks / restore / hasFeature keep resolving existing memberships.
  */
 export const OFFERS: Offer[] = [
+  // ── Mensuel ────────────────────────────────────────────────────────────────
   {
-    plan: "essential",
-    name: "Essential",
-    priceLabel: "9,99 €",
-    anchorPrice: "13,99 €",
-    discountLabel: "-29%",
+    plan: "decouverte",
+    name: "Découverte",
+    duration: "month",
+    priceLabel: "3,99 €",
     unit: "/ mois",
-    sublabel: "L'analyse IA complète, pour suivre chaque match",
-    ctaLabel: "Choisir Essential — 9,99 €/mois",
+    sublabel: "Pour démarrer — l'analyse IA complète, 20 matchs par mois",
+    ctaLabel: "Choisir Découverte — 3,99 €/mois",
     note: "Sans engagement · résiliable à tout moment",
     features: [
-      "Analyses IA illimitées",
+      "20 analyses IA par mois",
       "Analyse complète : scénario, probas & xG",
-      "Forces & faiblesses des équipes",
-      "Forme, H2H & compositions",
+      "Forces & faiblesses, forme, H2H & compos",
     ],
     lockedFeatures: [
-      "Value bets & cotes en direct",
+      "Value bets & cotes",
       "Buteurs probables & joueurs clés",
-      "Chat IA contextuel",
-      "Simulateur & bracket",
+      "Chat IA, simulateur & bracket",
+      "Suivi bankroll & ROI",
     ],
-    envKey: "WHOP_PLAN_ESSENTIAL",
+    envKey: "WHOP_PLAN_DECOUVERTE",
   },
   {
     plan: "monthly",
-    name: "Premium",
+    name: "Pro",
+    duration: "month",
     priceLabel: "14,99 €",
-    anchorPrice: "24,99 €",
-    discountLabel: "-40%",
+    anchorPrice: "29,98 €",
+    discountLabel: "-50%",
     unit: "/ mois",
     sublabel:
       "Toute la boîte à outils paris — value bets, buteurs, Chat IA, simulateur",
-    ctaLabel: "Choisir Premium — 14,99 €/mois",
+    ctaLabel: "Choisir Pro — 14,99 €/mois",
     note: "Le meilleur rapport — résiliable à tout moment",
     badge: "★ LE PLUS CHOISI",
     badgeKind: "green",
     highlight: true,
-    features: [
-      "Tout Essential, et en plus :",
-      "Value bets & cotes + niveau de confiance",
-      "Buteurs probables & joueurs clés",
-      "Chat IA contextuel",
-      "Simulateur & bracket interactif",
-      "Suivi bankroll & ROI",
-      "CDM 2026 + toutes les compétitions 2026/27",
-    ],
-    lockedFeatures: [
-      "Accès à vie (un seul paiement)",
-      "Badge fondateur & support prioritaire",
-    ],
+    features: PRO_FEATURES,
+    lockedFeatures: PRO_LOCKED,
     envKey: "WHOP_PLAN_MONTHLY",
   },
   {
+    plan: "elite",
+    name: "Elite",
+    duration: "month",
+    priceLabel: "24,99 €",
+    anchorPrice: "49,98 €",
+    discountLabel: "-50%",
+    unit: "/ mois",
+    sublabel: "Le maximum — prédiction en direct, support prioritaire, badge",
+    ctaLabel: "Choisir Elite — 24,99 €/mois",
+    note: "Sans engagement · résiliable à tout moment",
+    features: ELITE_FEATURES,
+    envKey: "WHOP_PLAN_ELITE",
+  },
+
+  // ── Semaine ────────────────────────────────────────────────────────────────
+  {
+    plan: "pro_weekly",
+    name: "Pro",
+    duration: "week",
+    priceLabel: "6,99 €",
+    anchorPrice: "13,98 €",
+    discountLabel: "-50%",
+    unit: "/ semaine",
+    sublabel: "Toute la boîte à outils paris, juste pour cette semaine",
+    ctaLabel: "Choisir Pro — 6,99 €/semaine",
+    note: "Sans engagement · résiliable à tout moment",
+    highlight: true,
+    features: PRO_FEATURES,
+    lockedFeatures: PRO_LOCKED,
+    envKey: "WHOP_PLAN_PRO_WEEKLY",
+  },
+  {
+    plan: "elite_weekly",
+    name: "Elite",
+    duration: "week",
+    priceLabel: "9,99 €",
+    anchorPrice: "19,98 €",
+    discountLabel: "-50%",
+    unit: "/ semaine",
+    sublabel: "Le maximum — prédiction en direct & support prioritaire",
+    ctaLabel: "Choisir Elite — 9,99 €/semaine",
+    note: "Sans engagement · résiliable à tout moment",
+    features: ELITE_FEATURES,
+    envKey: "WHOP_PLAN_ELITE_WEEKLY",
+  },
+
+  // ── À vie ──────────────────────────────────────────────────────────────────
+  {
     plan: "lifetime",
-    name: "À vie",
+    name: "Elite à vie",
+    duration: "lifetime",
     priceLabel: "89 €",
     anchorPrice: "129 €",
     discountLabel: "-31%",
     urgencyLabel: "Tarif de lancement · passe à 129 € le 19 juillet",
     unit: "une seule fois",
     oneTime: true,
-    sublabel: "Un seul paiement · le produit complet, pour toujours",
+    sublabel: "Tout Elite · un seul paiement, pour toujours",
     ctaLabel: "Accès à vie — 89 €",
     note: "Le seul paiement unique — zéro abonnement, à vie",
     badge: "À VIE",
     badgeKind: "life",
     features: [
-      "Tout Premium, à vie",
+      "Tout Elite, à vie",
       "Analyses IA illimitées pour toujours",
+      "Prédiction en direct pendant le match",
       "Toutes les compétitions 2026/27 et au-delà",
       "Badge membre fondateur",
       "Support prioritaire",
       "Accès à toutes les futures fonctions",
-      "Un seul paiement, plus jamais d'abonnement",
     ],
     envKey: "WHOP_PLAN_LIFETIME",
   },
 
   // ── Legacy plans — grandfathering only (hidden from sale) ──────────────────
   {
+    plan: "essential",
+    name: "Essential",
+    duration: "month",
+    priceLabel: "9,99 €",
+    unit: "/ mois",
+    hidden: true,
+    sublabel: "Ancien plan Essential (récurrent, analyses illimitées)",
+    ctaLabel: "Essential",
+    features: [
+      "Analyses IA illimitées",
+      "Analyse complète : scénario, probas & xG",
+      "Forces & faiblesses des équipes",
+      "Forme, H2H & compositions",
+    ],
+    envKey: "WHOP_PLAN_ESSENTIAL",
+  },
+  {
     plan: "weekly",
     name: "Hebdo",
+    duration: "week",
     priceLabel: "4,99 €",
     unit: "/ semaine",
     hidden: true,
@@ -194,6 +297,7 @@ export const OFFERS: Offer[] = [
   {
     plan: "season",
     name: "Pass Saison",
+    duration: "lifetime",
     priceLabel: "39 €",
     unit: "une seule fois",
     oneTime: true,
@@ -210,6 +314,7 @@ export const OFFERS: Offer[] = [
   {
     plan: "pass_cdm",
     name: "Pass CDM 2026",
+    duration: "lifetime",
     priceLabel: "14,99 €",
     unit: "une seule fois",
     hidden: true,
@@ -230,17 +335,17 @@ export const OFFERS: Offer[] = [
 export const VISIBLE_OFFERS: Offer[] = OFFERS.filter((o) => !o.hidden);
 
 /**
- * During the World Cup, the Monthly plan is re-skinned as the "Pass Coupe du
+ * During the World Cup, the Pro monthly plan is re-skinned as the "Pass Coupe du
  * Monde": same recurring 14,99 €/month, only branded for the tournament. The
  * underlying plan/entitlements are unchanged — only the display. After
- * PASS_CDM_END it reverts automatically to the plain Monthly.
+ * PASS_CDM_END it reverts automatically to the plain Pro.
  */
 const CDM_MONTHLY_SKIN: Partial<Offer> = {
   name: "Pass Coupe du Monde",
   priceLabel: "14,99 €",
   unit: "/ mois",
-  anchorPrice: "24,99 €",
-  discountLabel: "-40%",
+  anchorPrice: "29,98 €",
+  discountLabel: "-50%",
   urgencyLabel: "Tarif Coupe du Monde · jusqu'au 19 juillet",
   badge: "★ COUPE DU MONDE 2026",
   sublabel:
@@ -252,84 +357,16 @@ const CDM_MONTHLY_SKIN: Partial<Offer> = {
 /**
  * English overlay for the offer text fields (prices stay in EUR). Only the
  * user-visible strings are translated; keys absent here keep the French value.
+ * (The site is FR-only now — kept as a no-op safety net.)
  */
-const EN_OFFER_TEXT: Partial<Record<PaidPlan, Partial<Offer>>> = {
-  essential: {
-    name: "Essential",
-    unit: "/ month",
-    sublabel: "The full AI analysis, to follow every match",
-    ctaLabel: "Choose Essential — €9.99/month",
-    note: "No commitment · cancel anytime",
-    features: [
-      "Unlimited AI analyses",
-      "Full analysis: scenario, probabilities & xG",
-      "Team strengths & weaknesses",
-      "Form, H2H & line-ups",
-    ],
-    lockedFeatures: [
-      "Value bets & live odds",
-      "Probable scorers & key players",
-      "Contextual AI chat",
-      "Simulator & bracket",
-    ],
-  },
-  monthly: {
-    name: "Premium",
-    unit: "/ month",
-    sublabel:
-      "The full betting toolkit — value bets, scorers, AI chat, simulator",
-    ctaLabel: "Choose Premium — €14.99/month",
-    note: "Best value — cancel anytime",
-    badge: "★ MOST POPULAR",
-    features: [
-      "Everything in Essential, plus:",
-      "Value bets & live odds + confidence level",
-      "Probable scorers & key players",
-      "Contextual AI chat",
-      "Simulator & interactive bracket",
-      "Bankroll & ROI tracking",
-      "2026 World Cup + all 2026/27 competitions",
-    ],
-    lockedFeatures: [
-      "Lifetime access (one-time payment)",
-      "Founder badge & priority support",
-    ],
-  },
-  lifetime: {
-    name: "Lifetime",
-    unit: "one-time",
-    urgencyLabel: "Launch price · rises to €129 on July 19",
-    sublabel: "A single payment · the full product, forever",
-    ctaLabel: "Lifetime access — €89",
-    note: "The only one-time payment — zero subscription, for life",
-    badge: "LIFETIME",
-    features: [
-      "Everything in Premium, for life",
-      "Unlimited AI analyses forever",
-      "All 2026/27 competitions and beyond",
-      "Founder member badge",
-      "Priority support",
-      "Access to all future features",
-      "A single payment, never pay again",
-    ],
-  },
-};
+const EN_OFFER_TEXT: Partial<Record<PaidPlan, Partial<Offer>>> = {};
 
-const CDM_MONTHLY_SKIN_EN: Partial<Offer> = {
-  name: "World Cup Pass",
-  unit: "/ month",
-  urgencyLabel: "World Cup price · until July 19",
-  badge: "★ 2026 WORLD CUP",
-  sublabel:
-    "Follow the whole 2026 World Cup, then Ligue 1, PL, La Liga, Serie A, Bundesliga, UCL & UEL",
-  note: "No commitment · cancel anytime",
-  ctaLabel: "Follow the World Cup — €14.99",
-};
+const CDM_MONTHLY_SKIN_EN: Partial<Offer> = CDM_MONTHLY_SKIN;
 
 /**
- * Date-aware offers for the UI. Applies the World Cup skin to Monthly while the
- * intro window is open, and the English overlay when locale is "en". Use this in
- * components instead of VISIBLE_OFFERS.
+ * Date-aware offers for the UI. Applies the World Cup skin to Pro monthly while
+ * the intro window is open, and the English overlay when locale is "en". Use
+ * this in components instead of VISIBLE_OFFERS.
  */
 export function visibleOffers(now: number = Date.now(), locale: Locale = "fr"): Offer[] {
   const wc = cdmIntroActive(now);
@@ -377,26 +414,7 @@ const FREE_TIER_FR: FreeTier = {
   ],
 };
 
-const FREE_TIER_EN: FreeTier = {
-  name: "Free",
-  priceLabel: "€0",
-  unit: "forever",
-  sublabel: "Try it out — 1 full analysis on us",
-  features: [
-    "1 full AI analysis included",
-    "Preview: probabilities & expected goals",
-    "Form, H2H & team line-ups",
-  ],
-  lockedFeatures: [
-    "Unlimited AI analyses",
-    "Full analysis: scenario, strengths & weaknesses",
-    "Probable scorers & key players",
-    "Value bets & live odds",
-    "Contextual AI chat",
-    "Simulator & bracket",
-    "Bankroll & ROI tracking",
-  ],
-};
+const FREE_TIER_EN: FreeTier = FREE_TIER_FR;
 
 export function freeTier(locale: Locale = "fr"): FreeTier {
   return locale === "en" ? FREE_TIER_EN : FREE_TIER_FR;
@@ -405,34 +423,45 @@ export function freeTier(locale: Locale = "fr"): FreeTier {
 // ── Per-feature entitlements ─────────────────────────────────────────────────
 
 /**
- * Premium tools. With the duration-based grid, EVERY paid plan unlocks all of
- * them (paying = the full product). Kept as a capability map so callers can
- * still gate a tool behind "is this an active paid plan?".
+ * Premium tools gated by tier:
+ *  - Découverte: none (AI analysis only, no betting toolkit).
+ *  - Pro: the full betting toolkit.
+ *  - Elite: the toolkit + live in-match prediction.
  */
 export type Feature =
   | "chat_ia"
   | "simulator"
   | "bracket"
   | "value_bets"
-  | "advanced_players";
+  | "advanced_players"
+  | "live";
 
-const ALL_FEATURES: Feature[] = [
+/** The Pro toolkit (everything except live in-match prediction). */
+const PRO_TOOLKIT: Feature[] = [
   "chat_ia",
   "simulator",
   "bracket",
   "value_bets",
   "advanced_players",
 ];
+/** Elite = Pro toolkit + live. */
+const ELITE_KIT: Feature[] = [...PRO_TOOLKIT, "live"];
 
 const PLAN_FEATURES: Record<PaidPlan, Feature[]> = {
-  // Essential = unlimited base analysis only (no betting toolkit).
-  essential: [],
-  monthly: ALL_FEATURES,
-  lifetime: ALL_FEATURES,
-  // legacy (grandfathered) — keep full access
-  weekly: ALL_FEATURES,
-  pass_cdm: ALL_FEATURES,
-  season: ALL_FEATURES,
+  // Découverte = capped base analysis only (no betting toolkit).
+  decouverte: [],
+  // Pro (monthly key kept) = full toolkit, no live.
+  monthly: PRO_TOOLKIT,
+  pro_weekly: PRO_TOOLKIT,
+  // Elite = toolkit + live.
+  elite: ELITE_KIT,
+  elite_weekly: ELITE_KIT,
+  lifetime: ELITE_KIT,
+  // legacy (grandfathered) — keep their historical access.
+  essential: [], // old Essential: unlimited base analysis, no toolkit.
+  weekly: PRO_TOOLKIT, // old Hebdo: full toolkit.
+  pass_cdm: PRO_TOOLKIT,
+  season: PRO_TOOLKIT,
 };
 
 /**
@@ -482,7 +511,8 @@ export interface SubscriptionState {
  * - Trialing: until trial_end.
  * - Pass CDM / Pass Saison: until current_period_end (one-time passes with a
  *   fixed end — 19 July 2026 / 31 July 2027).
- * - Recurring (weekly/monthly): while active, or canceled-but-still-in-period.
+ * - Recurring (weekly/monthly tiers): while active, or canceled-but-still-in-period.
+ * NB: this checks entitlement, not the monthly analysis quota (see ai-guard).
  */
 export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
   if (!sub || sub.plan === "free") return false;
@@ -493,7 +523,7 @@ export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
   if (sub.plan === "lifetime") return sub.status !== "canceled";
   if (sub.status === "trialing") return within(sub.trialEnd);
   if (sub.plan === "pass_cdm" || sub.plan === "season") return within(sub.currentPeriodEnd);
-  // recurring (weekly / monthly)
+  // recurring (decouverte / monthly / elite / pro_weekly / elite_weekly / weekly)
   if (sub.status === "active") return true;
   // canceled at period end but still inside the paid window
   return within(sub.currentPeriodEnd);

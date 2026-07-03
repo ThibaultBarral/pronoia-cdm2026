@@ -299,8 +299,8 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));
-    // Success → only now do we consume the free credit + record usage.
-    await commitAnalysisUsage(access.isFree);
+    // Success → only now do we consume the credit (free/monthly) + record usage.
+    await commitAnalysisUsage(access);
     await saveAnalysis(access.userId, {
       kind: "match",
       target: match.id,

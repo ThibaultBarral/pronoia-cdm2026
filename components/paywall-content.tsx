@@ -11,17 +11,29 @@ import {
 import Link from "next/link";
 import { startCheckout } from "@/lib/checkout-client";
 import { restoreSubscription } from "@/actions/restore-subscription";
-import { visibleOffers, freeTier, planName, type Plan, type PaidPlan } from "@/lib/plans";
-import LaunchCountdown from "@/components/launch-countdown";
+import { visibleOffers, freeTier, planName, type Plan, type PaidPlan, type Duration } from "@/lib/plans";
+import LaunchCountdown, { useCountdown, formatRemaining, PRICE_HIKE_DEADLINE } from "@/components/launch-countdown";
 
 const ICONS: Record<PaidPlan, LucideIcon> = {
-  essential: Zap,
+  decouverte: Zap,
   monthly: CalendarDays,
+  elite: Flame,
+  pro_weekly: CalendarDays,
+  elite_weekly: Flame,
   lifetime: InfinityIcon,
+  // legacy
+  essential: Zap,
   weekly: Zap,
   pass_cdm: Flame,
   season: CalendarDays,
 };
+
+const DURATION_LABEL: Record<Duration, string> = {
+  week: "Semaine",
+  month: "Mensuel",
+  lifetime: "À vie",
+};
+const DURATION_ORDER: Duration[] = ["week", "month", "lifetime"];
 
 export default function PaywallContent({
   currentPlan,
@@ -38,10 +50,29 @@ export default function PaywallContent({
   const [info, setInfo] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [restoring, startRestore] = useTransition();
+  const [duration, setDuration] = useState<Duration>("month");
+  const [mountedCd, setMountedCd] = useState(false);
+  const cd = useCountdown(PRICE_HIKE_DEADLINE);
 
   useEffect(() => {
     if (!hasAccess) trackEvent("paywall_view", { source: "pricing_page" });
   }, [hasAccess]);
+
+  useEffect(() => {
+    // Defer to avoid a hydration mismatch on the time-dependent tab badge.
+    const id = setTimeout(() => setMountedCd(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+
+  const offers = visibleOffers();
+  const durations = DURATION_ORDER.filter((d) => offers.some((o) => o.duration === d));
+  const shown = offers.filter((o) => o.duration === duration);
+  const gridCls =
+    shown.length === 1
+      ? "grid grid-cols-1 max-w-sm mx-auto"
+      : shown.length === 2
+        ? "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-stretch max-w-3xl mx-auto"
+        : "grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto";
 
   function checkout(plan: PaidPlan) {
     setError(null);
@@ -122,9 +153,36 @@ export default function PaywallContent({
         </div>
       )}
 
-      {/* Offers — 3 paliers payants */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto">
-        {visibleOffers().map((o, i) => {
+      {/* Duration toggle — Semaine / Mensuel / À vie */}
+      <div className="flex justify-center mb-8">
+        <div className="inline-flex items-center gap-1 rounded-full glass p-1">
+          {durations.map((d) => {
+            const active = d === duration;
+            return (
+              <button
+                key={d}
+                onClick={() => setDuration(d)}
+                className={`relative px-5 py-2 rounded-full text-sm font-bold transition-colors ${
+                  active
+                    ? "bg-[var(--accent)] text-[#06231a]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
+                }`}
+              >
+                {DURATION_LABEL[d]}
+                {d === "lifetime" && mountedCd && cd.total > 0 && (
+                  <span className="absolute -top-2.5 -right-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#ef4444] text-white tabular-nums whitespace-nowrap leading-none">
+                    {formatRemaining(cd)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Offers — paliers de la durée sélectionnée */}
+      <div className={gridCls}>
+        {shown.map((o, i) => {
           const Icon = ICONS[o.plan];
           const highlight = o.highlight;
           const gold = o.plan === "lifetime";
@@ -296,7 +354,7 @@ export default function PaywallContent({
       {/* Footer */}
       <div className="mt-10 text-center space-y-3">
         <p className="text-xs text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed">
-          Essential et Premium : abonnements annulables à tout moment, sans engagement.
+          Découverte, Pro et Elite : abonnements annulables à tout moment, sans engagement.
           Accès à vie : un seul paiement, pour toujours.
           <br />
           Les analyses sont fournies à titre informatif. Les paris sportifs comportent des risques ·

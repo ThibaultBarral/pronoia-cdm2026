@@ -198,12 +198,20 @@ export interface AdminStats {
   noSubDetails: { label: string; emoji: string; detail: string }[]; // verbatims libres
 }
 
-const PLAN_ORDER: Plan[] = ["free", "essential", "monthly", "lifetime", "weekly", "pass_cdm", "season"];
+const PLAN_ORDER: Plan[] = [
+  "free", "decouverte", "monthly", "elite", "pro_weekly", "elite_weekly", "lifetime",
+  "essential", "weekly", "pass_cdm", "season",
+];
 const PLAN_LABEL: Record<Plan, string> = {
   free: "Gratuit",
+  decouverte: "Découverte",
+  monthly: "Pro",
+  elite: "Elite",
+  pro_weekly: "Pro (hebdo)",
+  elite_weekly: "Elite (hebdo)",
+  lifetime: "Elite à vie",
+  // legacy
   essential: "Essential",
-  monthly: "Premium",
-  lifetime: "À vie",
   weekly: "Hebdo",
   pass_cdm: "Pass CDM",
   season: "Pass Saison",
