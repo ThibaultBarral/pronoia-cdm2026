@@ -8,19 +8,25 @@ import { openDailyPack, getDailyStatus, type PackReward } from "@/actions/daily-
 
 type Phase = "loading" | "ready" | "opening" | "revealed" | "done";
 
-// Published odds — must match REWARDS weights in actions/daily-pack.ts.
-const ODDS: { label: string; pct: string }[] = [
+// Published odds — must match the REWARDS weights in actions/daily-pack.ts.
+const ODDS_FREE: { label: string; pct: string }[] = [
   { label: "Rien (reviens demain)", pct: "55 %" },
   { label: "+1 analyse gratuite", pct: "32 %" },
   { label: "+2 analyses gratuites", pct: "10 %" },
   { label: "24h Pro offert", pct: "2 %" },
   { label: "Jackpot — 1 semaine Pro", pct: "1 %" },
 ];
+const ODDS_PAID: { label: string; pct: string }[] = [
+  { label: "Rien (reviens demain)", pct: "45 %" },
+  { label: "+3 jours d'abonnement offerts", pct: "35 %" },
+  { label: "+7 jours d'abonnement offerts", pct: "15 %" },
+  { label: "Jackpot — 1 mois offert", pct: "5 %" },
+];
 
 function rewardVisual(r: PackReward) {
-  if (r.key === "none") return { Icon: Moon, color: "var(--text-muted)", big: "Pas de gain aujourd'hui" };
-  if (r.key === "day" || r.key === "week") return { Icon: Crown, color: "#ffd700", big: r.label };
-  return { Icon: Target, color: "var(--accent)", big: r.label };
+  if (r.accessDays > 0) return { Icon: Crown, color: "#ffd700", big: r.label };
+  if (r.credits > 0) return { Icon: Target, color: "var(--accent)", big: r.label };
+  return { Icon: Moon, color: "var(--text-muted)", big: "Pas de gain aujourd'hui" };
 }
 
 export default function DailyPack() {
@@ -28,12 +34,15 @@ export default function DailyPack() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [reward, setReward] = useState<PackReward | null>(null);
   const [credits, setCredits] = useState(0);
+  const [isPaid, setIsPaid] = useState(false);
   const [showOdds, setShowOdds] = useState(false);
+  const odds = isPaid ? ODDS_PAID : ODDS_FREE;
 
   useEffect(() => {
     getDailyStatus()
       .then((s) => {
         setCredits(s.bonusCredits);
+        setIsPaid(s.isPaid);
         setPhase(s.packOpenedToday ? "done" : "ready");
       })
       .catch(() => setPhase("ready"));
@@ -69,7 +78,7 @@ export default function DailyPack() {
           <Gift size={18} className="text-[var(--accent)]" />
           <h3 className="text-base font-black text-[var(--text)]">Ta pochette du jour</h3>
         </div>
-        {credits > 0 && (
+        {!isPaid && credits > 0 && (
           <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
             {credits} analyse{credits > 1 ? "s" : ""} bonus
           </span>
@@ -164,7 +173,7 @@ export default function DailyPack() {
       </button>
       {showOdds && (
         <ul className="mt-2 space-y-1 max-w-xs mx-auto">
-          {ODDS.map((o) => (
+          {odds.map((o) => (
             <li key={o.label} className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
               <span>{o.label}</span>
               <span className="tabular-nums font-medium text-[#cdd3db]">{o.pct}</span>

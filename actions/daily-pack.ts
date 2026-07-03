@@ -2,6 +2,26 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasAccess, type Plan, type SubStatus } from "@/lib/plans";
+
+/** A real paid subscription (ignores bonus access) → analyses are worthless to them. */
+function isPaidSubscriber(sub: {
+  plan?: unknown;
+  status?: unknown;
+  current_period_end?: unknown;
+  trial_end?: unknown;
+  vip?: unknown;
+} | null): boolean {
+  if (!sub) return false;
+  if (Boolean(sub.vip)) return true;
+  return hasAccess({
+    plan: (sub.plan as Plan) ?? "free",
+    status: (sub.status as SubStatus | null) ?? null,
+    currentPeriodEnd: (sub.current_period_end as string | null) ?? null,
+    trialEnd: (sub.trial_end as string | null) ?? null,
+    bonusAccessUntil: null, // ignore bonus access → only a real plan counts
+  });
+}
 
 /**
  * "La pochette du jour" — daily reward for retention. The roll is 100% server
@@ -10,14 +30,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 export type PackReward = {
-  key: "none" | "one" | "two" | "day" | "week";
+  key: string;
   label: string;
+  /** Bonus free-analysis credits (free users). */
   credits: number;
+  /** Days of temporary Pro access granted (free users: from now; paid: after period). */
   accessDays: number;
 };
 
-// Weighted table — total 100. Keep in sync with the odds shown in the UI.
-const REWARDS: (PackReward & { weight: number })[] = [
+// Weighted tables — total 100 each. Keep in sync with the odds shown in the UI.
+// Free users win analyses/temp Pro; paid users win subscription days (analyses
+// are worthless to them), with slightly better odds as a loyalty gesture.
+type WeightedReward = PackReward & { weight: number };
+
+const REWARDS_FREE: WeightedReward[] = [
   { key: "none", weight: 55, credits: 0, accessDays: 0, label: "Rien cette fois — reviens demain !" },
   { key: "one",  weight: 32, credits: 1, accessDays: 0, label: "+1 analyse gratuite" },
   { key: "two",  weight: 10, credits: 2, accessDays: 0, label: "+2 analyses gratuites" },
@@ -25,14 +51,21 @@ const REWARDS: (PackReward & { weight: number })[] = [
   { key: "week", weight: 1,  credits: 0, accessDays: 7, label: "JACKPOT — 1 semaine Pro offerte" },
 ];
 
-function rollReward(): PackReward {
-  const total = REWARDS.reduce((s, r) => s + r.weight, 0);
+const REWARDS_PAID: WeightedReward[] = [
+  { key: "none",   weight: 45, credits: 0, accessDays: 0,  label: "Rien cette fois — reviens demain !" },
+  { key: "pdays3", weight: 35, credits: 0, accessDays: 3,  label: "+3 jours d'abonnement offerts" },
+  { key: "pdays7", weight: 15, credits: 0, accessDays: 7,  label: "+7 jours d'abonnement offerts" },
+  { key: "pmonth", weight: 5,  credits: 0, accessDays: 30, label: "JACKPOT — 1 mois d'abonnement offert" },
+];
+
+function rollReward(pool: WeightedReward[]): PackReward {
+  const total = pool.reduce((s, r) => s + r.weight, 0);
   let roll = Math.random() * total;
-  for (const r of REWARDS) {
+  for (const r of pool) {
     roll -= r.weight;
     if (roll < 0) return { key: r.key, label: r.label, credits: r.credits, accessDays: r.accessDays };
   }
-  const last = REWARDS[REWARDS.length - 1];
+  const last = pool[pool.length - 1];
   return { key: last.key, label: last.label, credits: last.credits, accessDays: last.accessDays };
 }
 
@@ -47,7 +80,14 @@ export async function openDailyPack(): Promise<OpenPackResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Connexion requise." };
 
-  const reward = rollReward();
+  // Pick the reward pool by profile: paid subscribers win subscription days,
+  // free users win analyses (worthless to a paying member).
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("plan, status, current_period_end, trial_end, vip")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const reward = rollReward(isPaidSubscriber(sub) ? REWARDS_PAID : REWARDS_FREE);
 
   const { data: claimed, error } = await supabase.rpc("claim_daily_pack", {
     p_reward: reward.key,
@@ -85,10 +125,11 @@ export async function getDailyStatus(): Promise<{
   packOpenedToday: boolean;
   shareClaimedToday: boolean;
   bonusCredits: number;
+  isPaid: boolean;
 }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { packOpenedToday: false, shareClaimedToday: false, bonusCredits: 0 };
+  if (!user) return { packOpenedToday: false, shareClaimedToday: false, bonusCredits: 0, isPaid: false };
 
   // daily_rewards is server-only (RLS deny) → read with the service-role client.
   const admin = createAdminClient();
@@ -102,7 +143,7 @@ export async function getDailyStatus(): Promise<{
       .eq("reward_date", today),
     admin
       .from("subscriptions")
-      .select("bonus_credits")
+      .select("bonus_credits, plan, status, current_period_end, trial_end, vip")
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
@@ -112,5 +153,6 @@ export async function getDailyStatus(): Promise<{
     packOpenedToday: kinds.has("pack"),
     shareClaimedToday: kinds.has("share"),
     bonusCredits: (sub?.bonus_credits as number | null) ?? 0,
+    isPaid: isPaidSubscriber(sub),
   };
 }
