@@ -285,10 +285,20 @@ function mapForm(fixtures: ApiFixtureResponse[], teamId: number): FormResult[] {
     const og = isHome ? (f.goals.away ?? 0) : (f.goals.home ?? 0);
     const opponent = isHome ? f.teams.away.name : f.teams.home.name;
     const result: "W" | "D" | "L" = tg > og ? "W" : tg < og ? "L" : "D";
+    // Knockout games decided on penalties end level in regulation/ET (result = D),
+    // so annotate the shootout score to show who actually went through.
+    let score = `${tg}-${og}`;
+    const ph = f.score?.penalty?.home;
+    const pa = f.score?.penalty?.away;
+    if (ph != null && pa != null) {
+      const tp = isHome ? ph : pa;
+      const op = isHome ? pa : ph;
+      score += ` (${tp}-${op} tab)`;
+    }
     return {
       opponent,
       result,
-      score: `${tg}-${og}`,
+      score,
       competition: f.league.name,
       date: f.fixture.date.split("T")[0],
       venue: isHome ? "H" : "A",

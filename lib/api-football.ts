@@ -301,6 +301,14 @@ export async function fetchPlayerInvolvement(
  */
 export const RECENT_SEASONS = [2026, 2024, 2023] as const;
 
+/**
+ * A match counts as played/finished when it reached full time — including
+ * knockout games decided after extra time (`AET`) or a penalty shootout (`PEN`).
+ * Filtering on `"FT"` alone silently drops those knockout results (e.g. a Round
+ * of 32 win on penalties never appears in a team's recent form).
+ */
+export const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
+
 /** All fixtures for a team in a given season (all competitions) — cached 12h */
 export async function fetchTeamSeasonFixtures(
   teamId: number,
@@ -328,7 +336,7 @@ export async function fetchRecentMatches(
     const fixtures = await fetchTeamSeasonFixtures(teamId, season).catch(
       () => [] as ApiFixtureResponse[]
     );
-    const finished = fixtures.filter((f) => f.fixture.status.short === "FT");
+    const finished = fixtures.filter((f) => FINISHED_STATUSES.has(f.fixture.status.short));
     collected.push(...finished);
     if (collected.length >= min) break;
   }
