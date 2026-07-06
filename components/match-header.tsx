@@ -1,8 +1,70 @@
 import Link from "next/link";
-import { MapPin, Calendar, Shield } from "lucide-react";
+import { MapPin, CalendarClock, Shield } from "lucide-react";
 import { Match } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { teamSlug } from "@/lib/data-service";
+
+const COUNTRY_NAME: Record<string, string> = {
+  USA: "États-Unis",
+  Canada: "Canada",
+  Mexique: "Mexique",
+};
+
+/** One clean labelled fact row — icon chip + uppercase label + bold value. */
+function InfoRow({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: typeof MapPin;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/15 flex items-center justify-center shrink-0">
+        <Icon size={16} className="text-[var(--accent)]" />
+      </span>
+      <div className="min-w-0">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+          {label}
+        </div>
+        <div className="text-sm font-semibold text-[#e8e8e8] truncate">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function TeamColumn({ team }: { team: Match["homeTeam"] }) {
+  const inner = (
+    <>
+      <span className="text-5xl md:text-7xl">{team.flag}</span>
+      <div className="text-center">
+        <div className="text-base md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors leading-tight">
+          {team.name}
+        </div>
+        {!team.isPlaceholder && (
+          <div className="flex items-center justify-center gap-1 mt-1">
+            <Shield size={10} className="text-[#666]" />
+            <span className="text-[11px] text-[#666]">#{team.fifaRanking} FIFA</span>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  if (team.isPlaceholder) {
+    return <div className="flex flex-col items-center gap-2 px-2 py-1">{inner}</div>;
+  }
+
+  return (
+    <Link
+      href={`/team/${teamSlug(team.nameEn ?? team.name)}`}
+      className="group flex flex-col items-center gap-2 rounded-xl px-2 py-1 hover:bg-white/[0.03] transition-colors"
+    >
+      {inner}
+    </Link>
+  );
+}
 
 export default function MatchHeader({ match }: { match: Match }) {
   const date = new Date(`${match.date}T${match.time}:00`);
@@ -10,7 +72,6 @@ export default function MatchHeader({ match }: { match: Match }) {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
   });
 
   const live = match.status === "1H" || match.status === "2H" || match.status === "HT";
@@ -28,54 +89,9 @@ export default function MatchHeader({ match }: { match: Match }) {
       </div>
 
       <div className="relative z-10">
-        {/* Round + group badges */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <Badge className="bg-[#ffd700]/10 text-[#ffd700] border border-[#ffd700]/20 text-xs">
-            {match.round}
-          </Badge>
-          <Badge
-            variant="outline"
-            className="text-[#888] border-[#1f1f1f] text-xs"
-          >
-            Groupe {match.group}
-          </Badge>
-        </div>
-
         {/* Teams */}
-        <div className="grid grid-cols-3 items-center gap-4 mb-6">
-          <Link
-            href={
-              match.homeTeam.isPlaceholder
-                ? "#"
-                : `/team/${teamSlug(match.homeTeam.nameEn ?? match.homeTeam.name)}`
-            }
-            className={`group flex flex-col items-center gap-2 rounded-xl px-2 py-1 transition-colors ${
-              match.homeTeam.isPlaceholder
-                ? "pointer-events-none"
-                : "hover:bg-white/[0.03]"
-            }`}
-          >
-            <span className="text-5xl md:text-7xl">{match.homeTeam.flag}</span>
-            <div className="text-center">
-              <div className="text-lg md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors">
-                {match.homeTeam.name}
-              </div>
-              {!match.homeTeam.isPlaceholder && (
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <Shield size={11} className="text-[#888]" />
-                  <span className="text-xs text-[#888]">
-                    #{match.homeTeam.fifaRanking} FIFA
-                  </span>
-                </div>
-              )}
-              <div className="text-[10px] text-[#888] mt-0.5">{match.homeTeam.coach}</div>
-              {!match.homeTeam.isPlaceholder && (
-                <div className="text-[9px] text-[var(--accent)]/0 group-hover:text-[var(--accent)] transition-colors mt-0.5">
-                  Voir l&apos;analyse d&apos;équipe →
-                </div>
-              )}
-            </div>
-          </Link>
+        <div className="grid grid-cols-3 items-center gap-2 md:gap-4">
+          <TeamColumn team={match.homeTeam} />
 
           <div className="flex flex-col items-center gap-2">
             {started ? (
@@ -114,53 +130,20 @@ export default function MatchHeader({ match }: { match: Match }) {
             )}
           </div>
 
-          <Link
-            href={
-              match.awayTeam.isPlaceholder
-                ? "#"
-                : `/team/${teamSlug(match.awayTeam.nameEn ?? match.awayTeam.name)}`
-            }
-            className={`group flex flex-col items-center gap-2 rounded-xl px-2 py-1 transition-colors ${
-              match.awayTeam.isPlaceholder
-                ? "pointer-events-none"
-                : "hover:bg-white/[0.03]"
-            }`}
-          >
-            <span className="text-5xl md:text-7xl">{match.awayTeam.flag}</span>
-            <div className="text-center">
-              <div className="text-lg md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors">
-                {match.awayTeam.name}
-              </div>
-              {!match.awayTeam.isPlaceholder && (
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <Shield size={11} className="text-[#888]" />
-                  <span className="text-xs text-[#888]">
-                    #{match.awayTeam.fifaRanking} FIFA
-                  </span>
-                </div>
-              )}
-              <div className="text-[10px] text-[#888] mt-0.5">{match.awayTeam.coach}</div>
-              {!match.awayTeam.isPlaceholder && (
-                <div className="text-[9px] text-[var(--accent)]/0 group-hover:text-[var(--accent)] transition-colors mt-0.5">
-                  Voir l&apos;analyse d&apos;équipe →
-                </div>
-              )}
-            </div>
-          </Link>
+          <TeamColumn team={match.awayTeam} />
         </div>
 
-        {/* Match info */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-[#888]">
-          <div className="flex items-center gap-1.5">
-            <Calendar size={13} className="text-[var(--accent)]" />
-            <span className="capitalize">{dateStr}</span>
-          </div>
-          <span className="hidden sm:block opacity-30">·</span>
-          <div className="flex items-center gap-1.5">
-            <MapPin size={13} className="text-[var(--accent)]" />
-            <span>{match.stadium}, {match.city}</span>
-            <span className="ml-1 text-xs opacity-60">({match.country})</span>
-          </div>
+        {/* Divider */}
+        <div className="h-px bg-white/[0.06] my-6" />
+
+        {/* Two clean facts — kickoff + venue. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <InfoRow icon={CalendarClock} label="Coup d'envoi">
+            <span className="capitalize">{dateStr}</span> à {match.time}
+          </InfoRow>
+          <InfoRow icon={MapPin} label="Stade">
+            {match.stadium}, {match.city} ({COUNTRY_NAME[match.country] ?? match.country})
+          </InfoRow>
         </div>
       </div>
     </div>

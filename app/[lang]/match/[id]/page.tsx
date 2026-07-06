@@ -11,6 +11,7 @@ import MatchStats from "@/components/match-stats";
 import Lineup from "@/components/lineup";
 import AIAnalysis from "@/components/ai-analysis";
 import MatchResult from "@/components/match-result";
+import MatchDetailsCollapsible from "@/components/match-details-collapsible";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 
 const FINISHED = new Set(["FT", "AET", "PEN"]);
@@ -149,6 +150,22 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        {/* Title block — kicker + matchup H1 + one-line orientation. Clean and
+            direct, so the eye lands on the matchup then the single action below. */}
+        <div className="animate-fade-in">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">
+            Coupe du Monde 2026 · {match.round}
+          </p>
+          <h1 className="text-2xl md:text-3xl font-black text-[#f5f5f5] leading-tight">
+            {match.homeTeam.name} <span className="text-[#555]">—</span> {match.awayTeam.name}
+          </h1>
+          <p className="text-sm text-[#777] mt-1.5">
+            {finished
+              ? "Résultat, forme et statistiques du match."
+              : "Prédiction IA, forme et stats en un coup d'œil."}
+          </p>
+        </div>
+
         <div className="animate-fade-in">
           <MatchHeader match={match} />
         </div>
@@ -182,25 +199,6 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
           )}
         </div>
 
-        {/* Supporting context below the analysis — only when both teams exist. */}
-        {decided && (
-          <>
-            <div className="pt-2 text-xs font-black uppercase tracking-wider text-[var(--text-muted)]">
-              Les données derrière l&apos;analyse
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
-              <TeamForm team={match.homeTeam} />
-              <TeamForm team={match.awayTeam} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up delay-100">
-              <H2HStats match={match} />
-              <MatchStats homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
-            </div>
-          </>
-        )}
-
         {/* Betting toolkit lives in its own section — kept off the analysis
             page. Discreet entry point only (never a betting-first framing). */}
         {!finished && decided && (
@@ -214,13 +212,29 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
           </div>
         )}
 
-        {/* Squad sections — only when we have real squad data */}
-        {(match.homeTeam.lineup.players.length > 0 ||
-          match.awayTeam.lineup.players.length > 0) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up delay-300">
-            <Lineup team={match.homeTeam} />
-            <Lineup team={match.awayTeam} />
-          </div>
+        {/* Supporting context — collapsed by default so the page opens clean.
+            Only when both teams are known. */}
+        {decided && (
+          <MatchDetailsCollapsible>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TeamForm team={match.homeTeam} />
+              <TeamForm team={match.awayTeam} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <H2HStats match={match} />
+              <MatchStats homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+            </div>
+
+            {/* Squad sections — only when we have real squad data */}
+            {(match.homeTeam.lineup.players.length > 0 ||
+              match.awayTeam.lineup.players.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Lineup team={match.homeTeam} />
+                <Lineup team={match.awayTeam} />
+              </div>
+            )}
+          </MatchDetailsCollapsible>
         )}
       </div>
 
