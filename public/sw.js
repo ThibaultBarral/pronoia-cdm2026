@@ -1,23 +1,22 @@
-// Minimal, deploy-safe service worker.
+// PWA removed.
 //
-// It deliberately does NOT cache HTML navigations. A cached HTML shell embeds
-// hashed CSS/JS chunk URLs (/_next/static/chunks/<hash>.css) that 404 after the
-// next deploy — which renders the page completely UNSTYLED. So every request
-// goes straight to the network and the browser's own HTTP cache handles the
-// immutable /_next/static assets. On activation we also purge any cache left by
-// older SW versions (which may still hold a stale, style-breaking HTML shell).
+// This file now exists ONLY to clean up after the previous PWA build. Returning
+// visitors still have the old service worker registered; on their next visit the
+// browser fetches this updated file, sees it changed, and activates it. On
+// activation we purge every cache and unregister the worker, then reload open
+// tabs so nobody is left running a stale, offline app shell.
+self.addEventListener("install", () => self.skipWaiting());
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        client.navigate(client.url);
+      }
+    })(),
   );
 });
-
-// No `fetch` handler → the browser always fetches fresh HTML and current assets.

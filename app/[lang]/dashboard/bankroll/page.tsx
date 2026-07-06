@@ -290,7 +290,7 @@ export default function BankrollPage() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="safe-header sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
+        <header className="md:sticky md:top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#141414]">
         <div className="h-14 flex items-center gap-3 px-4">
           {/* Title — hidden on mobile, shown on desktop */}
           <div className="hidden md:flex items-center gap-2 text-sm">

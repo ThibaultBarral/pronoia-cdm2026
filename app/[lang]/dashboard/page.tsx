@@ -1,30 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Search, Trophy, Calendar,
-  TrendingUp, Zap, Plus,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import MatchRow from "@/components/dashboard/match-row";
-import MatchAnalyzer from "@/components/match-analyzer";
-import PremiumSpotlight from "@/components/dashboard/premium-spotlight";
-import LaunchPricingBanner from "@/components/dashboard/launch-pricing-banner";
-import DailyPack from "@/components/dashboard/daily-pack";
-import LiveTicker from "@/components/dashboard/live-ticker";
-import BankrollWidget from "@/components/dashboard/bankroll-widget";
-import UserMenu from "@/components/auth/user-menu";
+import MatchHeroCard from "@/components/dashboard/match-hero-card";
 import { Match } from "@/lib/types";
-import { useEffect } from "react";
 import { getMatchesAction } from "@/actions/get-matches";
+import { createClient } from "@/lib/supabase/client";
 
-// Client wrapper that fetches data + handles state
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+// Focused home: the user's team hero card up top (no scroll needed), then a
+// short list of upcoming matches. Search + group filters live on /dashboard/matchs.
 export default function DashboardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeGroup, setActiveGroup] = useState("ALL");
-  const [search, setSearch] = useState("");
-  const [showBetForm, setShowBetForm] = useState(false);
+  const [supportedNation, setSupportedNation] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -43,86 +37,28 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const filtered = matches
-    .filter((m) => activeGroup === "ALL" || m.group === activeGroup)
-    .filter((m) => {
-      if (!search) return true;
-      const norm = (s: string) =>
-        s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-      const q = norm(search);
-      const hay = [
-        m.homeTeam.name, m.homeTeam.nameEn, m.homeTeam.shortName,
-        m.awayTeam.name, m.awayTeam.nameEn, m.awayTeam.shortName,
-      ]
-        .filter(Boolean)
-        .map((s) => norm(s as string));
-      return hay.some((h) => h.includes(q));
-    })
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const nation = data.user?.user_metadata?.supported_nation;
+      if (typeof nation === "string" && nation) setSupportedNation(nation);
+    });
+  }, []);
+
+  const upcoming = matches
+    .filter((m) => !m.status || m.status === "NS")
     .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
 
-  // Group by date for display
-  const byDate: Record<string, Match[]> = {};
-  for (const m of filtered) {
-    if (!byDate[m.date]) byDate[m.date] = [];
-    byDate[m.date].push(m);
-  }
+  const nationQuery = supportedNation ? norm(supportedNation) : null;
+  const isTeamMatch = (m: Match) =>
+    nationQuery != null &&
+    [m.homeTeam.name, m.homeTeam.nameEn, m.homeTeam.shortName, m.awayTeam.name, m.awayTeam.nameEn, m.awayTeam.shortName]
+      .filter(Boolean)
+      .some((s) => norm(s as string) === nationQuery);
 
-  const today = new Date().toISOString().split("T")[0];
-
-  // Real, data-derived figures only. Undecided knockout slots are excluded so
-  // "prochain match" always shows a real fixture, never "à déterminer".
-  const nextMatch = [...matches]
-    .filter(
-      (m) =>
-        (m.status ?? "NS") === "NS" &&
-        !m.homeTeam.isPlaceholder &&
-        !m.awayTeam.isPlaceholder
-    )
-    .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime())[0];
-  const nationsCount = new Set(
-    matches
-      .flatMap((m) => [m.homeTeam, m.awayTeam])
-      .filter((t) => !t.isPlaceholder)
-      .map((t) => t.id)
-  ).size;
-
-  // Current phase = the round of the next upcoming fixture (or the latest one).
-  const currentRound =
-    nextMatch?.round ??
-    [...matches]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.round ??
-    "Coupe du Monde";
-
-  const statsBar = [
-    {
-      icon: Trophy,
-      label: "Phase en cours",
-      value: currentRound,
-      color: "#ffd700",
-    },
-    {
-      icon: Calendar,
-      label: "Prochain match",
-      value: nextMatch
-        ? `${nextMatch.homeTeam.flag} ${nextMatch.homeTeam.shortName} – ${nextMatch.awayTeam.shortName} ${nextMatch.awayTeam.flag}`
-        : "—",
-      color: "var(--accent)",
-    },
-    {
-      icon: TrendingUp,
-      label: "Nations engagées",
-      value: nationsCount ? `${nationsCount}` : "—",
-      color: "var(--accent-soft)",
-    },
-    {
-      icon: Zap,
-      label: "Analyse IA",
-      value: "Sur chaque match",
-      color: "var(--accent)",
-    },
-  ];
-
-  const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+  const heroMatch = (nationQuery ? upcoming.find(isTeamMatch) : undefined) ?? upcoming[0];
+  const isFavorite = heroMatch ? isTeamMatch(heroMatch) : false;
+  const restMatches = upcoming.filter((m) => m.id !== heroMatch?.id).slice(0, 6);
 
   return (
     <>
@@ -130,172 +66,48 @@ export default function DashboardPage() {
 
       {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top bar */}
-        <header className="safe-header sticky top-0 z-30 bg-[#080b12]/90 backdrop-blur-xl border-b border-white/5">
-          <div className="h-14 flex items-center gap-3 px-4">
-          {/* Search */}
-          <div className="flex-1 max-w-sm relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#333]" />
-            <input
-              type="text"
-              placeholder="Chercher une équipe…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#111] border border-[#1a1a1a] text-sm text-[#c0c0c0] placeholder-[#333] focus:outline-none focus:border-[var(--accent)]/30 transition-colors"
-            />
-          </div>
-
-          {/* Right: count + add bet + user */}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <span className="text-[11px] text-[#444] tabular-nums hidden sm:block">
-              {filtered.length} match{filtered.length > 1 ? "s" : ""}
-            </span>
-            <button
-              onClick={() => setShowBetForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[#0a0a0a] text-xs font-bold hover:bg-[var(--accent-strong)] transition-all"
-            >
-              <Plus size={12} />
-              Pari
-            </button>
-            <UserMenu />
-          </div>
-          </div>
-
-          {/* Group filter chips — scrollable */}
-          <div className="flex items-center gap-1.5 px-4 pb-3 overflow-x-auto no-scrollbar">
-            <button
-              onClick={() => setActiveGroup("ALL")}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                activeGroup === "ALL"
-                  ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/20"
-                  : "text-[#444] border border-[#181818] hover:text-[#666] hover:bg-[#111]"
-              }`}
-            >
-              Tous
-            </button>
-            {GROUPS.map((g) => (
-              <button
-                key={g}
-                onClick={() => setActiveGroup(g)}
-                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                  activeGroup === g
-                    ? "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/20"
-                    : "text-[#444] border border-[#1a1a1a] hover:text-[#666] hover:bg-[#111]"
-                }`}
-              >
-                Gr. {g}
-              </button>
-            ))}
-          </div>
-        </header>
-
-        {/* Content */}
         <main className="flex-1 overflow-auto p-4 md:p-6 space-y-6">
-          {/* Live scores ticker — real in-play matches, hidden when none are live */}
-          {!loading && <LiveTicker matches={matches} />}
-
-          {/* Launch-pricing urgency (dismissible, hidden for lifetime) */}
-          <LaunchPricingBanner />
-
-          {/* Daily reward pack — retention loop */}
-          <DailyPack />
-
-          {/* Premium spotlight — countdown + top analyses (conversion & retention) */}
-          {!loading && <PremiumSpotlight matches={matches} />}
-
-          {/* Team → upcoming matches analyzer */}
-          {!loading && <MatchAnalyzer matches={matches} />}
-
-          {/* Bankroll widget */}
-          <div className="space-y-4">
-            <BankrollWidget
-              externalShowForm={showBetForm}
-              onExternalFormClose={() => setShowBetForm(false)}
-            />
-          </div>
-
-          {/* Stats bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {statsBar.map(({ icon: Icon, label, value, color }) => (
-              <div
-                key={label}
-                className="rounded-xl glass px-4 py-3 flex items-center gap-3"
-              >
-                <div
-                  className="w-8 h-8 flex items-center justify-center shrink-0"
-                  style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 13%, transparent)` }}
-                >
-                  <Icon size={14} style={{ color }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-[#888] truncate">{value}</div>
-                  <div className="text-[10px] text-[#333] truncate">{label}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Match list */}
           {loading ? (
-            <div className="rounded-2xl glass divide-y divide-white/5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="px-4 py-3 flex items-center gap-3 animate-pulse">
-                  <div className="h-4 w-32 bg-[#111] rounded" />
-                  <div className="ml-auto h-4 w-24 bg-[#111] rounded" />
-                </div>
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-2xl glass flex flex-col items-center gap-2 py-16 text-[#3a4560]">
-              <Search size={24} />
-              <p className="text-sm">Aucun match trouvé</p>
-              <button
-                className="text-xs text-[var(--accent)] hover:underline"
-                onClick={() => { setSearch(""); setActiveGroup("ALL"); }}
-              >
-                Réinitialiser les filtres
-              </button>
-            </div>
+            <div className="rounded-3xl glass p-8 animate-pulse h-64" />
+          ) : heroMatch ? (
+            <>
+              <MatchHeroCard match={heroMatch} isFavorite={isFavorite} />
+              {!isFavorite && !supportedNation && (
+                <Link
+                  href="/onboarding"
+                  className="block text-center text-xs text-[#666] hover:text-[var(--accent)] transition-colors -mt-3"
+                >
+                  Choisis ton équipe pour voir ses matchs en premier →
+                </Link>
+              )}
+            </>
           ) : (
-            <div className="space-y-4">
-              {Object.entries(byDate).map(([date, dayMatches]) => {
-                const d = new Date(date + "T12:00:00");
-                const label =
-                  date === today
-                    ? "Aujourd'hui"
-                    : d.toLocaleDateString("fr-FR", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                      });
-
-                return (
-                  <div key={date}>
-                    {/* Date header */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3
-                        className={`text-xs font-bold uppercase tracking-wide ${
-                          date === today ? "text-[var(--accent)]" : "text-[#333]"
-                        }`}
-                      >
-                        {label}
-                      </h3>
-                      <div className="flex-1 h-px bg-[#141414]" />
-                      <span className="text-[10px] text-[#2a2a2a]">
-                        {dayMatches.length} match{dayMatches.length > 1 ? "s" : ""}
-                      </span>
-                    </div>
-
-                    {/* Match rows */}
-                    <div className="rounded-2xl glass overflow-hidden">
-                      {dayMatches.map((m) => (
-                        <MatchRow key={m.id} match={m} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="rounded-2xl glass flex flex-col items-center gap-2 py-16 text-[#3a4560]">
+              <p className="text-sm">Aucun match à venir pour le moment</p>
             </div>
+          )}
+
+          {!loading && restMatches.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-2">
+                Prochains matchs
+              </h3>
+              <div className="rounded-2xl glass overflow-hidden">
+                {restMatches.map((m) => (
+                  <MatchRow key={m.id} match={m} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!loading && (
+            <Link
+              href="/dashboard/matchs"
+              className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666] hover:text-[var(--accent)] transition-colors py-2"
+            >
+              Voir tous les matchs
+              <ArrowRight size={13} />
+            </Link>
           )}
         </main>
       </div>

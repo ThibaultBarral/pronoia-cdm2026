@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutGrid, Globe, Trophy, TrendingUp, Sparkles, Crown, LogOut, ChevronRight, ShieldCheck, History, User, Layers, Map, Lock, Ticket, MessageCircleQuestion } from "lucide-react";
+import { Crown, LogOut, ChevronRight, ShieldCheck, Lock, Ticket, MessageCircleQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useSubscription } from "@/lib/use-subscription";
 import { cdmIntroActive } from "@/lib/plans";
@@ -11,24 +11,13 @@ import { FEATURE } from "@/lib/feature-flags";
 import { LOCKED_TEASERS, type LockedTeaser } from "@/lib/upsell";
 import UpsellModal from "@/components/dashboard/upsell-modal";
 import { trackEvent } from "@/lib/analytics";
+import { DASHBOARD_NAV } from "./nav-items";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const TEASER_ICONS: Record<LockedTeaser["id"], typeof Ticket> = {
   combos: Ticket,
   chat_ia: MessageCircleQuestion,
 };
-
-const NAV = [
-  { href: "/dashboard", icon: LayoutGrid, label: "Matchs", exact: true },
-  { href: "/dashboard/competitions", icon: Layers, label: "Compétitions" },
-  { href: "/dashboard/roadmap", icon: Map, label: "Roadmap" },
-  { href: "/dashboard/coupe-du-monde", icon: Trophy, label: "Coupe du monde" },
-  { href: "/dashboard/teams", icon: Globe, label: "Équipes" },
-  { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
-  { href: "/dashboard/historique", icon: History, label: "Historique" },
-  { href: "/dashboard/compte", icon: User, label: "Compte" },
-  { href: "/dashboard/pricing", icon: Sparkles, label: "Abonnement" },
-];
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -83,7 +72,7 @@ export default function AppSidebar() {
           Navigation
         </p>
         <div className="space-y-1">
-          {NAV.map(({ href, icon: Icon, label, exact }) => {
+          {DASHBOARD_NAV.map(({ href, icon: Icon, label, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link

@@ -61,8 +61,6 @@ export async function generateMetadata({
     creator: "Copafever",
     publisher: "Copafever",
     alternates: alternateUrls("/"),
-    manifest: "/manifest.json",
-    appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Copafever" },
     openGraph: {
       type: "website",
       siteName: "Copafever",
@@ -81,7 +79,7 @@ export async function generateMetadata({
       follow: true,
       googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
     },
-    icons: { icon: "/api/pwa-icon?size=192", apple: "/api/pwa-icon?size=180" },
+    icons: { icon: "/api/pwa-icon?size=192" },
     verification: { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION },
   };
 }

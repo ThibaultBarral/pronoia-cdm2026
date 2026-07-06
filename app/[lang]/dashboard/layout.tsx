@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import PWARegister from "@/components/pwa-register";
-import BottomNav from "@/components/dashboard/bottom-nav";
-import PWAInstallGuide from "@/components/pwa-install-guide";
+import MobileNav from "@/components/dashboard/mobile-nav";
 import AcquisitionSurvey from "@/components/acquisition-survey";
 import WinbackPopup from "@/components/winback-popup";
 import SocialProofGate from "@/components/social-proof/social-proof-gate";
@@ -13,14 +11,12 @@ export const metadata: Metadata = {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a]">
-      <PWARegister />
-      {/* Padding-bottom on mobile to clear the bottom nav + home indicator */}
-      <div className="flex flex-1 min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a]">
+      {/* Mobile: pinned top bar + burger drawer. Desktop keeps <AppSidebar>. */}
+      <MobileNav />
+      <div className="flex flex-1 min-w-0">
         {children}
       </div>
-      <BottomNav />
-      <PWAInstallGuide />
       <AcquisitionSurvey />
       <WinbackPopup />
       <SocialProofGate />
