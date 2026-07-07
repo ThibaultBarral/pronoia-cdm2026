@@ -9,7 +9,7 @@ interface CountdownProps {
 }
 
 function format(diffMs: number): string {
-  if (diffMs <= 0) return "En cours";
+  if (diffMs <= 0) return "Coup d'envoi";
   const totalMinutes = Math.floor(diffMs / 60_000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);

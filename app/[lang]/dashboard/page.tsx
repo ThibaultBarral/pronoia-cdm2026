@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
-import MatchRow from "@/components/dashboard/match-row";
+import UpcomingMatchCard from "@/components/dashboard/upcoming-match-card";
 import MatchHeroCard from "@/components/dashboard/match-hero-card";
 import { Match } from "@/lib/types";
 import { getMatchesAction } from "@/actions/get-matches";
@@ -45,9 +45,18 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const upcoming = matches
+  const kickoffMs = (m: Match) => new Date(m.date + "T" + m.time + ":00").getTime();
+
+  // Scheduled matches, soonest first. The free API can't flip the 2026 season to
+  // FT, so past matches stay "NS" — we must exclude ones whose kickoff already
+  // passed, otherwise a stale match becomes the "next match" hero. Fall back to
+  // all scheduled if nothing is genuinely upcoming, so the home is never empty.
+  const scheduled = matches
     .filter((m) => !m.status || m.status === "NS")
-    .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
+    .sort((a, b) => kickoffMs(a) - kickoffMs(b));
+  const nowMs = Date.now();
+  const future = scheduled.filter((m) => kickoffMs(m) > nowMs);
+  const upcoming = future.length > 0 ? future : scheduled;
 
   const nationQuery = supportedNation ? norm(supportedNation) : null;
   const isTeamMatch = (m: Match) =>
@@ -59,6 +68,14 @@ export default function DashboardPage() {
   const heroMatch = (nationQuery ? upcoming.find(isTeamMatch) : undefined) ?? upcoming[0];
   const isFavorite = heroMatch ? isTeamMatch(heroMatch) : false;
   const restMatches = upcoming.filter((m) => m.id !== heroMatch?.id).slice(0, 6);
+  const today = new Date().toISOString().split("T")[0];
+
+  // Group the rest into date buckets so the feed reads as "Aujourd'hui" / "Ven. 3 juil." sections.
+  const byDate: Record<string, Match[]> = {};
+  for (const m of restMatches) {
+    if (!byDate[m.date]) byDate[m.date] = [];
+    byDate[m.date].push(m);
+  }
 
   return (
     <>
@@ -88,25 +105,47 @@ export default function DashboardPage() {
           )}
 
           {!loading && restMatches.length > 0 && (
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#333] mb-2">
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#555]">
                 Prochains matchs
               </h3>
-              <div className="rounded-2xl glass overflow-hidden">
-                {restMatches.map((m) => (
-                  <MatchRow key={m.id} match={m} />
-                ))}
-              </div>
+              {Object.entries(byDate).map(([date, dayMatches]) => {
+                const d = new Date(date + "T12:00:00");
+                const label =
+                  date === today
+                    ? "Aujourd'hui"
+                    : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+
+                return (
+                  <div key={date}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4
+                        className={`text-[11px] font-bold uppercase tracking-wide ${
+                          date === today ? "text-[var(--accent)]" : "text-[#444]"
+                        }`}
+                      >
+                        {label}
+                      </h4>
+                      <div className="flex-1 h-px bg-white/[0.05]" />
+                    </div>
+                    <div className="rounded-2xl glass overflow-hidden">
+                      {dayMatches.map((m) => (
+                        <UpcomingMatchCard key={m.id} match={m} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {!loading && (
             <Link
               href="/dashboard/matchs"
-              className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666] hover:text-[var(--accent)] transition-colors py-2"
+              className="flex items-center justify-center gap-2 rounded-2xl border border-white/[0.06] py-3 text-sm font-semibold text-[#999] hover:text-[var(--accent)] hover:border-[var(--accent)]/25 hover:bg-white/[0.02] transition-colors"
             >
               Voir tous les matchs
-              <ArrowRight size={13} />
+              <ArrowRight size={14} />
             </Link>
           )}
         </main>
