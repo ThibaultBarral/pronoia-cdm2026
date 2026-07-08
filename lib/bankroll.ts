@@ -1,76 +1,5 @@
 export type BetResult = "won" | "lost" | "void" | "pending";
 
-export type Playstyle = "safe" | "balanced" | "opportunist" | "aggressive";
-
-export interface PlaystyleConfig {
-  id: Playstyle;
-  label: string;
-  tagline: string;
-  description: string;
-  /** Types/marchés de paris qui collent au profil (= AUDACE, pas montant). */
-  betGuidance: string;
-  emoji: string;
-  stakePercent: number; // % de bankroll recommandé (reste modeste pour tous)
-  stakeRange: string;
-  color: string;
-  accent: string;
-}
-
-export const PLAYSTYLES: PlaystyleConfig[] = [
-  {
-    id: "safe",
-    label: "Prudent",
-    tagline: "Je joue la sécurité",
-    description: "Des paris à forte probabilité, pour gagner souvent même si les gains sont plus petits.",
-    betGuidance:
-      "Marchés sûrs : double chance, victoire d'un favori net, plus/moins de buts prudent. Évite les paris fantaisie.",
-    emoji: "🛡️",
-    stakePercent: 2,
-    stakeRange: "1-2%",
-    color: "#22c55e",
-    accent: "#22c55e20",
-  },
-  {
-    id: "balanced",
-    label: "Équilibré",
-    tagline: "Un bon mélange",
-    description: "Un mix de paris sûrs et de bons coups quand l'occasion est claire.",
-    betGuidance:
-      "Surtout du 1X2 et des value bets raisonnables ; un peu de variété (BTTS, plus/moins) si l'occasion est nette.",
-    emoji: "⚖️",
-    stakePercent: 2.5,
-    stakeRange: "2-3%",
-    color: "var(--accent-soft)",
-    accent: "color-mix(in srgb, var(--accent-soft) 13%, transparent)",
-  },
-  {
-    id: "opportunist",
-    label: "Chercheur de bons coups",
-    tagline: "Je traque la valeur",
-    description: "Je cible les paris où le bookmaker se trompe, même un peu plus pointus.",
-    betGuidance:
-      "Paris où la cote semble trop généreuse : BTTS, handicap léger, plus/moins, paris mi-temps. Plus pointu mais réfléchi.",
-    emoji: "🎯",
-    stakePercent: 3,
-    stakeRange: "2-4%",
-    color: "#ffd700",
-    accent: "#ffd70020",
-  },
-  {
-    id: "aggressive",
-    label: "Audacieux",
-    tagline: "J'aime le frisson",
-    description: "Des paris osés et excitants, qui passent moins souvent mais rapportent gros.",
-    betGuidance:
-      "Paris OSÉS à forte récompense : score exact, buteur, combinés, outsider qui surprend. C'est l'AUDACE du pari qui change — la mise reste petite.",
-    emoji: "🔥",
-    stakePercent: 3.5,
-    stakeRange: "2-4%",
-    color: "#ef4444",
-    accent: "#ef444420",
-  },
-];
-
 export interface Bet {
   id: string;
   date: string;
@@ -97,7 +26,6 @@ export interface BankrollData {
   name?: string;
   startDate?: string;
   initialAmount: number;
-  playstyle?: Playstyle;
   bets: Bet[];
 }
 

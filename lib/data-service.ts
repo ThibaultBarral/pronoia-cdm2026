@@ -790,18 +790,6 @@ export async function getMatches(): Promise<Match[]> {
   });
 }
 
-/** Full data for a single national team (for the /team/[slug] page). */
-export async function getTeamBySlug(slug: string): Promise<Team | null> {
-  const name = Object.keys(TEAM_META).find((n) => slugify(n) === slug);
-  if (!name) return null;
-  return buildTeam(name, "", true, 0);
-}
-
-/** Stable slug for a team name (used to build /team/<slug> links). */
-export function teamSlug(name: string): string {
-  return slugify(name);
-}
-
 // ─── getMatchData — full data for one match ───────────────────────────────────
 
 export async function getMatchData(id: string): Promise<Match | null> {

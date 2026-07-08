@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   AUTH_REQUIRED,
-  FREE_ANALYSES_LIMIT,
   hasAccess,
   MONTHLY_ANALYSIS_LIMIT,
   PAYWALL_REQUIRED,
@@ -16,7 +15,7 @@ import {
 /** Result of getAnalysisAccess for an allowed request: which meter to consume. */
 type AnalysisGrant = {
   userId: string;
-  meter: "free" | "monthly" | "none";
+  meter: "monthly" | "none";
   /** For meter="monthly": the plan's monthly quota, passed back to commit. */
   limit?: number;
 };
@@ -30,11 +29,12 @@ function monthlyUsedNow(usedRaw: number, periodStart: string | null): number {
 
 /** Columns we read for both the gate and the UI view model. */
 const SUB_COLUMNS =
-  "plan, status, current_period_end, trial_end, cancel_at_period_end, manage_url, free_analyses_used, vip, bonus_credits, bonus_access_until";
+  "plan, status, current_period_end, trial_end, cancel_at_period_end, manage_url, vip, bonus_access_until";
 
 /**
  * Read the current user's subscription (view model). Returns null when not
- * authenticated. A user with no row is treated as a fresh `free` account.
+ * authenticated. A user with no row is treated as a fresh `free` account
+ * (no access — there is no free tier).
  */
 export async function getSubscription(): Promise<SubscriptionView | null> {
   const supabase = await createClient();
@@ -63,17 +63,17 @@ export async function getSubscription(): Promise<SubscriptionView | null> {
     vip,
     cancelAtPeriodEnd: Boolean(data?.cancel_at_period_end),
     manageUrl: (data?.manage_url as string | null) ?? null,
-    freeAnalysesUsed: (data?.free_analyses_used as number | null) ?? 0,
-    bonusCredits: (data?.bonus_credits as number | null) ?? 0,
+    freeAnalysesUsed: 0,
+    bonusCredits: 0,
   };
 }
 
 /**
  * The gate applied at the source of every analysis (server-side).
- * - Has access (paid/trial) → allowed.
- * - Otherwise, `free` users get FREE_ANALYSES_LIMIT discovery analyses total,
- *   consumed atomically.
- * - Else → PAYWALL_REQUIRED (the client opens the paywall).
+ * - Has access (paid plan) → allowed, subject to the plan's monthly quota
+ *   (Mini) when applicable.
+ * - Else → PAYWALL_REQUIRED (the client opens the paywall). There is no free
+ *   tier: a signed-in user with no active plan goes straight to the paywall.
  */
 export async function requireAnalysisAccess(): Promise<
   { userId: string } | { error: string }
@@ -97,48 +97,29 @@ export async function requireAnalysisAccess(): Promise<
   };
 
   const vip = Boolean(data?.vip);
-  // VIP (admin-granted free access) or a paid/trial entitlement → allowed,
-  // subject to the plan's monthly quota (Découverte) when applicable.
-  if (vip || hasAccess(state)) {
-    const limit = vip ? undefined : MONTHLY_ANALYSIS_LIMIT[state.plan as PaidPlan];
-    if (limit != null) {
-      const { data: granted, error } = await supabase.rpc("use_monthly_analysis", {
-        p_limit: limit,
-      });
-      if (error) {
-        // Fail closed to the paywall on a DB error.
-        console.error("[ai-guard] use_monthly_analysis error:", error.message);
-        return { error: PAYWALL_REQUIRED };
-      }
-      if (!granted) return { error: PAYWALL_REQUIRED }; // monthly quota spent
+  if (!vip && !hasAccess(state)) return { error: PAYWALL_REQUIRED };
+
+  const limit = vip ? undefined : MONTHLY_ANALYSIS_LIMIT[state.plan as PaidPlan];
+  if (limit != null) {
+    const { data: granted, error } = await supabase.rpc("use_monthly_analysis", {
+      p_limit: limit,
+    });
+    if (error) {
+      // Fail closed to the paywall on a DB error.
+      console.error("[ai-guard] use_monthly_analysis error:", error.message);
+      return { error: PAYWALL_REQUIRED };
     }
-    await supabase.rpc("record_analysis");
-    return { userId: user.id };
+    if (!granted) return { error: PAYWALL_REQUIRED }; // monthly quota spent
   }
-
-  // Free tier: one discovery analysis, consumed atomically (race-safe RPC).
-  const { data: granted, error } = await supabase.rpc("use_free_analysis", {
-    p_limit: FREE_ANALYSES_LIMIT,
-  });
-
-  if (error) {
-    // Don't hand out free analyses on a DB error — fail closed to the paywall.
-    console.error("[ai-guard] use_free_analysis error:", error.message);
-    return { error: PAYWALL_REQUIRED };
-  }
-
-  if (granted) {
-    await supabase.rpc("record_analysis");
-    return { userId: user.id };
-  }
-  return { error: PAYWALL_REQUIRED };
+  await supabase.rpc("record_analysis");
+  return { userId: user.id };
 }
 
 /**
- * Like requireAnalysisAccess but does NOT consume the free analysis — only
+ * Like requireAnalysisAccess but does NOT consume the monthly quota — only
  * checks eligibility. The credit is committed separately, AFTER a successful
  * generation (commitAnalysisUsage), so a failed Claude call never burns a
- * visitor's discovery analysis.
+ * member's monthly analysis.
  */
 export async function getAnalysisAccess(): Promise<AnalysisGrant | { error: string }> {
   const supabase = await createClient();
@@ -148,7 +129,7 @@ export async function getAnalysisAccess(): Promise<AnalysisGrant | { error: stri
   const { data } = await supabase
     .from("subscriptions")
     .select(
-      "plan, status, current_period_end, trial_end, vip, free_analyses_used, monthly_analyses_used, monthly_period_start, bonus_credits, bonus_access_until"
+      "plan, status, current_period_end, trial_end, vip, monthly_analyses_used, monthly_period_start, bonus_access_until"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -164,39 +145,30 @@ export async function getAnalysisAccess(): Promise<AnalysisGrant | { error: stri
   // VIP → unlimited, no meter to consume.
   if (Boolean(data?.vip)) return { userId: user.id, meter: "none" };
 
-  if (hasAccess(state)) {
-    const limit = MONTHLY_ANALYSIS_LIMIT[state.plan as PaidPlan];
-    if (limit != null) {
-      const used = monthlyUsedNow(
-        (data?.monthly_analyses_used as number | null) ?? 0,
-        (data?.monthly_period_start as string | null) ?? null
-      );
-      if (used >= limit) return { error: PAYWALL_REQUIRED }; // monthly quota spent
-      return { userId: user.id, meter: "monthly", limit };
-    }
-    return { userId: user.id, meter: "none" }; // unlimited paid plan
+  if (!hasAccess(state)) return { error: PAYWALL_REQUIRED };
+
+  const limit = MONTHLY_ANALYSIS_LIMIT[state.plan as PaidPlan];
+  if (limit != null) {
+    const used = monthlyUsedNow(
+      (data?.monthly_analyses_used as number | null) ?? 0,
+      (data?.monthly_period_start as string | null) ?? null
+    );
+    if (used >= limit) return { error: PAYWALL_REQUIRED }; // monthly quota spent
+    return { userId: user.id, meter: "monthly", limit };
   }
-
-  // Free tier: base "1er match offert" + earned bonus credits (daily pack / share).
-  const used = (data?.free_analyses_used as number | null) ?? 0;
-  const bonus = (data?.bonus_credits as number | null) ?? 0;
-  if (used < FREE_ANALYSES_LIMIT + bonus) return { userId: user.id, meter: "free" };
-
-  return { error: PAYWALL_REQUIRED };
+  return { userId: user.id, meter: "none" }; // unlimited paid plan
 }
 
 /**
- * Commit usage AFTER a successful analysis: consume the free credit (free users
- * only, race-safe RPC) and bump the analytics counter. Best-effort.
+ * Commit usage AFTER a successful analysis: consume the monthly credit (Mini
+ * plan only) and bump the analytics counter. Best-effort.
  */
 export async function commitAnalysisUsage(
-  grant: { meter: "free" | "monthly" | "none"; limit?: number }
+  grant: { meter: "monthly" | "none"; limit?: number }
 ): Promise<void> {
   try {
     const supabase = await createClient();
-    if (grant.meter === "free") {
-      await supabase.rpc("use_free_analysis", { p_limit: FREE_ANALYSES_LIMIT });
-    } else if (grant.meter === "monthly" && grant.limit != null) {
+    if (grant.meter === "monthly" && grant.limit != null) {
       await supabase.rpc("use_monthly_analysis", { p_limit: grant.limit });
     }
     await supabase.rpc("record_analysis");

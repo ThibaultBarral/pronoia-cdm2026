@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import MobileNav from "@/components/dashboard/mobile-nav";
 import AcquisitionSurvey from "@/components/acquisition-survey";
-import WinbackPopup from "@/components/winback-popup";
 import SocialProofGate from "@/components/social-proof/social-proof-gate";
 
 export const metadata: Metadata = {
@@ -18,7 +17,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </div>
       <AcquisitionSurvey />
-      <WinbackPopup />
       <SocialProofGate />
     </div>
   );

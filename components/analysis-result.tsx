@@ -45,10 +45,10 @@ function CompareRow({ label, home, away }: { label: string; home: number; away: 
 }
 
 /**
- * Inline upsell shown to Essential members in place of a Premium-only block
+ * Inline upsell shown to Mini members in place of a Pro-only block
  * (probable scorers, key players).
  */
-function PremiumUpsell({ title, subtitle }: { title: string; subtitle: string }) {
+function ProUpsell({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <Link
       href="/dashboard/pricing"
@@ -61,7 +61,7 @@ function PremiumUpsell({ title, subtitle }: { title: string; subtitle: string })
         <div className="text-sm font-bold text-[#f0f0f0]">{title}</div>
         <div className="text-xs text-[var(--text-muted)]">{subtitle}</div>
       </div>
-      <span className="text-[var(--accent)] text-sm font-bold shrink-0">Premium →</span>
+      <span className="text-[var(--accent)] text-sm font-bold shrink-0">Pro →</span>
     </Link>
   );
 }
@@ -213,9 +213,9 @@ export default function AnalysisResult({
         </div>
       )}
 
-      {/* Essential : buteurs/joueurs réservés à Premium */}
+      {/* Mini : buteurs/joueurs réservés à Pro */}
       {!canPlayers && (
-        <PremiumUpsell
+        <ProUpsell
           title="Buteurs probables & joueurs clés"
           subtitle="Le 1er buteur, les buteurs probables et les joueurs à suivre"
         />

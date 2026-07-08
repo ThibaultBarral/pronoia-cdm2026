@@ -8,37 +8,9 @@
  * no server imports.
  */
 
-import type { Playstyle } from "./bankroll";
-
 export type Confidence = "Faible" | "Moyen" | "Élevé" | "Très élevé";
 
 // ─── Match analysis ───────────────────────────────────────────────────────────
-
-/** The actionable bet recommendation (CopaFever's paris angle). */
-export interface BetRecommendation {
-  bet: string;
-  odds?: string;
-  bookmaker?: string;
-  confidence: Confidence;
-  /** e.g. "1 à 3% de ta bankroll". */
-  stake: string;
-  rationale: string;
-  /** Expected-value verdict (set by the engine, not the LLM). */
-  ev?: number;
-  /** Minimum odds for value = 1 / model probability. */
-  coteMin?: number;
-  /** value · marginal · none. */
-  valueTier?: "value" | "marginal" | "none";
-  /** Model probability of the recommended bet (%). */
-  probaModele?: number;
-  /**
-   * How this pick was selected:
-   * - "value" (default): chosen for its expected value (+EV) — the value profiles.
-   * - "probability": the most likely outcome (a "banker") — the Prudent profile,
-   *   which always proposes a bet even without value, framed honestly as such.
-   */
-  basis?: "value" | "probability";
-}
 
 /** A probable scorer — picked from the REAL squad. Speculative (a prediction). */
 export interface ProbableScorer {
@@ -78,14 +50,6 @@ export interface MatchAnalysisData {
   expectedGoals: { home: number; away: number };
   /** Over/under & both-teams-to-score (%). */
   markets: { over25: number; under25: number; bttsYes: number; bttsNo: number };
-  /** The default bet recommendation (canonical best-EV value pick). */
-  recommendation: BetRecommendation;
-  /**
-   * One recommendation per bettor profile — lets the UI toggle between play
-   * styles (prudent → audacieux) without re-running the analysis. Absent on
-   * older cached/stored analyses (fall back to `recommendation`).
-   */
-  recommendationsByProfile?: Partial<Record<Playstyle, BetRecommendation>>;
   /**
    * Probable scorers, chosen from the real squads (a prediction, not a fact).
    * Optional → absent on older cached/stored analyses.

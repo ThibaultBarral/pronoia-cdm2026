@@ -28,16 +28,15 @@ function norm(s: string): string {
 }
 
 type SortKey =
-  | "name" | "bettorProfile" | "acquisitionChannel" | "plan" | "status"
+  | "name" | "acquisitionChannel" | "plan" | "status"
   | "analysesCount" | "revenue" | "createdAt" | "lastSignInAt" | "vip" | "isAdmin";
 
 type Access = "all" | "paid" | "vip" | "admin" | "free";
 
-const PLAN_ORDER: Plan[] = ["free", "weekly", "monthly", "pass_cdm", "lifetime"];
+const PLAN_ORDER: Plan[] = ["free", "mini", "pro", "pro_yearly", "lifetime"];
 
 const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "name", label: "Utilisateur" },
-  { key: "bettorProfile", label: "Profil" },
   { key: "acquisitionChannel", label: "Canal" },
   { key: "plan", label: "Plan" },
   { key: "status", label: "Statut" },
@@ -56,7 +55,6 @@ const NUMERIC = new Set<SortKey>([
 function sortValue(u: AdminUserRow, key: SortKey): number | string {
   switch (key) {
     case "name": return norm(u.name ?? u.email ?? "");
-    case "bettorProfile": return u.bettorProfile ?? "";
     case "acquisitionChannel": return channelLabel(u.acquisitionChannel);
     case "plan": return PLAN_ORDER.indexOf(u.plan);
     case "status": return u.status ?? "";
@@ -213,7 +211,6 @@ export default function UsersTable({ users }: { users: AdminUserRow[] }) {
                       <div className="text-[#f0f0f0] font-semibold">{u.name ?? "—"}</div>
                       <div className="text-[11px] text-[#5a6472]">{u.email ?? "—"}</div>
                     </td>
-                    <td className="px-3 py-3 text-[#9aa3b2] capitalize">{u.bettorProfile ?? "—"}</td>
                     <td className="px-3 py-3">
                       {u.acquisitionChannel ? (
                         <div>

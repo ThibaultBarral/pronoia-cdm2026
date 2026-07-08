@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Flag, ChevronRight } from "lucide-react";
 import type { Match } from "@/lib/types";
-import { teamSlug } from "@/lib/data-service";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 
 /**
@@ -42,16 +41,10 @@ export default function MatchResult({
 
       <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
         <Link
-          href={`/team/${teamSlug(match.homeTeam.nameEn ?? match.homeTeam.name)}`}
+          href="/dashboard/matchs"
           className="inline-flex items-center gap-1.5 rounded-xl glass px-3.5 py-2 text-xs font-bold text-[#cdd3db] hover:bg-white/[0.06] transition-colors"
         >
-          {match.homeTeam.flag} Analyse {match.homeTeam.name}
-        </Link>
-        <Link
-          href={`/team/${teamSlug(match.awayTeam.nameEn ?? match.awayTeam.name)}`}
-          className="inline-flex items-center gap-1.5 rounded-xl glass px-3.5 py-2 text-xs font-bold text-[#cdd3db] hover:bg-white/[0.06] transition-colors"
-        >
-          {match.awayTeam.flag} Analyse {match.awayTeam.name}
+          Voir tous les matchs
         </Link>
       </div>
 

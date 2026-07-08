@@ -2,8 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { FREE_ANALYSES_LIMIT, type Plan } from "@/lib/plans";
-import { WINBACK_MIN_VISIT_DAYS } from "@/lib/winback";
+import { type Plan } from "@/lib/plans";
 import { ACQUISITION_CHANNELS, isRealChannel } from "@/lib/acquisition";
 import { NO_SUB_REASONS, isRealNoSubReason } from "@/lib/no-sub-survey";
 
@@ -16,13 +15,10 @@ export interface AdminUserRow {
   createdAt: string | null;
   lastSignInAt: string | null;
   isAdmin: boolean;
-  bettorProfile: string | null;
+  supportedNation: string | null;
   plan: Plan;
   status: string | null;
   analysesCount: number;
-  freeAnalysesUsed: number;
-  visitDays: number; // jours de visite distincts (tracking win-back)
-  winbackSeen: boolean; // pop-up KICKOFF20 déjà affichée
   vip: boolean; // accès gratuit offert (admin), indépendant des plans payants
   revenue: number; // CA réel Whop (€), payé − remboursé
   acquisitionChannel: string | null; // "tiktok" | … | "skip" | null
@@ -102,7 +98,7 @@ export async function getAdminData(): Promise<{
 
   const [{ data: list }, { data: subs }, revenue] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    admin.from("subscriptions").select("user_id, plan, status, analyses_count, free_analyses_used, visit_days, winback_popup_seen_at, whop_membership_id, vip"),
+    admin.from("subscriptions").select("user_id, plan, status, analyses_count, whop_membership_id, vip"),
     fetchWhopRevenue(),
   ]);
 
@@ -124,13 +120,10 @@ export async function getAdminData(): Promise<{
         createdAt: u.created_at ?? null,
         lastSignInAt: u.last_sign_in_at ?? null,
         isAdmin: u.app_metadata?.is_admin === true,
-        bettorProfile: (u.user_metadata?.bettor_profile as string | null) ?? null,
+        supportedNation: (u.user_metadata?.supported_nation as string | null) ?? null,
         plan: ((s?.plan as Plan) ?? "free") as Plan,
         status: (s?.status as string | null) ?? null,
         analysesCount: (s?.analyses_count as number | null) ?? 0,
-        freeAnalysesUsed: (s?.free_analyses_used as number | null) ?? 0,
-        visitDays: (s?.visit_days as number | null) ?? 0,
-        winbackSeen: Boolean(s?.winback_popup_seen_at),
         vip: Boolean(s?.vip),
         revenue: membershipId ? revenue.byMembership.get(membershipId) ?? 0 : 0,
         acquisitionChannel: (meta.acquisition_channel as string | null) ?? null,
@@ -171,7 +164,7 @@ export interface AdminStats {
   prevNewUsers7d: number;
   signupsByDay: { date: string; count: number }[]; // last 14 days, oldest→newest
   // Activation / engagement
-  onboardedRate: number; // % with a bettor profile
+  onboardedRate: number; // % having completed onboarding (equipe favorite choisie)
   activationRate: number; // % who ran ≥1 analysis
   usersWithAnalysis: number;
   totalAnalyses: number;
@@ -189,9 +182,6 @@ export interface AdminStats {
   // Acquisition channels ("comment nous as-tu connus")
   acquisitionBreakdown: ChannelCount[]; // real answered channels, desc by count
   acquisitionAnswered: number; // users who picked a real channel
-  // Win-back (KICKOFF20)
-  winbackShown: number; // pop-ups affichées (winback_popup_seen_at non null)
-  winbackEligible: number; // non-abonnés actuellement éligibles (pas encore vue)
   // "Pourquoi pas d'abonnement ?"
   noSubBreakdown: { id: string; label: string; emoji: string; count: number }[];
   noSubAnswered: number; // utilisateurs ayant donné une vraie raison
@@ -199,22 +189,26 @@ export interface AdminStats {
 }
 
 const PLAN_ORDER: Plan[] = [
-  "free", "decouverte", "monthly", "elite", "pro_weekly", "elite_weekly", "lifetime",
+  "free", "mini", "pro", "pro_yearly", "lifetime",
+  "decouverte", "monthly", "elite", "pro_weekly", "elite_weekly",
   "essential", "weekly", "pass_cdm", "season",
 ];
 const PLAN_LABEL: Record<Plan, string> = {
   free: "Gratuit",
-  decouverte: "Découverte",
-  monthly: "Pro",
-  elite: "Elite",
-  pro_weekly: "Pro (hebdo)",
-  elite_weekly: "Elite (hebdo)",
-  lifetime: "Elite à vie",
+  mini: "Mini",
+  pro: "Pro",
+  pro_yearly: "Pro (annuel)",
+  lifetime: "À vie",
   // legacy
-  essential: "Essential",
-  weekly: "Hebdo",
-  pass_cdm: "Pass CDM",
-  season: "Pass Saison",
+  decouverte: "Découverte (ancien)",
+  monthly: "Pro (ancien tarif)",
+  elite: "Elite (ancien)",
+  pro_weekly: "Pro hebdo (ancien)",
+  elite_weekly: "Elite hebdo (ancien)",
+  essential: "Essential (ancien)",
+  weekly: "Hebdo (ancien)",
+  pass_cdm: "Pass CDM (ancien)",
+  season: "Pass Saison (ancien)",
 };
 
 /** Compute the dashboard metrics from already-fetched rows (no extra queries). */
@@ -238,7 +232,7 @@ export function computeAdminStats(
   const activeUsers7d = users.filter((u) => within(u.lastSignInAt, 7)).length;
   const activeUsers30d = users.filter((u) => within(u.lastSignInAt, 30)).length;
 
-  const onboarded = users.filter((u) => u.bettorProfile).length;
+  const onboarded = users.filter((u) => u.supportedNation).length;
   const usersWithAnalysis = users.filter((u) => u.analysesCount > 0).length;
   const totalAnalyses = users.reduce((s, u) => s + u.analysesCount, 0);
 
@@ -278,17 +272,6 @@ export function computeAdminStats(
     .sort((a, b) => b.revenue - a.revenue || b.count - a.count);
   const acquisitionAnswered = users.filter((u) =>
     isRealChannel(u.acquisitionChannel)
-  ).length;
-
-  // Win-back (KICKOFF20): non-subscriber = free plan, not VIP.
-  const winbackShown = users.filter((u) => u.winbackSeen).length;
-  const winbackEligible = users.filter(
-    (u) =>
-      u.plan === "free" &&
-      !u.vip &&
-      !u.winbackSeen &&
-      u.visitDays >= WINBACK_MIN_VISIT_DAYS &&
-      u.freeAnalysesUsed >= FREE_ANALYSES_LIMIT,
   ).length;
 
   // "Pourquoi pas d'abonnement ?" — answered reasons, desc by count.
@@ -334,8 +317,6 @@ export function computeAdminStats(
     planBreakdown,
     acquisitionBreakdown,
     acquisitionAnswered,
-    winbackShown,
-    winbackEligible,
     noSubBreakdown,
     noSubAnswered,
     noSubDetails,

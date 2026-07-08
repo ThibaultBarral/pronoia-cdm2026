@@ -153,7 +153,7 @@ export default function MobileNav() {
                     <Crown size={15} className="text-[var(--accent)] shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold text-[var(--accent)] truncate">
-                        {sub.label ?? "Premium actif"}
+                        {sub.label ?? "Abonnement actif"}
                       </div>
                       <div className="text-[10px] text-[#5a6472]">Gérer mon abonnement</div>
                     </div>

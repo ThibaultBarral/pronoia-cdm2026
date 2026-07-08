@@ -6,10 +6,8 @@ import { useState, useEffect } from "react";
 import { Crown, LogOut, ChevronRight, ShieldCheck, Lock, Ticket, MessageCircleQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useSubscription } from "@/lib/use-subscription";
-import { cdmIntroActive } from "@/lib/plans";
 import { FEATURE } from "@/lib/feature-flags";
 import { LOCKED_TEASERS, type LockedTeaser } from "@/lib/upsell";
-import UpsellModal from "@/components/dashboard/upsell-modal";
 import { trackEvent } from "@/lib/analytics";
 import { DASHBOARD_NAV } from "./nav-items";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -23,17 +21,11 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const sub = useSubscription();
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [teaser, setTeaser] = useState<LockedTeaser | null>(null);
   const supabase = createClient();
 
-  // Free (non-member) state → locked teasers.
+  // Non-member state → locked teasers linking straight to the pricing page.
   const isFree = Boolean(sub) && !sub!.access;
   const showLocked = FEATURE.lockedNav && isFree;
-
-  function openTeaser(t: LockedTeaser) {
-    trackEvent("locked_nav_click", { item: t.id });
-    setTeaser(t);
-  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -103,9 +95,10 @@ export default function AppSidebar() {
             LOCKED_TEASERS.map((t) => {
               const Icon = TEASER_ICONS[t.id];
               return (
-                <button
+                <Link
                   key={t.id}
-                  onClick={() => openTeaser(t)}
+                  href="/dashboard/pricing"
+                  onClick={() => trackEvent("locked_nav_click", { item: t.id })}
                   className="group relative w-full flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-xl text-sm text-[#7a8290] hover:text-[#cdd3db] hover:bg-white/[0.03] transition-all"
                 >
                   <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/[0.03] group-hover:bg-white/[0.06]">
@@ -113,7 +106,7 @@ export default function AppSidebar() {
                   </span>
                   <span className="font-semibold flex-1 text-left">{t.label}</span>
                   <Lock size={13} className="text-[#5a6472] shrink-0" />
-                </button>
+                </Link>
               );
             })}
 
@@ -147,7 +140,7 @@ export default function AppSidebar() {
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-[var(--accent)] truncate">
-                {sub.label ?? "Premium actif"}
+                {sub.label ?? "Abonnement actif"}
               </div>
               <div className="text-[10px] text-[#5a6472]">Gérer mon abonnement</div>
             </div>
@@ -172,9 +165,7 @@ export default function AppSidebar() {
                 Débloque les analyses IA complètes
               </p>
               <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
-                {cdmIntroActive()
-                  ? "Aperçu gratuit · analyse complète dès 4,99 €/sem, sans engagement."
-                  : "Aperçu gratuit · analyse complète dès 4,99 €/sem."}
+                Value bets, bankroll & analyses illimitées dès 2,99 €/mois.
               </p>
               <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
                 Voir les plans →
@@ -203,8 +194,6 @@ export default function AppSidebar() {
           <LogOut size={15} />
         </button>
       </div>
-
-      <UpsellModal teaser={teaser} onClose={() => setTeaser(null)} />
     </aside>
   );
 }

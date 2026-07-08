@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getMatches, teamSlug } from "@/lib/data-service";
-import { TEAM_META } from "@/lib/team-ids";
+import { getMatches } from "@/lib/data-service";
 import { COMPETITIONS } from "@/lib/competitions";
 import { getCompetitionClubs } from "@/lib/competition-data";
 
@@ -69,15 +68,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* sitemap still valid without match pages */
   }
 
-  const teamPages: MetadataRoute.Sitemap = Object.keys(TEAM_META).map(
-    (name): MetadataRoute.Sitemap[number] => ({
-      url: `${BASE}/team/${teamSlug(name)}`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    })
-  );
-
   // French-only site — every page lives at the root URL.
-  return [...staticPages, ...competitionPages, ...matchPages, ...teamPages];
+  return [...staticPages, ...competitionPages, ...matchPages];
 }

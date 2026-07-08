@@ -16,14 +16,14 @@ export interface FeaturedMatch {
 
 /**
  * Real next-match card for the hero (replaces the illustrative winnings demo).
- * Shows an actual upcoming fixture and sends to signup → its free analysis.
- * 100% real data, no fabricated winnings.
+ * Shows an actual upcoming fixture and sends to signup. 100% real data, no
+ * fabricated winnings.
  */
 export default function FeaturedMatchCard({ match }: { match: FeaturedMatch }) {
   const en = useLocale() === "en";
   const copy = en
-    ? { eyebrow: "Next big match", cta: "Analyze this match free", free: "1st analysis free · no card required", vs: "vs" }
-    : { eyebrow: "Prochain gros match", cta: "Analyse ce match gratuitement", free: "1ʳᵉ analyse offerte · sans carte bancaire", vs: "vs" };
+    ? { eyebrow: "Next big match", cta: "Analyze this match", free: "Unlimited analyses with Pro", vs: "vs" }
+    : { eyebrow: "Prochain gros match", cta: "Analyse ce match", free: "Analyses illimitées avec Pro", vs: "vs" };
 
   return (
     <motion.div

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, Download, AlertCircle, Gift } from "lucide-react";
-import { grantShareReward } from "@/actions/daily-pack";
+import { Share2, Download, AlertCircle } from "lucide-react";
 
 /**
  * Export the match analysis as a 9:16 image and share it. Available to any
@@ -24,11 +23,9 @@ export default function ShareAnalysisButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reward, setReward] = useState<string | null>(null);
 
   async function share() {
     setError(null);
-    setReward(null);
     setLoading(true);
     try {
       const url = variant ? `/match/${matchId}/share?v=${variant}` : `/match/${matchId}/share`;
@@ -57,10 +54,6 @@ export default function ShareAnalysisButton({
         a.remove();
         URL.revokeObjectURL(url);
       }
-
-      // Reward the share with +1 free analysis (server caps it to once/day).
-      const r = await grantShareReward();
-      if (r.granted) setReward("+1 analyse gratuite débloquée !");
     } catch (err) {
       // AbortError = user dismissed the share sheet → ignore.
       if (err instanceof Error && err.name === "AbortError") return;
@@ -84,11 +77,6 @@ export default function ShareAnalysisButton({
         )}
         Partager en image (9:16)
       </button>
-      {reward && (
-        <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--accent)]">
-          <Gift size={12} /> {reward}
-        </span>
-      )}
       {error && (
         <span className="flex items-center gap-1 text-[11px] text-[#ef4444]">
           <AlertCircle size={12} /> {error}

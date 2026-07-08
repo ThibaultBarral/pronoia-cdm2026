@@ -40,7 +40,7 @@ export default async function CompetitionsPage() {
 
           {/* Hero — World Cup, live */}
           <Link
-            href="/dashboard/coupe-du-monde"
+            href="/dashboard/matchs"
             className="group block rounded-3xl glass-neon glow-neon p-6 mb-8 hover:bg-[var(--accent)]/[0.06] transition-colors"
           >
             <div className="flex items-center gap-4">
@@ -61,7 +61,7 @@ export default async function CompetitionsPage() {
                   🌍 Coupe du Monde 2026
                 </h2>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  Favoris, groupes, bracket et analyses IA de chaque match.
+                  Tous les matchs, scores en direct et analyses IA de chaque affiche.
                 </p>
               </div>
               <ChevronRight

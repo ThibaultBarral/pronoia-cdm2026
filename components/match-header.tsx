@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { MapPin, CalendarClock, Shield } from "lucide-react";
 import { Match } from "@/lib/types";
-import { teamSlug } from "@/lib/data-service";
 
 const COUNTRY_NAME: Record<string, string> = {
   USA: "États-Unis",
@@ -52,18 +50,7 @@ function TeamColumn({ team }: { team: Match["homeTeam"] }) {
     </>
   );
 
-  if (team.isPlaceholder) {
-    return <div className="flex flex-col items-center gap-2 px-2 py-1">{inner}</div>;
-  }
-
-  return (
-    <Link
-      href={`/team/${teamSlug(team.nameEn ?? team.name)}`}
-      className="group flex flex-col items-center gap-2 rounded-xl px-2 py-1 hover:bg-white/[0.03] transition-colors"
-    >
-      {inner}
-    </Link>
-  );
+  return <div className="flex flex-col items-center gap-2 px-2 py-1">{inner}</div>;
 }
 
 export default function MatchHeader({ match }: { match: Match }) {

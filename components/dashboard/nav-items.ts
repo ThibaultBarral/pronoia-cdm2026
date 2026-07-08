@@ -3,12 +3,11 @@ import {
   List,
   Layers,
   Map,
-  Trophy,
-  Globe,
   TrendingUp,
   History,
   User,
   Sparkles,
+  Percent,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,10 +23,9 @@ export interface DashboardNavItem {
 export const DASHBOARD_NAV: DashboardNavItem[] = [
   { href: "/dashboard", icon: LayoutGrid, label: "Matchs", exact: true },
   { href: "/dashboard/matchs", icon: List, label: "Tous les matchs" },
+  { href: "/dashboard/values", icon: Percent, label: "Values du jour" },
   { href: "/dashboard/competitions", icon: Layers, label: "Compétitions" },
   { href: "/dashboard/roadmap", icon: Map, label: "Roadmap" },
-  { href: "/dashboard/coupe-du-monde", icon: Trophy, label: "Coupe du monde" },
-  { href: "/dashboard/teams", icon: Globe, label: "Équipes" },
   { href: "/dashboard/bankroll", icon: TrendingUp, label: "Bankroll" },
   { href: "/dashboard/historique", icon: History, label: "Historique" },
   { href: "/dashboard/compte", icon: User, label: "Compte" },

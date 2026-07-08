@@ -10,15 +10,15 @@ export interface FaqItem {
 const FAQ_FR: FaqItem[] = [
   {
     q: "C'est quoi Copafever, en une phrase ?",
-    a: "Copafever est un assistant de paris propulsé par l'IA : pour chaque match, il croise la forme récente, les stats réelles, les compositions et les cotes du marché pour t'expliquer le match en clair et te proposer un pari à valeur, avec un niveau de confiance et une mise adaptée à ta bankroll.",
+    a: "Copafever est un assistant foot propulsé par l'IA : pour chaque match, il croise la forme récente, les stats réelles, les compositions et les cotes du marché pour t'expliquer le match en clair — favori, scénario probable, buteurs et joueurs à suivre.",
   },
   {
     q: "Comment ça marche concrètement ?",
-    a: "Tu crées un compte gratuit, tu choisis un match, tu lances l'analyse. En quelques secondes tu obtiens : un résumé du match, les forces et faiblesses des deux équipes, les probabilités, les value bets détectés et une recommandation de pari claire (Faible / Moyen / Élevé) avec une mise conseillée. Tu gardes la main : Copafever conseille, tu décides.",
+    a: "Tu crées un compte, tu choisis un match, tu cliques sur « Analyser ». En quelques secondes tu obtiens : un résumé du match, les probabilités, les buts attendus (xG), les forces et faiblesses des deux équipes, et les buteurs probables. Simple, sans jargon.",
   },
   {
-    q: "Qu'est-ce qu'un value bet ?",
-    a: "Un value bet est un pari dont la probabilité réelle estimée est supérieure à celle qu'impliquent les cotes du bookmaker : le bookmaker sous-évalue une issue. Sur le long terme, miser sur ces écarts est statistiquement plus rentable. Copafever les repère automatiquement sur chaque match.",
+    q: "Qu'est-ce qu'une value du jour ?",
+    a: "Une value est un pari dont la probabilité réelle estimée par notre modèle est supérieure à celle qu'impliquent les cotes du bookmaker : le bookmaker sous-évalue une issue. L'onglet « Values du jour » les repère automatiquement sur les prochains matchs, cotes réelles à l'appui.",
   },
   {
     q: "Les données sont-elles réelles ?",
@@ -26,23 +26,23 @@ const FAQ_FR: FaqItem[] = [
   },
   {
     q: "Combien ça coûte ?",
-    a: "L'inscription est gratuite et te donne une première analyse offerte, plus un aperçu de chaque match (le verdict du modèle : favori, probabilités, buts attendus). L'analyse IA complète est réservée aux abonnés : Essential à 9,99 €/mois (analyses illimitées + l'analyse complète de chaque match), Premium à 14,99 €/mois (en plus toute la boîte à outils paris), ou Accès à vie en paiement unique. L'Accès à vie est à 89 € en tarif de lancement jusqu'au 19 juillet, puis 129 €.",
+    a: "Copafever propose trois offres, sans palier gratuit : Mini à 2,99 €/mois (5 analyses par mois), Pro à 9,99 €/mois ou 59,99 €/an (analyses illimitées, values du jour, bankroll, chat IA), et l'Accès à vie à 79 € en paiement unique.",
   },
   {
     q: "Quelle est la différence entre les offres ?",
-    a: "Essential (9,99 €/mois) donne les analyses IA illimitées et l'analyse complète de chaque match (résumé, scénario, probabilités, xG, forces & faiblesses). Premium (14,99 €/mois) ajoute toute la boîte à outils paris : value bets et cotes en direct, buteurs probables et joueurs clés, chat IA contextuel, simulateur de parcours, bracket interactif et suivi de bankroll. L'Accès à vie, c'est tout Premium pour toujours, sans abonnement, plus le badge membre fondateur.",
+    a: "Mini (2,99 €/mois) donne 5 analyses IA complètes par mois. Pro (9,99 €/mois ou 59,99 €/an) donne tout en illimité : analyses, values du jour, buteurs probables et joueurs clés, chat IA contextuel et suivi de bankroll. L'Accès à vie, c'est tout Pro pour toujours, en un seul paiement.",
   },
   {
     q: "Et après la Coupe du Monde 2026 ?",
-    a: "Copafever continue sur toute la saison 2026/27 : Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des Champions et Ligue Europa — plus de 2 100 matchs analysables. Les abonnements continuent sur ces compétitions, et l'Accès à vie les couvre toutes, à vie.",
+    a: "Copafever continue sur toute la saison 2026/27 : Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des Champions et Ligue Europa — plus de 2 100 matchs analysables. Les offres Mini, Pro et Accès à vie couvrent ces compétitions.",
   },
   {
     q: "Puis-je suivre mes paris et ma bankroll ?",
-    a: "Oui. Copafever intègre un suivi de bankroll complet : tu enregistres tes paris, tu vois ton ROI, ton taux de réussite, ta courbe de gains et tes séries. Tu peux aussi choisir ton style de pari (prudent à audacieux) pour que les recommandations et les mises s'adaptent à toi.",
+    a: "Oui, avec Pro ou l'Accès à vie. Copafever intègre un suivi de bankroll complet : tu enregistres tes paris, tu vois ton ROI, ton taux de réussite, ta courbe de gains et tes séries.",
   },
   {
     q: "Le paiement est-il sécurisé ? Puis-je résilier ?",
-    a: "Le paiement est géré par Whop, une plateforme sécurisée — aucune donnée bancaire n'est stockée par Copafever. Les abonnements Essential et Premium sont sans engagement, résiliables à tout moment en un clic. L'Accès à vie est un paiement unique, sans reconduction.",
+    a: "Le paiement est géré par Whop, une plateforme sécurisée — aucune donnée bancaire n'est stockée par Copafever. Les abonnements Mini et Pro sont sans engagement, résiliables à tout moment en un clic. L'Accès à vie est un paiement unique, sans reconduction.",
   },
   {
     q: "Est-ce légal et responsable ?",
@@ -53,15 +53,15 @@ const FAQ_FR: FaqItem[] = [
 const FAQ_EN: FaqItem[] = [
   {
     q: "What is Copafever, in one sentence?",
-    a: "Copafever is an AI-powered betting assistant: for every match, it combines recent form, real stats, lineups and market odds to explain the game in plain language and suggest a value bet, with a confidence level and a stake sized to your bankroll.",
+    a: "Copafever is an AI-powered football assistant: for every match, it combines recent form, real stats, lineups and market odds to explain the game in plain language — favorite, likely scenario, probable scorers and players to watch.",
   },
   {
     q: "How does it actually work?",
-    a: "You create a free account, pick a match and run the analysis. In seconds you get: a match summary, each team's strengths and weaknesses, the probabilities, the value bets detected and a clear betting recommendation (Low / Medium / High) with a suggested stake. You stay in control: Copafever advises, you decide.",
+    a: "You create an account, pick a match, and click \"Analyze\". In seconds you get: a match summary, the probabilities, expected goals (xG), each team's strengths and weaknesses, and probable scorers. Simple, no jargon.",
   },
   {
-    q: "What is a value bet?",
-    a: "A value bet is a bet whose estimated true probability is higher than the one implied by the bookmaker's odds: the bookmaker underrates an outcome. Over the long run, backing these edges is statistically more profitable. Copafever spots them automatically on every match.",
+    q: "What is a daily value?",
+    a: "A value is a bet whose true probability, estimated by our model, is higher than the one implied by the bookmaker's odds: the bookmaker underrates an outcome. The \"Values of the day\" tab spots them automatically on upcoming matches, backed by real odds.",
   },
   {
     q: "Is the data real?",
@@ -69,23 +69,23 @@ const FAQ_EN: FaqItem[] = [
   },
   {
     q: "How much does it cost?",
-    a: "Signing up is free and gives you one free analysis, plus a preview of every match (the model's verdict: favorite, probabilities, expected goals). The full AI analysis is for subscribers: Essential at €9.99/month (unlimited analyses + the full analysis of every match), Premium at €14.99/month (plus the whole betting toolkit), or one-time Lifetime access. Lifetime is €89 as a launch price until July 19, then €129.",
+    a: "Copafever has three offers, no free tier: Mini at €2.99/month (5 analyses per month), Pro at €9.99/month or €59.99/year (unlimited analyses, daily values, bankroll, AI chat), and one-time Lifetime access at €79.",
   },
   {
     q: "What's the difference between the plans?",
-    a: "Essential (€9.99/month) gives unlimited AI analyses and the full analysis of every match (summary, scenario, probabilities, xG, strengths & weaknesses). Premium (€14.99/month) adds the whole betting toolkit: value bets and live odds, probable scorers and key players, contextual AI chat, run simulator, interactive bracket and bankroll tracking. Lifetime is all of Premium forever, with no subscription, plus the founder badge.",
+    a: "Mini (€2.99/month) gives 5 full AI analyses per month. Pro (€9.99/month or €59.99/year) gives everything unlimited: analyses, daily values, probable scorers and key players, contextual AI chat and bankroll tracking. Lifetime is all of Pro forever, in one payment.",
   },
   {
     q: "And after the 2026 World Cup?",
-    a: "Copafever continues through the whole 2026/27 season: Ligue 1, Premier League, La Liga, Serie A, Bundesliga, Champions League and Europa League — over 2,100 analyzable matches. Subscriptions carry on across these competitions, and Lifetime covers them all, for life.",
+    a: "Copafever continues through the whole 2026/27 season: Ligue 1, Premier League, La Liga, Serie A, Bundesliga, Champions League and Europa League — over 2,100 analyzable matches. Mini, Pro and Lifetime cover these competitions.",
   },
   {
     q: "Can I track my bets and bankroll?",
-    a: "Yes. Copafever includes full bankroll tracking: you log your bets and see your ROI, win rate, profit curve and streaks. You can also pick your betting style (cautious to bold) so the recommendations and stakes adapt to you.",
+    a: "Yes, with Pro or Lifetime. Copafever includes full bankroll tracking: you log your bets and see your ROI, win rate, profit curve and streaks.",
   },
   {
     q: "Is payment secure? Can I cancel?",
-    a: "Payment is handled by Whop, a secure platform — no banking details are stored by Copafever. Essential and Premium subscriptions are commitment-free, cancellable anytime in one click. Lifetime is a one-time payment, with no renewal.",
+    a: "Payment is handled by Whop, a secure platform — no banking details are stored by Copafever. Mini and Pro subscriptions are commitment-free, cancellable anytime in one click. Lifetime is a one-time payment, with no renewal.",
   },
   {
     q: "Is it legal and responsible?",

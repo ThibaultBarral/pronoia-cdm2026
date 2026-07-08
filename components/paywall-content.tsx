@@ -2,39 +2,19 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { Check, Infinity as InfinityIcon, RotateCcw, AlertCircle, Settings } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
-import {
-  Check, Flame, Zap, CalendarDays, Infinity as InfinityIcon,
-  RotateCcw, AlertCircle, Settings, Lock, type LucideIcon,
-} from "lucide-react";
-import Link from "next/link";
 import { startCheckout } from "@/lib/checkout-client";
 import { restoreSubscription } from "@/actions/restore-subscription";
-import { visibleOffers, freeTier, planName, type Plan, type PaidPlan, type Duration } from "@/lib/plans";
-import LaunchCountdown, { useCountdown, formatRemaining, PRICE_HIKE_DEADLINE } from "@/components/launch-countdown";
+import { planName, type Plan, type PaidPlan } from "@/lib/plans";
 
-const ICONS: Record<PaidPlan, LucideIcon> = {
-  decouverte: Zap,
-  monthly: CalendarDays,
-  elite: Flame,
-  pro_weekly: CalendarDays,
-  elite_weekly: Flame,
-  lifetime: InfinityIcon,
-  // legacy
-  essential: Zap,
-  weekly: Zap,
-  pass_cdm: Flame,
-  season: CalendarDays,
-};
-
-const DURATION_LABEL: Record<Duration, string> = {
-  week: "Semaine",
-  month: "Mensuel",
-  lifetime: "À vie",
-};
-const DURATION_ORDER: Duration[] = ["week", "month", "lifetime"];
-
+/**
+ * Sober, no-trial pricing page — inspired by mobile-app paywalls that push a
+ * single "hero" offer: Pro yearly gets the highlighted card (pre-selected
+ * visual weight, "-50%" anchor), Pro monthly and Lifetime sit below, and Mini
+ * (the capped entry offer) is deliberately understated at the bottom. No
+ * countdown, no urgency banner, no free trial — a direct "Débloquer Pro" CTA.
+ */
 export default function PaywallContent({
   currentPlan,
   hasAccess = false,
@@ -50,29 +30,10 @@ export default function PaywallContent({
   const [info, setInfo] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [restoring, startRestore] = useTransition();
-  const [duration, setDuration] = useState<Duration>("month");
-  const [mountedCd, setMountedCd] = useState(false);
-  const cd = useCountdown(PRICE_HIKE_DEADLINE);
 
   useEffect(() => {
     if (!hasAccess) trackEvent("paywall_view", { source: "pricing_page" });
   }, [hasAccess]);
-
-  useEffect(() => {
-    // Defer to avoid a hydration mismatch on the time-dependent tab badge.
-    const id = setTimeout(() => setMountedCd(true), 0);
-    return () => clearTimeout(id);
-  }, []);
-
-  const offers = visibleOffers();
-  const durations = DURATION_ORDER.filter((d) => offers.some((o) => o.duration === d));
-  const shown = offers.filter((o) => o.duration === duration);
-  const gridCls =
-    shown.length === 1
-      ? "grid grid-cols-1 max-w-sm mx-auto"
-      : shown.length === 2
-        ? "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-stretch max-w-3xl mx-auto"
-        : "grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto";
 
   function checkout(plan: PaidPlan) {
     setError(null);
@@ -100,248 +61,137 @@ export default function PaywallContent({
     });
   }
 
+  const isCurrent = (plan: PaidPlan) => currentPlan === plan;
+
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="w-full max-w-md mx-auto">
       {/* Header */}
-      <div className="text-center mb-10">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-[var(--text)]">
-          Choisis ton plan
+      <div className="text-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--text)]">
+          Passe à Copafever <span className="text-[var(--accent)]">Pro</span>
         </h1>
-        <p className="text-base text-[var(--text-muted)] mt-3">
-          Accède aux analyses IA de la CDM 2026 et de toutes les compétitions à venir.
+        <p className="text-sm text-[var(--text-muted)] mt-2.5">
+          Analyses illimitées. Value bets du jour. Bankroll & suivi du ROI.
         </p>
-        {currentPlan !== "lifetime" && (
-          <div className="mt-5 flex justify-center">
-            <LaunchCountdown />
-          </div>
-        )}
       </div>
 
       {/* Active subscriber — manage / cancel */}
       {hasAccess && (
-        <div className="max-w-xl mx-auto mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl glass-neon px-5 py-4">
+        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl glass-neon px-5 py-4">
           <div className="flex items-center gap-2 text-sm">
             <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
             <span className="text-[var(--text)] font-semibold">
-              {currentPlan === "pass_cdm"
-                ? "Pass CDM actif · accès complet jusqu'au 19 juillet"
-                : `Abonnement actif${currentPlan ? ` · ${planName(currentPlan)}` : ""}`}
+              Abonnement actif{currentPlan ? ` · ${planName(currentPlan)}` : ""}
             </span>
           </div>
-          {currentPlan === "pass_cdm" ? (
-            <button
-              onClick={() => checkout("lifetime")}
-              disabled={pending === "lifetime"}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold bg-[#ffd700]/12 text-[#ffd700] border border-[#ffd700]/30 hover:bg-[#ffd700]/20 transition-colors disabled:opacity-60"
-            >
-              {pending === "lifetime" ? "Redirection…" : "Passer à vie — 89 €"}
-            </button>
-          ) : (
-            <a
-              href={manageUrl ?? "#"}
-              target={manageUrl ? "_blank" : undefined}
-              rel="noreferrer"
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
-                manageUrl
-                  ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20"
-                  : "glass text-[var(--text-muted)] cursor-not-allowed"
-              }`}
-            >
-              <Settings size={15} /> Gérer / Résilier
-            </a>
-          )}
+          <a
+            href={manageUrl ?? "#"}
+            target={manageUrl ? "_blank" : undefined}
+            rel="noreferrer"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
+              manageUrl
+                ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20"
+                : "glass text-[var(--text-muted)] cursor-not-allowed"
+            }`}
+          >
+            <Settings size={15} /> Gérer / Résilier
+          </a>
         </div>
       )}
 
-      {/* Duration toggle — Semaine / Mensuel / À vie */}
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex items-center gap-1 rounded-full glass p-1">
-          {durations.map((d) => {
-            const active = d === duration;
-            return (
-              <button
-                key={d}
-                onClick={() => setDuration(d)}
-                className={`relative px-5 py-2 rounded-full text-sm font-bold transition-colors ${
-                  active
-                    ? "bg-[var(--accent)] text-[#06231a]"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                {DURATION_LABEL[d]}
-                {d === "lifetime" && mountedCd && cd.total > 0 && (
-                  <span className="absolute -top-2.5 -right-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#ef4444] text-white tabular-nums whitespace-nowrap leading-none">
-                    {formatRemaining(cd)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Benefit checklist */}
+      <ul className="space-y-2.5 mb-6">
+        {[
+          "Analyses IA illimitées",
+          "Value bets du jour",
+          "Bankroll et suivi du ROI",
+          "Historique illimité",
+        ].map((f) => (
+          <li key={f} className="flex items-center gap-2.5 text-sm text-[#d0d0d0]">
+            <Check size={16} strokeWidth={3} className="shrink-0 text-[var(--accent)]" />
+            {f}
+          </li>
+        ))}
+      </ul>
 
-      {/* Offers — paliers de la durée sélectionnée */}
-      <div className={gridCls}>
-        {shown.map((o, i) => {
-          const Icon = ICONS[o.plan];
-          const highlight = o.highlight;
-          const gold = o.plan === "lifetime";
-          const isCurrent = currentPlan === o.plan;
-          const loading = pending === o.plan;
-          const accentColor = gold ? "#ffd700" : "var(--accent)";
-
-          return (
-            <motion.div
-              key={o.plan}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.35 }}
-              className={`relative flex flex-col rounded-3xl p-6 ${
-                highlight ? "glass-neon glow-neon" : "glass"
-              }`}
-              style={
-                highlight
-                  ? { borderColor: "rgba(var(--accent-rgb),0.55)" }
-                  : gold
-                    ? { borderColor: "rgba(255,215,0,0.30)" }
-                    : undefined
-              }
-            >
-              {o.badge && (
-                <span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wide px-3 py-1 rounded-full whitespace-nowrap"
-                  style={
-                    gold
-                      ? { background: "#ffd700", color: "#1a1300" }
-                      : { background: "var(--accent)", color: "#06231a" }
-                  }
-                >
-                  {gold && <InfinityIcon size={12} />}
-                  {o.badge}
-                </span>
-              )}
-
-              {/* Name */}
-              <div className="flex items-center gap-2.5 mb-4">
-                <span
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: gold ? "rgba(255,215,0,0.12)" : "rgba(var(--accent-rgb),0.12)" }}
-                >
-                  <Icon size={18} style={{ color: accentColor }} />
-                </span>
-                <h3 className="text-xl font-black text-[var(--text)]">{o.name}</h3>
-              </div>
-
-              {/* Price */}
-              {(o.discountLabel || o.anchorPrice) && (
-                <div className="flex items-center gap-2 mb-1.5">
-                  {o.discountLabel && (
-                    <span className="inline-flex items-center text-[11px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#ef4444]/15 text-[#ff6b6b] border border-[#ef4444]/30">
-                      {o.discountLabel}
-                    </span>
-                  )}
-                  {o.anchorPrice && (
-                    <span className="text-lg font-bold text-[var(--text-muted)] line-through decoration-[#ef4444]/60 decoration-2">
-                      {o.anchorPrice}
-                    </span>
-                  )}
-                </div>
-              )}
-              <div className="flex items-end gap-1.5">
-                <span className="text-[40px] leading-none font-black" style={{ color: gold ? "#ffd700" : "var(--text)" }}>
-                  {o.priceLabel}
-                </span>
-                <span className="text-sm text-[var(--text-muted)] mb-1.5">{o.unit}</span>
-              </div>
-              {o.urgencyLabel && (
-                <p className="flex items-center gap-1.5 text-[12px] font-bold text-[#ff9d5c] mt-2">
-                  <Flame size={13} className="shrink-0" />
-                  {o.urgencyLabel}
-                </p>
-              )}
-              <p className="text-sm text-[var(--text-muted)] mt-2 mb-5">{o.sublabel}</p>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-7 flex-1">
-                {o.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm text-[#d0d0d0]">
-                    <Check size={16} strokeWidth={3} className="mt-0.5 shrink-0" style={{ color: accentColor }} />
-                    <span>{f}</span>
-                  </li>
-                ))}
-                {o.lockedFeatures?.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-2.5 text-sm text-[var(--text-muted)]"
-                  >
-                    <Lock size={15} className="mt-0.5 shrink-0 text-[var(--text-muted)]" />
-                    <span className="line-through decoration-[var(--text-muted)]/50">
-                      {f}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              {isCurrent ? (
-                <div className="w-full text-center rounded-xl py-3 text-sm font-bold glass text-[var(--text-muted)]">
-                  ✓ Offre actuelle
-                </div>
-              ) : (
-                <button
-                  onClick={() => checkout(o.plan)}
-                  disabled={loading}
-                  className="w-full rounded-xl py-3.5 text-sm font-black text-[#06231a] transition-transform hover:scale-[1.02] active:scale-100 disabled:opacity-60"
-                  style={{
-                    background: gold
-                      ? "linear-gradient(135deg, #f5b800, #ffd700)"
-                      : highlight
-                        ? "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))"
-                        : "linear-gradient(135deg, #0fb5a0, var(--accent))",
-                  }}
-                >
-                  {loading ? "Redirection…" : o.ctaLabel}
-                </button>
-              )}
-
-              {o.note && (
-                <p className="text-[11px] text-[var(--text-muted)] text-center mt-3">{o.note}</p>
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Free baseline — what you keep without paying. */}
-      {!hasAccess && (() => {
-        const free = freeTier();
-        return (
-          <div className="max-w-3xl mx-auto mt-5 rounded-2xl glass px-5 py-3.5 text-center">
-            <span className="text-xs text-[var(--text-muted)]">
-              <span className="font-bold text-[#cdd3db]">{free.name} · {free.priceLabel}</span> —{" "}
-              1 analyse complète offerte, puis le reste reste verrouillé. C&apos;est ton plan actuel.
-            </span>
-          </div>
-        );
-      })()}
-
-      {/* Price-hike strip */}
-      <div className="max-w-3xl mx-auto mt-6 rounded-2xl glass px-5 py-3.5 flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center">
-        <span className="text-xs text-[var(--text-muted)]">
-          <span className="font-bold text-[#cdd3db]">Le 19 juillet, l&apos;Accès à vie passe à 129 €.</span>{" "}
-          Les abonnements continuent sur toutes les compétitions 2026/27.
+      {/* Pro yearly — the hero offer */}
+      <button
+        onClick={() => checkout("pro_yearly")}
+        disabled={pending === "pro_yearly" || isCurrent("pro_yearly")}
+        className="relative w-full text-left rounded-2xl p-4 mb-3 glass-neon glow-neon disabled:opacity-70"
+        style={{ borderColor: "rgba(var(--accent-rgb),0.6)", borderWidth: 2 }}
+      >
+        <span className="absolute -top-3 left-4 inline-flex items-center text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--accent)] text-[#06231a]">
+          Meilleure offre · -50%
         </span>
-        <Link
-          href="/dashboard/competitions"
-          className="text-xs font-bold text-[var(--accent)] hover:underline shrink-0"
-        >
-          Voir les compétitions →
-        </Link>
-      </div>
+        <div className="flex items-start justify-between gap-3 mt-1">
+          <div>
+            <div className="text-base font-black text-[var(--text)]">Annuel</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">soit 5 €/mois</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xl font-black text-[var(--text)]">59,99 €</div>
+            <div className="text-[11px] text-[var(--text-muted)]">/ an</div>
+          </div>
+        </div>
+        {isCurrent("pro_yearly") && (
+          <div className="mt-2 text-xs font-bold text-[var(--accent)]">✓ Offre actuelle</div>
+        )}
+      </button>
+
+      {/* Pro monthly */}
+      <button
+        onClick={() => checkout("pro")}
+        disabled={pending === "pro" || isCurrent("pro")}
+        className="w-full text-left rounded-2xl p-4 mb-3 glass disabled:opacity-70"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-base font-bold text-[var(--text)]">Mensuel</div>
+          <div className="text-right">
+            <div className="text-lg font-black text-[var(--text)]">9,99 €</div>
+            <div className="text-[11px] text-[var(--text-muted)]">/ mois</div>
+          </div>
+        </div>
+        {isCurrent("pro") && <div className="mt-2 text-xs font-bold text-[var(--accent)]">✓ Offre actuelle</div>}
+      </button>
+
+      {/* Lifetime */}
+      <button
+        onClick={() => checkout("lifetime")}
+        disabled={pending === "lifetime" || isCurrent("lifetime")}
+        className="w-full text-left rounded-2xl p-4 mb-6 glass disabled:opacity-70"
+      >
+        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full mb-2 bg-[#ffd700]/15 text-[#ffd700]">
+          <InfinityIcon size={11} /> Accès à vie
+        </span>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-base font-bold text-[var(--text)]">À vie</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+              ≈ 1 an et demi d&apos;annuel, sans abonnement
+            </div>
+          </div>
+          <div className="text-lg font-black text-[var(--text)]">79 €</div>
+        </div>
+        {isCurrent("lifetime") && <div className="mt-2 text-xs font-bold text-[var(--accent)]">✓ Offre actuelle</div>}
+      </button>
+
+      {/* Main CTA */}
+      <button
+        onClick={() => checkout("pro_yearly")}
+        disabled={pending === "pro_yearly" || isCurrent("pro_yearly")}
+        className="w-full rounded-2xl py-4 text-base font-black text-[#06231a] transition-transform hover:scale-[1.01] active:scale-100 disabled:opacity-60"
+        style={{ background: "linear-gradient(135deg, #0fb5a0, var(--accent))" }}
+      >
+        {pending === "pro_yearly" ? "Redirection…" : "Débloquer Copafever Pro"}
+      </button>
+      <p className="text-center text-[11px] text-[var(--text-muted)] mt-2.5">
+        59,99 €/an · sans engagement, annulable à tout moment
+      </p>
 
       {(error || info) && (
         <div
-          className={`flex items-center justify-center gap-2 text-sm mt-6 rounded-xl px-3 py-2.5 max-w-md mx-auto ${
+          className={`flex items-center justify-center gap-2 text-sm mt-5 rounded-xl px-3 py-2.5 ${
             error
               ? "text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/25"
               : "text-[var(--accent-soft)] bg-[var(--accent)]/10 border border-[var(--accent)]/25"
@@ -351,10 +201,26 @@ export default function PaywallContent({
         </div>
       )}
 
+      {/* Mini — deliberately understated, entry offer */}
+      <div className="mt-6 pt-5 border-t border-white/5">
+        <button
+          onClick={() => checkout("mini")}
+          disabled={pending === "mini" || isCurrent("mini")}
+          className="w-full flex items-center justify-between gap-3 text-left opacity-75 hover:opacity-100 transition-opacity disabled:opacity-50"
+        >
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Offre Mini</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">5 analyses / mois · sans value bets</div>
+          </div>
+          <div className="text-sm text-[var(--text-muted)] shrink-0">2,99 € / mois</div>
+        </button>
+        {isCurrent("mini") && <div className="mt-2 text-xs font-bold text-[var(--text-muted)]">✓ Offre actuelle</div>}
+      </div>
+
       {/* Footer */}
-      <div className="mt-10 text-center space-y-3">
-        <p className="text-xs text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed">
-          Découverte, Pro et Elite : abonnements annulables à tout moment, sans engagement.
+      <div className="mt-8 text-center space-y-3">
+        <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto leading-relaxed">
+          Mini et Pro : abonnements annulables à tout moment, sans engagement.
           Accès à vie : un seul paiement, pour toujours.
           <br />
           Les analyses sont fournies à titre informatif. Les paris sportifs comportent des risques ·

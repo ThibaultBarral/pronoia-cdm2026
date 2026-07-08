@@ -31,21 +31,10 @@ export const ROADMAP: Milestone[] = [
     when: "EN COURS",
     title: "Coupe du Monde 2026",
     description:
-      "104 matchs analysés par l'IA, favoris, groupes, bracket interactif et simulateur de parcours. Abonnements Essential & Premium disponibles. Tout est live.",
+      "104 matchs analysés par l'IA, scores en direct et value bets du jour. Offres Mini, Pro et À vie disponibles. Tout est live.",
     tone: "live",
-    ctaLabel: "Voir la Coupe du Monde",
-    ctaHref: "/dashboard/coupe-du-monde",
-  },
-  {
-    id: "price-hike",
-    when: "19 JUILLET",
-    tag: "DERNIER JOUR",
-    title: "L'Accès à vie passe à 129 €",
-    description:
-      "Après la finale, le tarif de lancement de l'Accès à vie disparaît : il passe de 89 € à 129 €. Les abonnements Essential & Premium, eux, continuent sur toutes les compétitions.",
-    tone: "urgent",
-    ctaLabel: "Verrouiller 89 €",
-    ctaHref: "/dashboard/pricing",
+    ctaLabel: "Voir tous les matchs",
+    ctaHref: "/dashboard/matchs",
   },
   {
     id: "big-five",

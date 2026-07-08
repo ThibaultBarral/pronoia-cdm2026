@@ -39,9 +39,9 @@ export default function ComboTicket({ combo, unlocked }: { combo: DailyCombo; un
   }, [unlocked, combo.count]);
 
   function unlock() {
-    trackEvent("combo_unlock_click", { plan: "mensuel" });
+    trackEvent("combo_unlock_click", { plan: "pro" });
     start(async () => {
-      const res = await startCheckout("monthly");
+      const res = await startCheckout("pro");
       if (res.ok) window.location.href = res.url;
       else window.location.href = localizePath("/login?mode=signup&next=/combine-du-jour", locale);
     });

@@ -9,8 +9,8 @@ import { useLocale } from "@/lib/i18n/locale-provider";
 const KEY = "cf_promo_dismissed_v1";
 
 /**
- * Elofoot-style dismissible promo strip pinned above the navbar. Honest CDM
- * offer (first match free), emerald DA. Remembers dismissal in localStorage.
+ * Elofoot-style dismissible promo strip pinned above the navbar. Points to the
+ * Pro yearly offer (the hero plan), emerald DA. Remembers dismissal in localStorage.
  */
 export default function PromoBanner() {
   const en = useLocale() === "en";
@@ -31,8 +31,8 @@ export default function PromoBanner() {
   };
 
   const label = en
-    ? "🎁 Your 1st match analysed free · no card required"
-    : "🎁 Ton 1er match analysé offert · sans carte bancaire";
+    ? "⚡ Copafever Pro — unlimited analyses, from 5 €/month"
+    : "⚡ Copafever Pro — analyses illimitées, dès 5 €/mois";
 
   return (
     <AnimatePresence>
@@ -49,7 +49,7 @@ export default function PromoBanner() {
           }}
         >
           <LocaleLink
-            href="/login?mode=signup"
+            href="/tarifs"
             className="flex items-center justify-center gap-2.5 px-10 py-2.5 text-center"
           >
             <Trophy size={15} className="text-[#06231a] shrink-0" />

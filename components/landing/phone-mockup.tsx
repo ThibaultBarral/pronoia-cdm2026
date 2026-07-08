@@ -143,7 +143,7 @@ export default function PhoneMockup({
               {[
                 "Scénario probable du match",
                 "Buteurs probables & joueurs clés",
-                "Value bet & recommandation",
+                "Forces & faiblesses des 2 équipes",
               ].map((label) => (
                 <div
                   key={label}

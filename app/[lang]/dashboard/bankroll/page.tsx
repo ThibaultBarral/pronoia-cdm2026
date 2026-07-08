@@ -10,157 +10,71 @@ import EquityChart from "@/components/bankroll/equity-chart";
 import BetForm from "@/components/bankroll/bet-form";
 import BetTable from "@/components/bankroll/bet-table";
 import {
-  BankrollData, Bet, BetResult, Playstyle, PLAYSTYLES, computeStats, calcProfit,
+  BankrollData, Bet, BetResult, computeStats, calcProfit,
 } from "@/lib/bankroll";
 import { loadUserBankroll, saveUserBankroll, deleteUserBankroll } from "@/lib/supabase/bankroll-db";
-import { createClient } from "@/lib/supabase/client";
-
-/** Keep the authoritative profile (auth metadata) in sync so AI analyses adapt. */
-async function syncBettorProfile(playstyle: Playstyle) {
-  try {
-    await createClient().auth.updateUser({ data: { bettor_profile: playstyle } });
-  } catch {
-    /* bankroll playstyle still persisted; non-blocking */
-  }
-}
 
 // ─── Setup screen ─────────────────────────────────────────────────────────────
 
-function SetupScreen({ onSetup }: { onSetup: (amount: number, playstyle: Playstyle) => void }) {
-  const [step, setStep] = useState<1 | 2>(1);
+function SetupScreen({ onSetup }: { onSetup: (amount: number) => void }) {
   const [amount, setAmount] = useState("200");
-  const [playstyle, setPlaystyle] = useState<Playstyle>("balanced");
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-16">
       <div className="w-full max-w-sm">
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {[1, 2].map((s) => (
-            <div
-              key={s}
-              className={`h-1 rounded-full transition-all ${
-                s === step ? "w-8 bg-[var(--accent)]" : s < step ? "w-4 bg-[var(--accent)]/40" : "w-4 bg-[#1a1a1a]"
-              }`}
-            />
-          ))}
+        <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center mx-auto mb-5">
+          <Wallet size={24} className="text-[var(--accent)]" />
         </div>
+        <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
+          Bankroll de départ
+        </h2>
+        <p className="text-sm text-[#555] text-center mb-8 leading-relaxed">
+          Ce montant sert de référence pour ton ROI et tes mises en pourcentage.
+        </p>
 
-        {step === 1 ? (
-          <>
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center mx-auto mb-5">
-              <Wallet size={24} className="text-[var(--accent)]" />
+        <div className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] p-5 space-y-4">
+          <div>
+            <label className="block text-[11px] text-[#555] uppercase tracking-wide mb-1.5">
+              Montant initial
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="1"
+                step="10"
+                className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-2xl font-black text-[#f0f0f0] pr-10 focus:outline-none focus:border-[var(--accent)]/30 tabular-nums"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] text-xl font-bold">€</span>
             </div>
-            <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
-              Bankroll de départ
-            </h2>
-            <p className="text-sm text-[#555] text-center mb-8 leading-relaxed">
-              Ce montant sert de référence pour ton ROI et tes mises en pourcentage.
-            </p>
+          </div>
 
-            <div className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] p-5 space-y-4">
-              <div>
-                <label className="block text-[11px] text-[#555] uppercase tracking-wide mb-1.5">
-                  Montant initial
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    min="1"
-                    step="10"
-                    className="w-full bg-[#111] border border-[#1a1a1a] rounded-xl px-4 py-3 text-2xl font-black text-[#f0f0f0] pr-10 focus:outline-none focus:border-[var(--accent)]/30 tabular-nums"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#444] text-xl font-bold">€</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {[100, 200, 500, 1000, 2000, 5000].map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setAmount(String(v))}
-                    className={`py-2 rounded-lg border text-sm font-medium transition-all ${
-                      amount === String(v)
-                        ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]"
-                        : "border-[#141414] text-[#444] hover:text-[#666] hover:bg-[#111]"
-                    }`}
-                  >
-                    {v}€
-                  </button>
-                ))}
-              </div>
-
+          <div className="grid grid-cols-3 gap-2">
+            {[100, 200, 500, 1000, 2000, 5000].map((v) => (
               <button
-                onClick={() => setStep(2)}
-                disabled={!parseFloat(amount) || parseFloat(amount) <= 0}
-                className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                key={v}
+                onClick={() => setAmount(String(v))}
+                className={`py-2 rounded-lg border text-sm font-medium transition-all ${
+                  amount === String(v)
+                    ? "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]"
+                    : "border-[#141414] text-[#444] hover:text-[#666] hover:bg-[#111]"
+                }`}
               >
-                Suivant
-                <ChevronRight size={15} />
+                {v}€
               </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="text-3xl text-center mb-3">🎮</div>
-            <h2 className="text-xl font-black text-[#f0f0f0] text-center mb-2">
-              Ton style de jeu
-            </h2>
-            <p className="text-sm text-[#555] text-center mb-6 leading-relaxed">
-              Copafever adapte ses recommandations — types de paris et mises suggérées — à ton profil.
-            </p>
+            ))}
+          </div>
 
-            <div className="space-y-2 mb-5">
-              {PLAYSTYLES.map((ps) => (
-                <button
-                  key={ps.id}
-                  onClick={() => setPlaystyle(ps.id)}
-                  className={`w-full text-left rounded-xl border p-3.5 transition-all ${
-                    playstyle === ps.id
-                      ? "border-[var(--accent)]/30 bg-[var(--accent)]/5"
-                      : "border-[#141414] bg-[#0d0d0d] hover:bg-[#111] hover:border-[#222]"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl leading-none mt-0.5">{ps.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-bold text-[#f0f0f0]">{ps.label}</span>
-                        <span
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                          style={{ color: ps.color, background: ps.accent }}
-                        >
-                          {ps.stakeRange} bankroll
-                        </span>
-                        {playstyle === ps.id && (
-                          <span className="ml-auto text-[10px] text-[var(--accent)] font-medium">✓</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-[#555] leading-relaxed">{ps.description}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep(1)}
-                className="px-4 py-3 rounded-xl border border-[#1a1a1a] text-[#555] text-sm hover:text-[#888] hover:bg-[#111] transition-all"
-              >
-                Retour
-              </button>
-              <button
-                onClick={() => onSetup(parseFloat(amount) || 200, playstyle)}
-                className="flex-1 py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all hover:scale-[1.01] glow-neon"
-              >
-                Démarrer le suivi
-              </button>
-            </div>
-          </>
-        )}
+          <button
+            onClick={() => onSetup(parseFloat(amount) || 200)}
+            disabled={!parseFloat(amount) || parseFloat(amount) <= 0}
+            className="w-full py-3 rounded-xl bg-[var(--accent)] text-[#0a0a0a] font-bold text-sm hover:bg-[var(--accent-strong)] transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            Démarrer le suivi
+            <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -224,16 +138,8 @@ export default function BankrollPage() {
     if (id && !next.id) setData({ ...next, id });
   }, []);
 
-  function handleSetup(amount: number, playstyle: Playstyle) {
-    persist({ initialAmount: amount, playstyle, bets: [] });
-    syncBettorProfile(playstyle);
-  }
-
-  function handleSetPlaystyle(playstyle: Playstyle) {
-    if (!data) return;
-    persist({ ...data, playstyle });
-    // Authoritative source for the AI recommendation + personalised stake.
-    syncBettorProfile(playstyle);
+  function handleSetup(amount: number) {
+    persist({ initialAmount: amount, bets: [] });
   }
 
   function handleAddBet(bet: Bet) {
@@ -368,18 +274,6 @@ export default function BankrollPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-xs text-[#444] uppercase tracking-widest">Bankroll actuelle</p>
-                        {data.playstyle && (() => {
-                          const ps = PLAYSTYLES.find((p) => p.id === data.playstyle);
-                          if (!ps) return null;
-                          return (
-                            <span
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                              style={{ color: ps.color, background: ps.accent }}
-                            >
-                              {ps.emoji} {ps.label}
-                            </span>
-                          );
-                        })()}
                       </div>
                       <div className="flex items-baseline gap-3">
                         <span className="text-4xl font-black text-[#f0f0f0] tabular-nums">
@@ -423,60 +317,6 @@ export default function BankrollPage() {
                           <span className="opacity-50">{data.bets.length}</span>
                         )}
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Style de pari — toujours modifiable (les analyses & mises s'y adaptent) */}
-                  <div
-                    className={`rounded-2xl border p-4 ${
-                      data.playstyle
-                        ? "border-[#141414] bg-[#0d0d0d]"
-                        : "border-[#ffd700]/20 bg-[#ffd700]/5"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <p
-                        className={`text-xs font-semibold ${
-                          data.playstyle ? "text-[#888]" : "text-[#ffd700]"
-                        }`}
-                      >
-                        🎮 Mon style de pari
-                      </p>
-                      <span className="text-[10px] text-[#444]">Analyses & mises adaptées</span>
-                    </div>
-                    <p className="text-[11px] text-[#555] mb-3">
-                      Ta bankroll grandit ? Ajuste ton style — l&apos;IA suit (type de pari,
-                      audace et mise conseillée).
-                    </p>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                      {PLAYSTYLES.map((ps) => {
-                        const active = data.playstyle === ps.id;
-                        return (
-                          <button
-                            key={ps.id}
-                            onClick={() => handleSetPlaystyle(ps.id)}
-                            className={`text-left rounded-xl border p-3 transition-all ${
-                              active
-                                ? "border-[var(--accent)]/40 bg-[var(--accent)]/5"
-                                : "border-[#141414] bg-[#0d0d0d] hover:bg-[#111] hover:border-[#222]"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-base">{ps.emoji}</span>
-                              <span className="text-xs font-bold text-[#f0f0f0]">{ps.label}</span>
-                              {active && (
-                                <span className="ml-auto text-[10px] text-[var(--accent)] font-bold">✓</span>
-                              )}
-                            </div>
-                            <span
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                              style={{ color: ps.color, background: ps.accent }}
-                            >
-                              {ps.stakeRange} bankroll
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
 

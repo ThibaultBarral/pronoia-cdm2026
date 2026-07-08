@@ -22,7 +22,8 @@ function timeAgo(iso: string): string {
 }
 
 export default async function HistoriquePage() {
-  const items = await listMyAnalyses();
+  // Team analyses are a retired feature — only match analyses stay navigable.
+  const items = (await listMyAnalyses()).filter((it) => it.kind === "match");
 
   return (
     <>

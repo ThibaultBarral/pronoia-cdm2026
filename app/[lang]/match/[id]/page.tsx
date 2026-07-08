@@ -186,10 +186,10 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
                 seront connus.
               </p>
               <Link
-                href="/dashboard/coupe-du-monde"
+                href="/dashboard/matchs"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--accent)] hover:underline"
               >
-                Voir le tableau final →
+                Voir tous les matchs →
               </Link>
             </div>
           ) : finished ? (
@@ -198,19 +198,6 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
             <AIAnalysis match={match} autoStart={welcome === "1"} />
           )}
         </div>
-
-        {/* Betting toolkit lives in its own section — kept off the analysis
-            page. Discreet entry point only (never a betting-first framing). */}
-        {!finished && decided && (
-          <div className="animate-fade-in-up delay-200">
-            <Link
-              href={`/match/${id}/paris`}
-              className="flex items-center justify-center gap-2 rounded-xl border border-[#1f1f1f] bg-[#0f0f0f] px-4 py-3 text-xs text-[#666] hover:border-[var(--accent)]/25 hover:text-[var(--accent)] transition-colors"
-            >
-              🎲 Pari conseillé &amp; cotes du match →
-            </Link>
-          </div>
-        )}
 
         {/* Supporting context — collapsed by default so the page opens clean.
             Only when both teams are known. */}

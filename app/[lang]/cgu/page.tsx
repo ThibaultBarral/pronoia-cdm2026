@@ -42,23 +42,24 @@ export default function CGUPage() {
       <p>
         L&apos;accès nécessite la création d&apos;un compte via une adresse e-mail (authentification
         gérée par Supabase). L&apos;utilisateur est responsable de la confidentialité de ses
-        identifiants et de toute activité réalisée depuis son compte. L&apos;inscription est gratuite
-        et donne accès à un aperçu de chaque match (verdict du modèle&nbsp;: probabilités, buts attendus).
+        identifiants et de toute activité réalisée depuis son compte. L&apos;inscription donne accès
+        à un aperçu gratuit de chaque match (verdict du modèle&nbsp;: probabilités, buts attendus) ;
+        l&apos;analyse IA complète requiert une offre payante.
       </p>
 
       <H>4. Offres et paiement</H>
       <p>L&apos;accès aux analyses IA complètes requiert une offre payante :</p>
       <ul className="list-disc pl-5 space-y-1.5">
-        <li><strong className="text-[#f0f0f0]">Essential</strong> — 9,99 € / mois, abonnement reconductible : analyses IA illimitées et analyse complète de chaque match.</li>
-        <li><strong className="text-[#f0f0f0]">Premium</strong> — 14,99 € / mois, abonnement reconductible : tout Essential plus la boîte à outils paris (value bets, buteurs & joueurs clés, chat IA, simulateur, bracket, bankroll) et toutes les compétitions (CDM 2026 puis saison de clubs).</li>
-        <li><strong className="text-[#f0f0f0]">Accès à vie</strong> — 89 €, paiement unique, sans reconduction.</li>
+        <li><strong className="text-[#f0f0f0]">Mini</strong> — 2,99 € / mois, abonnement reconductible : 5 analyses IA par mois.</li>
+        <li><strong className="text-[#f0f0f0]">Pro</strong> — 9,99 € / mois ou 59,99 € / an, abonnement reconductible : analyses IA illimitées, value bets du jour, buteurs & joueurs clés, chat IA, bankroll et toutes les compétitions (CDM 2026 puis saison de clubs).</li>
+        <li><strong className="text-[#f0f0f0]">Accès à vie</strong> — 79 €, paiement unique, sans reconduction : tout Pro, pour toujours.</li>
       </ul>
       <p>
         Les paiements sont opérés par notre prestataire <strong className="text-[#f0f0f0]">Whop</strong>,
         qui collecte et traite les données de paiement ; Copafever ne stocke aucune donnée bancaire.
-        Les prix sont indiqués toutes taxes comprises. Seul l&apos;abonnement hebdomadaire est reconduit
-        automatiquement à échéance jusqu&apos;à résiliation ; le Pass CDM 2026 et l&apos;Accès à vie sont
-        des paiements uniques sans reconduction.
+        Les prix sont indiqués toutes taxes comprises. Les abonnements Mini et Pro sont reconduits
+        automatiquement à échéance jusqu&apos;à résiliation ; l&apos;Accès à vie est un paiement unique
+        sans reconduction.
       </p>
 
       <H>5. Résiliation et rétractation</H>

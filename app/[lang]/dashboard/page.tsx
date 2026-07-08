@@ -46,6 +46,21 @@ export default function DashboardPage() {
   }, []);
 
   const kickoffMs = (m: Match) => new Date(m.date + "T" + m.time + ":00").getTime();
+  const LIVE_STATUSES = new Set(["1H", "HT", "2H"]);
+
+  const nationQuery = supportedNation ? norm(supportedNation) : null;
+  const isTeamMatch = (m: Match) =>
+    nationQuery != null &&
+    [m.homeTeam.name, m.homeTeam.nameEn, m.homeTeam.shortName, m.awayTeam.name, m.awayTeam.nameEn, m.awayTeam.shortName]
+      .filter(Boolean)
+      .some((s) => norm(s as string) === nationQuery);
+
+  // 1) Match(es) currently being played — the favorite's live match wins if
+  // there is one, otherwise the soonest-started live match.
+  const liveMatches = matches
+    .filter((m) => LIVE_STATUSES.has(m.status ?? ""))
+    .sort((a, b) => kickoffMs(a) - kickoffMs(b));
+  const liveMatch = (nationQuery ? liveMatches.find(isTeamMatch) : undefined) ?? liveMatches[0];
 
   // Scheduled matches, soonest first. The free API can't flip the 2026 season to
   // FT, so past matches stay "NS" — we must exclude ones whose kickoff already
@@ -58,16 +73,19 @@ export default function DashboardPage() {
   const future = scheduled.filter((m) => kickoffMs(m) > nowMs);
   const upcoming = future.length > 0 ? future : scheduled;
 
-  const nationQuery = supportedNation ? norm(supportedNation) : null;
-  const isTeamMatch = (m: Match) =>
-    nationQuery != null &&
-    [m.homeTeam.name, m.homeTeam.nameEn, m.homeTeam.shortName, m.awayTeam.name, m.awayTeam.nameEn, m.awayTeam.shortName]
-      .filter(Boolean)
-      .some((s) => norm(s as string) === nationQuery);
+  // 2) The favorite team's next upcoming match, right after the live match.
+  const favoriteMatch = nationQuery ? upcoming.find(isTeamMatch) : undefined;
 
-  const heroMatch = (nationQuery ? upcoming.find(isTeamMatch) : undefined) ?? upcoming[0];
-  const isFavorite = heroMatch ? isTeamMatch(heroMatch) : false;
-  const restMatches = upcoming.filter((m) => m.id !== heroMatch?.id).slice(0, 6);
+  // Fallback hero when there's neither a live match nor a favorite team set.
+  const fallbackHero = !liveMatch && !favoriteMatch ? upcoming[0] : undefined;
+
+  const topMatches = [liveMatch, favoriteMatch, fallbackHero].filter(
+    (m, i, arr): m is Match => Boolean(m) && arr.findIndex((x) => x?.id === m!.id) === i
+  );
+  const topIds = new Set(topMatches.map((m) => m.id));
+
+  // 3) Everything else — all remaining upcoming matches.
+  const restMatches = upcoming.filter((m) => !topIds.has(m.id)).slice(0, 6);
   const today = new Date().toISOString().split("T")[0];
 
   // Group the rest into date buckets so the feed reads as "Aujourd'hui" / "Ven. 3 juil." sections.
@@ -86,10 +104,12 @@ export default function DashboardPage() {
         <main className="flex-1 overflow-auto p-4 md:p-6 space-y-6">
           {loading ? (
             <div className="rounded-3xl glass p-8 animate-pulse h-64" />
-          ) : heroMatch ? (
+          ) : topMatches.length > 0 ? (
             <>
-              <MatchHeroCard match={heroMatch} isFavorite={isFavorite} />
-              {!isFavorite && !supportedNation && (
+              {topMatches.map((m) => (
+                <MatchHeroCard key={m.id} match={m} isFavorite={isTeamMatch(m)} />
+              ))}
+              {!favoriteMatch && !supportedNation && (
                 <Link
                   href="/onboarding"
                   className="block text-center text-xs text-[#666] hover:text-[var(--accent)] transition-colors -mt-3"

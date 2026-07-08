@@ -11,8 +11,7 @@ import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import { useSubscription } from "@/lib/use-subscription";
 import AnalysisLoader from "@/components/analysis-loader";
-import LossAversionPaywall from "@/components/loss-aversion-paywall";
-import LockedFullAnalysis from "@/components/locked-full-analysis";
+import AnalysisLocked from "@/components/analysis-locked";
 import AnalysisResult, { ProbRow } from "@/components/analysis-result";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import { useLocale } from "@/lib/i18n/locale-provider";
@@ -98,12 +97,11 @@ export default function AIAnalysis({
   const localizedHref = useLocalizedHref();
   const sub = useSubscription();
   // Treat anyone without a confirmed active entitlement as a non-member (a
-  // signed-out visitor returns null too). Full analysis is paid-only.
+  // signed-out visitor returns null too). There is no free tier — the analysis
+  // requires an active plan (Mini or Pro/Lifetime).
   const hasPaidAccess = sub?.access === true;
-  // Feature-tiered gating: Essential has access but not the Premium toolkit
-  // (scorers/key players). Every other paid plan + VIP do.
-  const hasToolkit = sub?.access === true && sub.plan !== "essential";
-  const canPlayers = hasToolkit;
+  // Mini gets the analysis but not the advanced scorers/key-players section.
+  const canPlayers = sub?.access === true && sub.plan !== "mini";
   const [preview, setPreview] = useState<MatchPreview | null>(null);
   const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -188,7 +186,7 @@ export default function AIAnalysis({
       </div>
 
       <div className="p-5">
-        {/* Non-member: free model-only preview + the full analysis locked below. */}
+        {/* Non-member: free model-only preview, then a single sober lock card. */}
         {!hasPaidAccess && !data && (
           <div className="space-y-5">
             {preview ? (
@@ -198,12 +196,12 @@ export default function AIAnalysis({
                 <div className="w-6 h-6 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
               </div>
             )}
-            <LockedFullAnalysis match={match} />
+            <AnalysisLocked matchId={match.id} />
           </div>
         )}
 
-        {/* Member whose access lapsed mid-session → paywall. */}
-        {hasPaidAccess && locked && <LossAversionPaywall match={match} />}
+        {/* Member whose access/quota lapsed mid-session → same lock card. */}
+        {hasPaidAccess && locked && <AnalysisLocked matchId={match.id} />}
 
         {/* Member empty state — ready to generate the full analysis. */}
         {hasPaidAccess && !data && !isPending && !error && !locked && (
