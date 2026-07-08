@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import UpcomingMatchCard from "@/components/dashboard/upcoming-match-card";
 import MatchHeroCard from "@/components/dashboard/match-hero-card";
+import FavoriteTeamModal from "@/components/dashboard/favorite-team-modal";
 import { Match } from "@/lib/types";
 import { getMatchesAction } from "@/actions/get-matches";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [supportedNation, setSupportedNation] = useState<string | null>(null);
+  const [pickingTeam, setPickingTeam] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -110,12 +112,12 @@ export default function DashboardPage() {
                 <MatchHeroCard key={m.id} match={m} isFavorite={isTeamMatch(m)} />
               ))}
               {!favoriteMatch && !supportedNation && (
-                <Link
-                  href="/onboarding"
-                  className="block text-center text-xs text-[#666] hover:text-[var(--accent)] transition-colors -mt-3"
+                <button
+                  onClick={() => setPickingTeam(true)}
+                  className="block w-full text-center text-xs text-[#666] hover:text-[var(--accent)] transition-colors -mt-3"
                 >
                   Choisis ton équipe pour voir ses matchs en premier →
-                </Link>
+                </button>
               )}
             </>
           ) : (
@@ -170,6 +172,17 @@ export default function DashboardPage() {
           )}
         </main>
       </div>
+
+      {pickingTeam && (
+        <FavoriteTeamModal
+          matches={matches}
+          onClose={() => setPickingTeam(false)}
+          onPicked={(nation) => {
+            setSupportedNation(nation);
+            setPickingTeam(false);
+          }}
+        />
+      )}
     </>
   );
 }

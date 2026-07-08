@@ -2,18 +2,22 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Infinity as InfinityIcon, RotateCcw, AlertCircle, Settings } from "lucide-react";
+import { Check, X, Infinity as InfinityIcon, RotateCcw, AlertCircle, Settings } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { startCheckout } from "@/lib/checkout-client";
 import { restoreSubscription } from "@/actions/restore-subscription";
 import { planName, type Plan, type PaidPlan } from "@/lib/plans";
 
+const MINI_INCLUDED = ["5 analyses IA par mois", "Analyse complète : scénario, probas & xG", "Forme, H2H & compositions"];
+const MINI_EXCLUDED = ["Value bets du jour", "Bankroll & suivi du ROI", "Chat IA contextuel", "Historique illimité"];
+
 /**
  * Sober, no-trial pricing page — inspired by mobile-app paywalls that push a
  * single "hero" offer: Pro yearly gets the highlighted card (pre-selected
  * visual weight, "-50%" anchor), Pro monthly and Lifetime sit below, and Mini
- * (the capped entry offer) is deliberately understated at the bottom. No
- * countdown, no urgency banner, no free trial — a direct "Débloquer Pro" CTA.
+ * (the capped entry offer) is deliberately understated at the bottom — but
+ * expands to its own explicit included/excluded list on click, so no plan is
+ * ever a mystery.
  */
 export default function PaywallContent({
   currentPlan,
@@ -30,6 +34,7 @@ export default function PaywallContent({
   const [info, setInfo] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [restoring, startRestore] = useTransition();
+  const [miniOpen, setMiniOpen] = useState(false);
 
   useEffect(() => {
     if (!hasAccess) trackEvent("paywall_view", { source: "pricing_page" });
@@ -99,7 +104,10 @@ export default function PaywallContent({
         </div>
       )}
 
-      {/* Benefit checklist */}
+      {/* Benefit checklist — what Pro (any duration) and Lifetime unlock */}
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+        Inclus avec Pro et l&apos;Accès à vie
+      </p>
       <ul className="space-y-2.5 mb-6">
         {[
           "Analyses IA illimitées",
@@ -201,19 +209,42 @@ export default function PaywallContent({
         </div>
       )}
 
-      {/* Mini — deliberately understated, entry offer */}
+      {/* Mini — deliberately understated, entry offer, but fully detailed on click */}
       <div className="mt-6 pt-5 border-t border-white/5">
         <button
-          onClick={() => checkout("mini")}
-          disabled={pending === "mini" || isCurrent("mini")}
-          className="w-full flex items-center justify-between gap-3 text-left opacity-75 hover:opacity-100 transition-opacity disabled:opacity-50"
+          onClick={() => setMiniOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 text-left opacity-75 hover:opacity-100 transition-opacity"
         >
           <div>
             <div className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Offre Mini</div>
-            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">5 analyses / mois · sans value bets</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Pour tester, à petit prix</div>
           </div>
           <div className="text-sm text-[var(--text-muted)] shrink-0">2,99 € / mois</div>
         </button>
+
+        {miniOpen && (
+          <div className="mt-3 space-y-2">
+            {MINI_INCLUDED.map((f) => (
+              <div key={f} className="flex items-center gap-2.5 text-sm text-[#d0d0d0]">
+                <Check size={15} strokeWidth={3} className="shrink-0 text-[var(--accent)]" />
+                {f}
+              </div>
+            ))}
+            {MINI_EXCLUDED.map((f) => (
+              <div key={f} className="flex items-center gap-2.5 text-sm text-[var(--text-muted)]">
+                <X size={15} strokeWidth={3} className="shrink-0" />
+                <span className="line-through decoration-[var(--text-muted)]/50">{f}</span>
+              </div>
+            ))}
+            <button
+              onClick={() => checkout("mini")}
+              disabled={pending === "mini" || isCurrent("mini")}
+              className="w-full rounded-xl py-3 mt-2 text-sm font-bold text-[var(--text)] glass hover:bg-white/[0.06] transition-colors disabled:opacity-60"
+            >
+              {pending === "mini" ? "Redirection…" : "Choisir Mini — 2,99 €/mois"}
+            </button>
+          </div>
+        )}
         {isCurrent("mini") && <div className="mt-2 text-xs font-bold text-[var(--text-muted)]">✓ Offre actuelle</div>}
       </div>
 

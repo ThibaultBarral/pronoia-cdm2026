@@ -143,20 +143,28 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
           })}
         </div>
 
-        {/* Mini — deliberately understated entry offer. */}
+        {/* Mini — deliberately understated entry offer, full detail on hover/tap via title. */}
         {mini && (
           <a
             href="/login?mode=signup"
             onClick={() => trackEvent("signup_click", { location: "pricing", plan: "mini" })}
-            className="mt-5 max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center rounded-2xl glass px-5 py-3.5 hover:bg-white/[0.04] transition-colors"
+            className="mt-5 max-w-3xl mx-auto rounded-2xl glass px-5 py-3.5 hover:bg-white/[0.04] transition-colors block"
           >
-            <span className="text-xs text-[var(--text-muted)]">
-              <span className="font-bold text-[#cdd3db]">{mini.name} · {mini.priceLabel}{mini.unit}</span> —{" "}
-              {mini.sublabel}
-            </span>
-            <span className="text-xs font-bold text-[var(--accent)] shrink-0">
-              {locale === "en" ? "Choose Mini →" : "Choisir Mini →"}
-            </span>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center">
+              <span className="text-xs text-[var(--text-muted)]">
+                <span className="font-bold text-[#cdd3db]">{mini.name} · {mini.priceLabel}{mini.unit}</span> —{" "}
+                {mini.sublabel}
+              </span>
+              <span className="text-xs font-bold text-[var(--accent)] shrink-0">
+                {locale === "en" ? "Choose Mini →" : "Choisir Mini →"}
+              </span>
+            </div>
+            {mini.lockedFeatures && mini.lockedFeatures.length > 0 && (
+              <p className="text-[11px] text-[var(--text-muted)]/80 text-center mt-1.5">
+                {locale === "en" ? "Not included: " : "Non inclus : "}
+                {mini.lockedFeatures.join(" · ")}
+              </p>
+            )}
           </a>
         )}
 

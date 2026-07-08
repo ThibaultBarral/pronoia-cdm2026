@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Heart, Sparkles } from "lucide-react";
 import { Match } from "@/lib/types";
-import { getMatchPreview, type MatchPreview } from "@/actions/match-preview";
 import Countdown from "./countdown";
 import FlagTile from "./flag-tile";
 
@@ -15,32 +13,12 @@ interface MatchHeroCardProps {
 }
 
 export default function MatchHeroCard({ match, isFavorite }: MatchHeroCardProps) {
-  const [preview, setPreview] = useState<MatchPreview | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getMatchPreview(match).then((p) => {
-      if (active) setPreview(p);
-    });
-    return () => {
-      active = false;
-    };
-  }, [match]);
-
   const d = new Date(match.date + "T12:00:00");
   const dateLabel = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
   const live = match.status === "1H" || match.status === "2H" || match.status === "HT";
   const kickoffMs = new Date(match.date + "T" + match.time + ":00").getTime();
   const started = kickoffMs <= Date.now();
-
-  const favoritePct =
-    preview &&
-    (preview.favorite === "home"
-      ? preview.probabilities.home
-      : preview.favorite === "away"
-        ? preview.probabilities.away
-        : preview.probabilities.draw);
 
   return (
     <motion.div
@@ -97,28 +75,6 @@ export default function MatchHeroCard({ match, isFavorite }: MatchHeroCardProps)
       <p className="text-center text-xs text-[#777] mb-5 capitalize">
         {dateLabel} · {match.time}
       </p>
-
-      {preview && favoritePct != null && (
-        <div className="mb-5">
-          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-[var(--accent)] transition-all"
-              style={{ width: `${favoritePct}%` }}
-            />
-          </div>
-          <p className="text-center text-[11px] text-[#666] mt-2">
-            Notre modèle donne{" "}
-            <span className="text-[var(--accent)] font-semibold">
-              {favoritePct}% à{" "}
-              {preview.favorite === "home"
-                ? match.homeTeam.shortName
-                : preview.favorite === "away"
-                  ? match.awayTeam.shortName
-                  : "un nul"}
-            </span>
-          </p>
-        </div>
-      )}
 
       <Link
         href={`/match/${match.id}`}
