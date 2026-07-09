@@ -261,7 +261,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
               {imageStage === "upload" && (
                 <>
                   <div className="p-3 rounded-xl bg-[#0d1a20] border border-[#1a3040] text-xs text-[#5a9ab8] leading-relaxed">
-                    💡 <span className="font-medium">Astuce :</span> importe le screenshot de ton ticket, l'IA détecte automatiquement le sport, la cote et le résultat.
+                    💡 <span className="font-medium">Astuce :</span> importe le screenshot de ton ticket, l&apos;IA détecte automatiquement le sport, la cote et le résultat.
                   </div>
                   <div
                     className="border-2 border-dashed border-[#1a3a4a] rounded-xl p-8 flex flex-col items-center gap-2 cursor-pointer hover:bg-[#0d1520]/60 transition-colors"
@@ -320,7 +320,7 @@ export default function BetForm({ onAdd, onAddMultiple, onClose, currentBankroll
                       ? `${multiFiles.length} screenshot(s) sélectionné(s)`
                       : "Sélectionner jusqu'à 12 screenshots"}
                   </p>
-                  <p className="text-xs text-[#4a3a6a]">L'IA analysera chaque ticket</p>
+                  <p className="text-xs text-[#4a3a6a]">L&apos;IA analysera chaque ticket</p>
                 </div>
               )}
 

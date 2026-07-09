@@ -24,9 +24,16 @@ const RESULT_LABEL: Record<BetResult, string> = {
   pending: "⏳ En attente",
 };
 
+type SortKey = "date" | "odds" | "stake" | "profit";
+
+function SortIcon({ k, sortKey, sortDir }: { k: SortKey; sortKey: SortKey; sortDir: "asc" | "desc" }) {
+  if (sortKey !== k) return <ChevronUp size={10} className="text-[#333]" />;
+  return sortDir === "asc" ? <ChevronUp size={10} className="text-[var(--accent)]" /> : <ChevronDown size={10} className="text-[var(--accent)]" />;
+}
+
 export default function BetTable({ bets, onDelete, onUpdateResult }: BetTableProps) {
   const [filter, setFilter] = useState<BetResult | "all">("all");
-  const [sortKey, setSortKey] = useState<"date" | "odds" | "stake" | "profit">("date");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -45,11 +52,6 @@ export default function BetTable({ bets, onDelete, onUpdateResult }: BetTablePro
       else { va = a.profit; vb = b.profit; }
       return sortDir === "asc" ? va - vb : vb - va;
     });
-
-  function SortIcon({ k }: { k: typeof sortKey }) {
-    if (sortKey !== k) return <ChevronUp size={10} className="text-[#333]" />;
-    return sortDir === "asc" ? <ChevronUp size={10} className="text-[var(--accent)]" /> : <ChevronDown size={10} className="text-[var(--accent)]" />;
-  }
 
   if (bets.length === 0) {
     return (
@@ -93,7 +95,7 @@ export default function BetTable({ bets, onDelete, onUpdateResult }: BetTablePro
                 className="text-left px-4 py-2.5 text-[#444] font-medium cursor-pointer hover:text-[#666]"
                 onClick={() => toggleSort("date")}
               >
-                <div className="flex items-center gap-1">Date <SortIcon k="date" /></div>
+                <div className="flex items-center gap-1">Date <SortIcon k="date" sortKey={sortKey} sortDir={sortDir} /></div>
               </th>
               <th className="text-left px-4 py-2.5 text-[#444] font-medium">Match / Pari</th>
               <th className="text-left px-4 py-2.5 text-[#444] font-medium hidden sm:table-cell">Bkmkr</th>
@@ -101,20 +103,20 @@ export default function BetTable({ bets, onDelete, onUpdateResult }: BetTablePro
                 className="text-right px-4 py-2.5 text-[#444] font-medium cursor-pointer hover:text-[#666]"
                 onClick={() => toggleSort("odds")}
               >
-                <div className="flex items-center justify-end gap-1">Cote <SortIcon k="odds" /></div>
+                <div className="flex items-center justify-end gap-1">Cote <SortIcon k="odds" sortKey={sortKey} sortDir={sortDir} /></div>
               </th>
               <th
                 className="text-right px-4 py-2.5 text-[#444] font-medium cursor-pointer hover:text-[#666]"
                 onClick={() => toggleSort("stake")}
               >
-                <div className="flex items-center justify-end gap-1">Mise <SortIcon k="stake" /></div>
+                <div className="flex items-center justify-end gap-1">Mise <SortIcon k="stake" sortKey={sortKey} sortDir={sortDir} /></div>
               </th>
               <th className="text-center px-4 py-2.5 text-[#444] font-medium">Résultat</th>
               <th
                 className="text-right px-4 py-2.5 text-[#444] font-medium cursor-pointer hover:text-[#666]"
                 onClick={() => toggleSort("profit")}
               >
-                <div className="flex items-center justify-end gap-1">P/L <SortIcon k="profit" /></div>
+                <div className="flex items-center justify-end gap-1">P/L <SortIcon k="profit" sortKey={sortKey} sortDir={sortDir} /></div>
               </th>
               <th className="px-3 py-2.5" />
             </tr>

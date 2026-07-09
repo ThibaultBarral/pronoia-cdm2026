@@ -160,7 +160,7 @@ function OnboardingV2() {
                 Quelle équipe tu <span className="text-[var(--accent)]">supportes</span> ?
               </h1>
               <p className="text-sm text-[var(--text-muted)] mt-2 max-w-md mx-auto">
-                On te met ses matchs en premier — et l'IA prépare ton analyse.
+                On te met ses matchs en premier — et l&apos;IA prépare ton analyse.
               </p>
             </div>
 
@@ -498,7 +498,7 @@ function PremiumStep({
         <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--accent)] mb-2">Le détail qui change tout</p>
         <h1 className="text-2xl md:text-3xl font-black text-[var(--text)]">Passe en Pro</h1>
         <p className="text-sm text-[var(--text-muted)] mt-2 max-w-sm">
-          L'aperçu, tu l'as déjà. Le <span className="text-[var(--text)] font-semibold">détail</span> — buteurs,
+          L&apos;aperçu, tu l&apos;as déjà. Le <span className="text-[var(--text)] font-semibold">détail</span> — buteurs,
           score exact, scénario — c&apos;est Pro.
         </p>
 

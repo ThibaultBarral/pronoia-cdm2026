@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import { useLocale } from "@/lib/i18n/locale-provider";
 
@@ -56,14 +57,14 @@ export default function FeaturedMatchCard({ match }: { match: FeaturedMatch }) {
         </div>
       </div>
 
-      <a
+      <Link
         href="/login?mode=signup"
         onClick={() => trackEvent("signup_click", { location: "hero_match", matchId: match.id })}
         className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-black text-[#06231a] transition-transform hover:scale-[1.02]"
         style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
       >
         {copy.cta} <ArrowRight size={15} />
-      </a>
+      </Link>
       <p className="text-[11px] text-[var(--text-muted)] text-center mt-2.5">{copy.free}</p>
     </motion.div>
   );

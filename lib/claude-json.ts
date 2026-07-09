@@ -48,7 +48,8 @@ export async function callClaudeJson<T>(opts: {
     return { msg, text };
   };
 
-  let { msg, text } = await run(baseMax);
+  const { msg, text: initialText } = await run(baseMax);
+  let text = initialText;
   // If the model hit the token ceiling, the JSON is truncated (unterminated) and
   // JSON.parse would throw. Retry ONCE with more room so a verbose match (big
   // squads → long analysis) never surfaces an error to the user.

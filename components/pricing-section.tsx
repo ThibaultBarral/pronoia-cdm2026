@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check, Infinity as InfinityIcon, type LucideIcon, CalendarDays, Zap } from "lucide-react";
+import Link from "next/link";
 import { visibleOffers, type PaidPlan } from "@/lib/plans";
 import { trackEvent } from "@/lib/analytics";
 import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
@@ -28,8 +29,8 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
   const t = useTranslations();
   const locale = useLocale();
 
-  const offers = visibleOffers(Date.now(), locale).filter((o) => o.plan !== "mini");
-  const mini = visibleOffers(Date.now(), locale).find((o) => o.plan === "mini");
+  const offers = visibleOffers(undefined, locale).filter((o) => o.plan !== "mini");
+  const mini = visibleOffers(undefined, locale).find((o) => o.plan === "mini");
 
   return (
     <section id={id} className="border-t border-white/5 bg-[#060910]">
@@ -121,7 +122,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
                   ))}
                 </ul>
 
-                <a
+                <Link
                   href="/login?mode=signup"
                   onClick={() => trackEvent("signup_click", { location: "pricing", plan: o.plan })}
                   className="w-full text-center rounded-xl py-3.5 text-sm font-black text-[#06231a] transition-transform hover:scale-[1.02]"
@@ -134,7 +135,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
                   }}
                 >
                   {t("pricing.cta")}
-                </a>
+                </Link>
                 {o.note && (
                   <p className="text-[11px] text-[var(--text-muted)] text-center mt-3">{o.note}</p>
                 )}
@@ -145,7 +146,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
 
         {/* Mini — deliberately understated entry offer, full detail on hover/tap via title. */}
         {mini && (
-          <a
+          <Link
             href="/login?mode=signup"
             onClick={() => trackEvent("signup_click", { location: "pricing", plan: "mini" })}
             className="mt-5 max-w-3xl mx-auto rounded-2xl glass px-5 py-3.5 hover:bg-white/[0.04] transition-colors block"
@@ -165,7 +166,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
                 {mini.lockedFeatures.join(" · ")}
               </p>
             )}
-          </a>
+          </Link>
         )}
 
         <p className="text-center text-xs text-[var(--text-muted)] mt-8 max-w-2xl mx-auto leading-relaxed">
