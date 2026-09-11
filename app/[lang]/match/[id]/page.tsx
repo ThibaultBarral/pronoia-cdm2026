@@ -13,8 +13,14 @@ import AIAnalysis from "@/components/ai-analysis";
 import MatchResult from "@/components/match-result";
 import MatchDetailsCollapsible from "@/components/match-details-collapsible";
 import AppSidebar from "@/components/dashboard/app-sidebar";
+import { isMatchAnalyzable, daysUntilKickoff } from "@/lib/club-data";
 
 const FINISHED = new Set(["FT", "AET", "PEN"]);
+
+/** Competition label for titles ("Ligue 1", "Ligue des Champions", "Coupe du Monde 2026"). */
+function compLabel(m: { competition?: { name: string } }): string {
+  return m.competition?.name ?? "Coupe du Monde 2026";
+}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -26,12 +32,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const match = await getMatchData(id);
   if (!match) return { title: "Match introuvable" };
   const done = FINISHED.has(match.status ?? "");
+  const comp = compLabel(match);
   const title = done
-    ? `${match.homeTeam.name} ${match.score?.home}–${match.score?.away} ${match.awayTeam.name} — Résultat & stats CDM 2026 | Copafever`
-    : `${match.homeTeam.name} vs ${match.awayTeam.name} — Analyse IA & pronostic CDM 2026 | Copafever`;
+    ? `${match.homeTeam.name} ${match.score?.home}-${match.score?.away} ${match.awayTeam.name} : résultat et stats ${comp} | Copafever`
+    : `${match.homeTeam.name} vs ${match.awayTeam.name} : analyse du match ${comp} | Copafever`;
   const description = done
-    ? `Résultat, stats et forme pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`
-    : `Analyse IA complète : forme, stats et prédiction pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · CDM 2026`;
+    ? `Résultat, stats et forme pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · ${comp}`
+    : `Analyse complète : forme, effectifs, confrontations et lecture du match ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · ${comp}`;
   const canonical = `/match/${id}`;
   return {
     title,
@@ -69,6 +76,11 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
   const finished = FINISHED.has(match.status ?? "");
   // Knockout fixture whose participants aren't known yet → no analysis to run.
   const decided = !match.homeTeam.isPlaceholder && !match.awayTeam.isPlaceholder;
+  // The 7-day rule: a match too far away can't be analysed yet (data not settled).
+  const analyzable = isMatchAnalyzable(match);
+  const daysUntil = daysUntilKickoff(match);
+  const comp = compLabel(match);
+  const compFlag = match.competition?.flag ?? "🌍";
   // Signed-in users came from the dashboard → send "Retour" back there (not to
   // the public marketing landing, which looks like being logged out).
   const backHref = user ? "/dashboard" : "/";
@@ -84,7 +96,7 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
     "@context": "https://schema.org",
     "@type": "SportsEvent",
     name: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-    description: `${match.round} de la Coupe du Monde 2026 — ${match.homeTeam.name} contre ${match.awayTeam.name}.`,
+    description: `${match.round}, ${comp} : ${match.homeTeam.name} contre ${match.awayTeam.name}.`,
     sport: "Football",
     startDate: `${match.date}T${match.time}:00+02:00`,
     eventStatus: "https://schema.org/EventScheduled",
@@ -105,15 +117,10 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
       { "@type": "SportsTeam", name: match.homeTeam.name },
       { "@type": "SportsTeam", name: match.awayTeam.name },
     ],
-    organizer: {
-      "@type": "Organization",
-      name: "FIFA",
-      url: "https://www.fifa.com",
-    },
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a]">
+    <div className="flex min-h-screen bg-[var(--bg)]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(sportsEvent) }}
@@ -121,7 +128,7 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
       <AppSidebar />
       <main className="flex-1 min-w-0">
       {/* Top nav */}
-      <div className="safe-header sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-[#1f1f1f]">
+      <div className="safe-header sticky top-0 z-50 bg-[var(--bg)]/90 backdrop-blur-sm border-b border-white/5">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
           <Link
             href={backHref}
@@ -142,8 +149,8 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
                 En direct
               </span>
             )}
-            <span className="text-[10px] text-[var(--accent)] font-mono border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5">
-              CDM 2026
+            <span className="text-[10px] text-[var(--accent-soft)] font-mono border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5">
+              {compFlag} {match.competition?.shortName ?? "CDM 2026"}
             </span>
           </div>
         </div>
@@ -153,16 +160,16 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
         {/* Title block — kicker + matchup H1 + one-line orientation. Clean and
             direct, so the eye lands on the matchup then the single action below. */}
         <div className="animate-fade-in">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">
-            Coupe du Monde 2026 · {match.round}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--accent-soft)] mb-1.5">
+            {comp} · {match.round}
           </p>
-          <h1 className="text-2xl md:text-3xl font-black text-[#f5f5f5] leading-tight">
-            {match.homeTeam.name} <span className="text-[#555]">—</span> {match.awayTeam.name}
+          <h1 className="text-2xl md:text-3xl font-black text-[var(--text)] leading-tight">
+            {match.homeTeam.name} <span className="text-[var(--text-muted)]">vs</span> {match.awayTeam.name}
           </h1>
-          <p className="text-sm text-[#777] mt-1.5">
+          <p className="text-sm text-[var(--text-muted)] mt-1.5">
             {finished
               ? "Résultat, forme et statistiques du match."
-              : "Prédiction IA, forme et stats en un coup d'œil."}
+              : "La lecture du match : forme, effectifs, confrontations et probabilités."}
           </p>
         </div>
 
@@ -176,17 +183,16 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
           {!decided ? (
             <div className="rounded-2xl glass p-6 md:p-8 text-center space-y-3">
               <div className="text-3xl">🏆</div>
-              <h2 className="text-lg font-bold text-[#f0f0f0]">
-                Affiche à venir — adversaires à déterminer
+              <h2 className="text-lg font-bold text-[var(--text)]">
+                Affiche à venir, adversaires à déterminer
               </h2>
               <p className="text-sm text-[#888] max-w-md mx-auto">
                 Ce match de {match.round} oppose {match.homeTeam.name} à{" "}
-                {match.awayTeam.name}. L&apos;analyse IA complète (forme, stats
-                et prédiction) sera générée dès que les deux qualifiés
-                seront connus.
+                {match.awayTeam.name}. L&apos;analyse sera disponible dès que les deux
+                qualifiés seront connus.
               </p>
               <Link
-                href="/dashboard/matchs"
+                href="/dashboard"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--accent)] hover:underline"
               >
                 Voir tous les matchs →
@@ -194,6 +200,24 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
             </div>
           ) : finished ? (
             <MatchResult match={match} canShare={Boolean(user)} />
+          ) : !analyzable ? (
+            <div className="rounded-2xl glass p-6 md:p-8 text-center space-y-3">
+              <div className="text-3xl">⏳</div>
+              <h2 className="text-lg font-bold text-[var(--text)]">
+                L&apos;analyse s&apos;ouvre 7 jours avant le coup d&apos;envoi
+              </h2>
+              <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto">
+                Ce match est dans {daysUntil} jours. Plus tôt, la forme et les effectifs ne sont pas
+                encore fixés et l&apos;analyse ne vaudrait pas grand-chose. Reviens quelques jours avant,
+                ou regarde un match plus proche.
+              </p>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--accent-soft)] hover:underline"
+              >
+                Voir les matchs analysables →
+              </Link>
+            </div>
           ) : (
             <AIAnalysis match={match} autoStart={welcome === "1"} />
           )}
@@ -225,10 +249,9 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
         )}
       </div>
 
-      <footer className="border-t border-[#1f1f1f] mt-10 py-6 px-4 text-center">
-        <p className="text-xs text-[#555]">
-          Copafever · Analyse IA CDM 2026 ·{" "}
-          {hasRealData ? "Données en direct" : "Données indisponibles"}
+      <footer className="border-t border-white/5 mt-10 py-6 px-4 text-center">
+        <p className="text-xs text-[var(--text-muted)]">
+          Copafever · Analyse de matchs · {hasRealData ? "Données réelles" : "Données indisponibles"}
         </p>
       </footer>
       </main>

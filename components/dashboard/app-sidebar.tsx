@@ -3,29 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Crown, LogOut, ChevronRight, ShieldCheck, Lock, Ticket, MessageCircleQuestion } from "lucide-react";
+import { Crown, LogOut, ChevronRight, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useSubscription } from "@/lib/use-subscription";
-import { FEATURE } from "@/lib/feature-flags";
-import { LOCKED_TEASERS, type LockedTeaser } from "@/lib/upsell";
-import { trackEvent } from "@/lib/analytics";
 import { DASHBOARD_NAV } from "./nav-items";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-
-const TEASER_ICONS: Record<LockedTeaser["id"], typeof Ticket> = {
-  combos: Ticket,
-  chat_ia: MessageCircleQuestion,
-};
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const sub = useSubscription();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const supabase = createClient();
-
-  // Non-member state → locked teasers linking straight to the pricing page.
-  const isFree = Boolean(sub) && !sub!.access;
-  const showLocked = FEATURE.lockedNav && isFree;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -47,14 +35,14 @@ export default function AppSidebar() {
   return (
     <aside
       className="hidden md:flex md:flex-col w-60 shrink-0 h-screen sticky top-0 border-r border-white/5"
-      style={{ background: "linear-gradient(180deg, #0a0e16 0%, #070a10 100%)" }}
+      style={{ background: "linear-gradient(180deg, #070d26 0%, #03061a 100%)" }}
     >
       {/* Logo */}
       <div className="px-5 pt-5 pb-4">
         <Link href="/" className="flex flex-col gap-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
-          <div className="text-[10px] text-[#3a4250] tracking-wide">Analyse IA · Football</div>
+          <div className="text-[10px] text-[var(--text-muted)] tracking-wide">Analyse de matchs · Saison 2026/27</div>
         </Link>
       </div>
 
@@ -90,25 +78,6 @@ export default function AppSidebar() {
               </Link>
             );
           })}
-
-          {showLocked &&
-            LOCKED_TEASERS.map((t) => {
-              const Icon = TEASER_ICONS[t.id];
-              return (
-                <Link
-                  key={t.id}
-                  href="/dashboard/pricing"
-                  onClick={() => trackEvent("locked_nav_click", { item: t.id })}
-                  className="group relative w-full flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-xl text-sm text-[#7a8290] hover:text-[#cdd3db] hover:bg-white/[0.03] transition-all"
-                >
-                  <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/[0.03] group-hover:bg-white/[0.06]">
-                    <Icon size={16} />
-                  </span>
-                  <span className="font-semibold flex-1 text-left">{t.label}</span>
-                  <Lock size={13} className="text-[#5a6472] shrink-0" />
-                </Link>
-              );
-            })}
 
           {user?.app_metadata?.is_admin === true && (
             <Link
@@ -152,22 +121,22 @@ export default function AppSidebar() {
             className="block rounded-2xl p-[1px]"
             style={{ background: "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))" }}
           >
-            <div className="rounded-2xl bg-[#0a0e16] px-3.5 py-3">
+            <div className="rounded-2xl bg-[var(--bg-elevated)] px-3.5 py-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-black uppercase tracking-wide text-[#8a929e]">
-                  Plan gratuit
+                  Sans abonnement
                 </span>
                 <span className="text-[10px] font-bold text-[var(--accent)]">
                   Aperçu
                 </span>
               </div>
               <p className="text-[13px] font-bold text-[#f0f0f0] leading-snug mb-1">
-                Débloque les analyses IA complètes
+                Débloque les analyses complètes
               </p>
               <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
                 Toutes les analyses, le chat IA et l&apos;historique, dès 9,99 € la semaine.
               </p>
-              <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
+              <div className="w-full text-center rounded-lg bg-[var(--accent)] text-white text-xs font-bold py-2">
                 Voir les plans →
               </div>
             </div>

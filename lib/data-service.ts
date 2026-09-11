@@ -255,7 +255,7 @@ const API_POSITION_MAP: Record<string, string> = {
   Attacker: "ST",
 };
 
-function mapSquad(squadData: ApiSquadResponse | null): Lineup {
+export function mapSquad(squadData: ApiSquadResponse | null): Lineup {
   if (!squadData?.players?.length) {
     return { formation: "4-3-3", players: [] };
   }
@@ -278,7 +278,7 @@ function mapSquad(squadData: ApiSquadResponse | null): Lineup {
 
 // ─── Form mapping (API-Football last-5) ──────────────────────────────────────
 
-function mapForm(fixtures: ApiFixtureResponse[], teamId: number): FormResult[] {
+export function mapForm(fixtures: ApiFixtureResponse[], teamId: number): FormResult[] {
   return fixtures.map((f): FormResult => {
     const isHome = f.teams.home.id === teamId;
     const tg = isHome ? (f.goals.home ?? 0) : (f.goals.away ?? 0);
@@ -307,7 +307,7 @@ function mapForm(fixtures: ApiFixtureResponse[], teamId: number): FormResult[] {
 }
 
 /** Derive a momentum signal from already-mapped recent form (newest first). */
-function computeMomentum(form: FormResult[]): TeamMomentum | undefined {
+export function computeMomentum(form: FormResult[]): TeamMomentum | undefined {
   if (!form.length) return undefined;
 
   const pts = (r: FormResult["result"]) => (r === "W" ? 3 : r === "D" ? 1 : 0);
@@ -342,7 +342,7 @@ function computeMomentum(form: FormResult[]): TeamMomentum | undefined {
   };
 }
 
-function mapH2H(fixtures: ApiFixtureResponse[]): H2HMatch[] {
+export function mapH2H(fixtures: ApiFixtureResponse[]): H2HMatch[] {
   return fixtures.slice(0, 5).map((f): H2HMatch => {
     const gh = f.goals.home ?? 0;
     const ga = f.goals.away ?? 0;
@@ -793,6 +793,12 @@ export async function getMatches(): Promise<Match[]> {
 // ─── getMatchData — full data for one match ───────────────────────────────────
 
 export async function getMatchData(id: string): Promise<Match | null> {
+  // Numeric id = an API-Football fixture of a club competition (season 2026/27).
+  if (/^\d+$/.test(id)) {
+    const { getClubMatch } = await import("./club-data");
+    return getClubMatch(Number(id));
+  }
+
   // Try mock first for old slug-based IDs
   const mockMatch = getMockById(id);
 
@@ -917,7 +923,7 @@ type HH2Match = import("./types").H2HMatch;
 
 // ─── API-Football fixture resolution (for odds + live score) ──────────────────
 
-function mapStatus(short: string): Match["status"] {
+export function mapStatus(short: string): Match["status"] {
   switch (short) {
     case "1H": return "1H";
     case "HT": return "HT";

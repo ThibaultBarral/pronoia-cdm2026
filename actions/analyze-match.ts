@@ -5,6 +5,7 @@ import { getAnalysisAccess, commitAnalysisUsage } from "@/lib/ai-guard";
 import { callClaudeJson } from "@/lib/claude-json";
 import { getCachedOrFetch } from "@/lib/api-cache";
 import { getWcFinishedCount } from "@/lib/data-service";
+import { isMatchAnalyzable } from "@/lib/club-data";
 import { logMatchPrediction } from "@/lib/predictions";
 import { saveAnalysis } from "@/lib/supabase/analyses-db";
 import { predictMatch, type MatchPrediction } from "@/lib/match-model";
@@ -41,15 +42,15 @@ interface ClaudeMatchText {
   keyPlayers?: MatchKeyPlayer[];
 }
 
-const SYSTEM_PROMPT = `Tu es Copafever, le pote calé en foot qui décrypte les matchs de la Coupe du Monde 2026 à des DÉBUTANTS. Ton chaleureux, simple, un peu fun, tutoiement, zéro jargon non expliqué. Tu traduis chaque chiffre en clair.
+const SYSTEM_PROMPT = `Tu es Copafever, le pote calé en foot qui décrypte un match à des supporters qui veulent COMPRENDRE ce qui va se passer sur le terrain. Ton chaleureux, simple, tutoiement, zéro jargon non expliqué. Tu traduis chaque chiffre en clair.
 
-On te fournit déjà les CHIFFRES calculés par notre modèle (probabilités, buts attendus, over/under, comparaison). Ne les recalcule pas et ne les contredis pas : appuie-toi dessus. Ton rôle est d'écrire le TEXTE de l'analyse — pas de recommandation de pari.
+On te fournit déjà les CHIFFRES calculés par notre modèle (probabilités, buts attendus, comparaison). Ne les recalcule pas et ne les contredis pas : appuie-toi dessus. Ton rôle est d'écrire le TEXTE de l'analyse. INTERDIT : toute mention de pari, de cote, de mise, de bookmaker, d'argent ou de gain. Tu analyses un match, tu ne conseilles jamais de parier.
 
 Tu réponds UNIQUEMENT avec un objet JSON valide (pas de markdown, pas de texte autour) au format EXACT :
 {
   "summary": "2-3 phrases : qui part favori et l'ambiance du match, en clair",
   "scenario": "3-4 phrases : le déroulé le plus probable du match",
-  "secondaryScenarios": [{"title": "ex. Over 2.5 buts", "detail": "explication simple basée sur les chiffres fournis"}],
+  "secondaryScenarios": [{"title": "ex. Un match à plus de 2 buts", "detail": "explication simple basée sur les chiffres fournis"}],
   "keyStrengths": [{"team": "home", "points": ["force 1", "force 2"]}, {"team": "away", "points": ["force 1"]}],
   "factors": [{"label": "ex. Supériorité offensive", "kind": "pos|neg|neutral"}],
   "probableScorers": [{"name": "Nom EXACT depuis l'effectif fourni", "team": "home|away", "note": "1 phrase courte : pourquoi (forme, rôle, penalties…)"}],
@@ -107,9 +108,12 @@ function buildPrompt(match: Match, pred: MatchPrediction): string {
     return sorted.slice(0, 16).map((p) => `${p.name} (${p.position})`).join(", ");
   };
 
-  return `CDM 2026 | ${match.round}${match.group ? ` Gr.${match.group}` : ""} | ${match.date} ${match.time} | ${match.stadium}, ${match.city}
+  const comp = match.competition?.name ?? "Coupe du Monde 2026";
+  const rankOf = (t: typeof h) =>
+    t.leagueRank ? `${t.leagueRank}e au classement` : t.fifaRanking ? `#${t.fifaRanking} FIFA` : "classement inconnu";
+  return `${comp} | ${match.round}${match.group && match.group !== "—" ? ` Gr.${match.group}` : ""} | ${match.date} ${match.time} | ${match.stadium}${match.city ? `, ${match.city}` : ""}
 
-${h.flag} ${h.name} (#${h.fifaRanking} FIFA, domicile/1er) vs ${a.flag} ${a.name} (#${a.fifaRanking} FIFA)
+${h.flag} ${h.name} (${rankOf(h)}, domicile/1er) vs ${a.flag} ${a.name} (${rankOf(a)})
 
 FORME RÉCENTE (V/N/D, score, lieu, adv) :
 ${h.flag} ${h.name}: ${formStr(h)}
@@ -117,14 +121,14 @@ ${a.flag} ${a.name}: ${formStr(a)}
 
 H2H : ${h2hStr}
 
-JOUEURS RÉELLEMENT EN FORME (classés par implication CDM 2026 : matchs joués, buts, passes — choisis buteurs & joueurs clés UNIQUEMENT ici, noms exacts, PRIVILÉGIE ceux qui jouent et marquent vraiment, jamais un remplaçant inutilisé) :
+EFFECTIFS (choisis buteurs & joueurs clés UNIQUEMENT ici, noms exacts, privilégie ceux qui jouent et marquent vraiment, jamais un remplaçant inutilisé) :
 ${h.flag} ${h.name}: ${squadStr(h)}
 ${a.flag} ${a.name}: ${squadStr(a)}
 
 CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
 - Probabilités : ${h.name} ${pred.probabilities.home}% · Nul ${pred.probabilities.draw}% · ${a.name} ${pred.probabilities.away}%
 - Buts attendus : ${h.name} ${pred.expectedGoals.home} · ${a.name} ${pred.expectedGoals.away}
-- Over 2.5 : ${pred.markets.over25}% · Under 2.5 : ${pred.markets.under25}% · Les deux marquent : ${pred.markets.bttsYes}%
+- Plus de 2,5 buts : ${pred.markets.over25}% · Moins de 2,5 buts : ${pred.markets.under25}% · Les deux équipes marquent : ${pred.markets.bttsYes}%
 - Comparaison (home/away) : ${cmp}
 - Niveau de confiance global : ${pred.confidence}`;
 }
@@ -170,6 +174,16 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
     };
   }
 
+  // The 7-day rule: too far ahead, form and squads aren't settled → no analysis.
+  if (!isMatchAnalyzable(match)) {
+    return {
+      ok: false,
+      error: en
+        ? "The analysis opens 7 days before kickoff."
+        : "L'analyse s'ouvre 7 jours avant le coup d'envoi.",
+    };
+  }
+
   // Check access WITHOUT consuming the monthly credit (committed only on success).
   const access = await getAnalysisAccess();
   if ("error" in access) return { ok: false, error: access.error };
@@ -177,8 +191,8 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
   // Re-key by finished WC matches (fresh form after each match) AND by locale, so
   // each language gets its own cached analysis, shared across all users.
   const day = new Date().toISOString().slice(0, 10);
-  const finished = await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:v2:${locale}`;
+  const finished = match.competition ? 0 : await getWcFinishedCount().catch(() => 0);
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:v3:${locale}`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));

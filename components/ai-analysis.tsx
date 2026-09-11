@@ -19,8 +19,9 @@ import { useLocalizedHref } from "@/lib/i18n/navigation";
 import { type MatchAnalysisData } from "@/lib/analysis-schema";
 
 /**
- * Free, model-only preview shown to non-members (zero Claude cost). Reveals the
- * real numbers — our honest edge — then the full AI narrative is blurred below.
+ * Free, model-only short read shown to non-members (zero Claude cost): the
+ * favourite, the probabilities, the likely score and what the model looked at.
+ * The full analysis (scenario, strengths, players, chat) is paid.
  */
 function ModelPreview({
   preview,
@@ -37,48 +38,62 @@ function ModelPreview({
 }) {
   const favLabel =
     preview.favorite === "home"
-      ? `${homeFlag} ${homeName}`
+      ? `${homeFlag} ${homeName}`.trim()
       : preview.favorite === "away"
-        ? `${awayFlag} ${awayName}`
+        ? `${awayFlag} ${awayName}`.trim()
         : "Match nul";
   return (
     <div className="space-y-4">
       <div className="rounded-xl glass p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--accent)]">
-            <Target size={13} /> Le verdict du modèle
+          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--accent-soft)]">
+            <Target size={13} /> La lecture courte
           </span>
           <span className="text-[10px] text-[var(--text-muted)] border border-white/10 px-2 py-0.5 rounded-full">
-            Aperçu gratuit
+            Gratuit
           </span>
         </div>
-        <p className="text-sm text-[#d0d0d0] leading-relaxed mb-3">
+        <p className="text-sm text-[#c3cbe3] leading-relaxed mb-3">
           {preview.favorite === "draw" ? (
-            <>Match très serré&nbsp;: notre modèle penche pour le <span className="font-bold text-[var(--accent)]">nul</span>.</>
+            <>Match très serré&nbsp;: le modèle penche pour le <span className="font-bold text-[var(--accent-soft)]">nul</span>.</>
           ) : (
-            <>Notre modèle voit <span className="font-bold text-[var(--accent)]">{favLabel}</span> favori de ce match.</>
+            <>Le modèle voit <span className="font-bold text-[var(--accent-soft)]">{favLabel}</span> favori de ce match.</>
           )}{" "}
-          Confiance&nbsp;: <span className="font-bold text-[#cdd3db]">{preview.confidence}</span>.
+          Confiance&nbsp;: <span className="font-bold text-[var(--text)]">{preview.confidence}</span>.
         </p>
         <div className="space-y-2.5">
-          <ProbRow label={`${homeFlag} Victoire ${homeName}`} pct={preview.probabilities.home} accent={preview.favorite === "home"} />
-          <ProbRow label={`${homeFlag} ${awayFlag} Match nul`} pct={preview.probabilities.draw} accent={preview.favorite === "draw"} />
-          <ProbRow label={`${awayFlag} Victoire ${awayName}`} pct={preview.probabilities.away} accent={preview.favorite === "away"} />
+          <ProbRow label={`${homeFlag} ${homeName}`.trim()} pct={preview.probabilities.home} accent={preview.favorite === "home"} />
+          <ProbRow label="Match nul" pct={preview.probabilities.draw} accent={preview.favorite === "draw"} />
+          <ProbRow label={`${awayFlag} ${awayName}`.trim()} pct={preview.probabilities.away} accent={preview.favorite === "away"} />
         </div>
-        <div className="grid grid-cols-3 gap-2.5 mt-4">
+        <div className="grid grid-cols-2 gap-2.5 mt-4">
           <div className="rounded-xl glass p-3 text-center">
-            <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.expectedGoals.home}</div>
-            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {homeFlag} {homeName}</div>
+            <div className="text-2xl font-black text-[var(--text)] tabular-nums">
+              {preview.likelyScore.home} - {preview.likelyScore.away}
+            </div>
+            <div className="text-[10px] text-[var(--text-muted)]">Score le plus probable</div>
           </div>
           <div className="rounded-xl glass p-3 text-center">
-            <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.expectedGoals.away}</div>
-            <div className="text-[10px] text-[var(--text-muted)] truncate">Buts {awayFlag} {awayName}</div>
-          </div>
-          <div className="rounded-xl glass p-3 text-center">
-            <div className="text-lg font-black text-[var(--text)] tabular-nums">{preview.over25}%</div>
-            <div className="text-[10px] text-[var(--text-muted)]">+2.5 buts</div>
+            <div className="text-2xl font-black text-[var(--text)] tabular-nums">
+              {preview.expectedGoals.home} · {preview.expectedGoals.away}
+            </div>
+            <div className="text-[10px] text-[var(--text-muted)]">Buts attendus</div>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-xl glass p-4">
+        <div className="text-xs font-black uppercase tracking-wide text-[var(--text-muted)] mb-2.5">
+          Ce que le modèle a regardé
+        </div>
+        <ul className="space-y-1.5">
+          {preview.looked.map((l) => (
+            <li key={l} className="flex items-start gap-2 text-[13px] text-[#c3cbe3] leading-relaxed">
+              <span className="mt-2 w-1 h-1 rounded-full bg-[var(--accent)] shrink-0" />
+              {l}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -97,10 +112,10 @@ export default function AIAnalysis({
   const localizedHref = useLocalizedHref();
   const sub = useSubscription();
   // Treat anyone without a confirmed active entitlement as a non-member (a
-  // signed-out visitor returns null too). There is no free tier — the analysis
-  // requires an active plan (Mini or Pro/Lifetime).
+  // signed-out visitor returns null too). There is no free tier — the full
+  // analysis requires an active plan; the short read above is free.
   const hasPaidAccess = sub?.access === true;
-  // Mini gets the analysis but not the advanced scorers/key-players section.
+  // Legacy capped Mini members don't get the scorers/key-players section.
   const canPlayers = sub?.access === true && sub.plan !== "mini";
   const [preview, setPreview] = useState<MatchPreview | null>(null);
   const [data, setData] = useState<MatchAnalysisData | null>(null);
@@ -172,15 +187,15 @@ export default function AIAnalysis({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#f0f0f0] text-sm truncate">Analyse Copafever IA</span>
+            <span className="font-semibold text-[var(--text)] text-sm truncate">Analyse du match</span>
             {data && (
               <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5 rounded-full">
                 Analyse complète
               </span>
             )}
           </div>
-          <div className="text-[11px] text-[#666] mt-0.5">
-            Probabilités · Buts attendus · Scénarios
+          <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+            Probabilités · Score probable · Scénario · Joueurs à suivre
           </div>
         </div>
       </div>
@@ -210,16 +225,16 @@ export default function AIAnalysis({
               <Sparkles size={28} className="text-[var(--accent)]" />
             </div>
             <div>
-              <p className="text-[#f0f0f0] font-semibold mb-1">Prêt à analyser</p>
-              <p className="text-xs text-[#666] max-w-xs leading-relaxed">
-                Probabilités · Confiance IA · Buts attendus · Scénarios & joueurs clés
+              <p className="text-[var(--text)] font-semibold mb-1">Prêt à analyser</p>
+              <p className="text-xs text-[var(--text-muted)] max-w-xs leading-relaxed">
+                Scénario du match · Forces & faiblesses · Joueurs à suivre · Tes questions à l&apos;IA
               </p>
             </div>
             <Button
               onClick={handleGenerate}
-              className="bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[#0a0a0a] font-bold px-6 py-2.5 glow-neon transition-all hover:scale-105"
+              className="bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-bold px-6 py-2.5 glow-neon transition-all hover:scale-105"
             >
-              <Sparkles size={15} className="mr-2" /> Générer l&apos;analyse IA
+              <Sparkles size={15} className="mr-2" /> Lancer l&apos;analyse complète
             </Button>
           </div>
         )}

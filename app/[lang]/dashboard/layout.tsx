@@ -4,13 +4,13 @@ import AcquisitionSurvey from "@/components/acquisition-survey";
 import SocialProofGate from "@/components/social-proof/social-proof-gate";
 
 export const metadata: Metadata = {
-  title: "Dashboard — Copafever CDM 2026",
-  description: "Analysez chaque match de la CDM 2026 avec l'IA — phase de groupes et phases finales.",
+  title: "Mon espace | Copafever",
+  description: "Choisis une équipe, un match, et lis l'analyse : forme, effectifs, confrontations et probabilités.",
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col min-h-screen bg-[#0a0a0a]">
+    <div className="flex flex-col min-h-screen bg-[var(--bg)]">
       {/* Mobile: pinned top bar + burger drawer. Desktop keeps <AppSidebar>. */}
       <MobileNav />
       <div className="flex flex-1 min-w-0">

@@ -4,8 +4,8 @@ export default function LegalFooter({ className = "" }: { className?: string }) 
     <p
       className={`text-[11px] leading-relaxed text-[var(--text-muted)] ${className}`}
     >
-      Les analyses sont fournies à titre informatif uniquement. Les paris sportifs
-      comportent des risques · Réservé aux 18 ans et plus · Jouez responsable.
+      Analyses fournies à titre informatif · Copafever n&apos;est pas un service de paris et ne
+      promet aucun gain.
     </p>
   );
 }

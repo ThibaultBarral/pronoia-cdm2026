@@ -1,3 +1,4 @@
+import TeamCrest from "@/components/clubs/team-crest";
 import Link from "next/link";
 import { Gauge, Sparkles, TrendingUp, Goal, Users, Star } from "lucide-react";
 import { type Confidence, type MatchAnalysisData } from "@/lib/analysis-schema";
@@ -71,6 +72,7 @@ interface TeamLite {
   name: string;
   shortName: string;
   flag: string;
+  logo?: string;
 }
 
 /**
@@ -90,9 +92,9 @@ export default function AnalysisResult({
   canPlayers: boolean;
 }) {
   const probs = [
-    { flag: h.flag, label: `Victoire ${h.shortName}`, pct: data.probabilities.home },
-    { flag: `${h.flag} ${a.flag}`, label: "Match nul", pct: data.probabilities.draw },
-    { flag: a.flag, label: `Victoire ${a.shortName}`, pct: data.probabilities.away },
+    { flag: h.flag, logo: h.logo, label: `Victoire ${h.shortName}`, pct: data.probabilities.home },
+    { flag: `${h.flag} ${a.flag}`.trim() || "🤝", logo: undefined, label: "Match nul", pct: data.probabilities.draw },
+    { flag: a.flag, logo: a.logo, label: `Victoire ${a.shortName}`, pct: data.probabilities.away },
   ];
   const fav = probs.reduce((m, p) => (p.pct > m.pct ? p : m), probs[0]);
   const conf = CONFIDENCE_FILL[data.confidence] ?? 55;
@@ -102,12 +104,12 @@ export default function AnalysisResult({
       {/* Matchup — big flags, TikTok/Insta vibe */}
       <div className="flex items-center justify-center gap-4 pt-1">
         <div className="flex flex-col items-center gap-1">
-          <span className="text-4xl leading-none drop-shadow">{h.flag}</span>
+          {h.logo ? <TeamCrest logo={h.logo} name={h.name} size={48} /> : <span className="text-4xl leading-none drop-shadow">{h.flag}</span>}
           <span className="text-[11px] font-black uppercase tracking-wide text-[var(--accent)]">{h.shortName}</span>
         </div>
         <span className="text-xs font-black text-[var(--text-muted)]">VS</span>
         <div className="flex flex-col items-center gap-1">
-          <span className="text-4xl leading-none drop-shadow">{a.flag}</span>
+          {a.logo ? <TeamCrest logo={a.logo} name={a.name} size={48} /> : <span className="text-4xl leading-none drop-shadow">{a.flag}</span>}
           <span className="text-[11px] font-black uppercase tracking-wide text-[#ef4444]">{a.shortName}</span>
         </div>
       </div>
@@ -118,7 +120,11 @@ export default function AnalysisResult({
       {/* Hero — big headline numbers (favorite win % + AI confidence) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl glass p-5 text-center">
-          <div className="text-3xl leading-none mb-1.5">{fav.flag}</div>
+          {fav.logo ? (
+            <div className="flex justify-center mb-1.5"><TeamCrest logo={fav.logo} name={fav.label} size={36} /></div>
+          ) : (
+            <div className="text-3xl leading-none mb-1.5">{fav.flag}</div>
+          )}
           <div className="text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-1.5 truncate">
             {fav.label}
           </div>

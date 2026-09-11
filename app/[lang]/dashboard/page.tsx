@@ -1,188 +1,175 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Star, X } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
-import UpcomingMatchCard from "@/components/dashboard/upcoming-match-card";
-import MatchHeroCard from "@/components/dashboard/match-hero-card";
-import FavoriteTeamModal from "@/components/dashboard/favorite-team-modal";
-import { Match } from "@/lib/types";
-import { getMatchesAction } from "@/actions/get-matches";
+import TeamSearch from "@/components/clubs/team-search";
+import TeamCrest from "@/components/clubs/team-crest";
+import ClubFixtureRow from "@/components/clubs/club-fixture-row";
+import { getClubFixturesAction, saveFavoriteClubAction } from "@/actions/clubs";
 import { createClient } from "@/lib/supabase/client";
+import type { ClubSummary, ClubFixture } from "@/lib/club-data";
 
-const norm = (s: string) =>
-  s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+interface FavoriteClub {
+  apiId: number;
+  name: string;
+  logo: string | null;
+  competitionSlug: string;
+}
 
-// Focused home: the user's team hero card up top (no scroll needed), then a
-// short list of upcoming matches. Search + group filters live on /dashboard/matchs.
+/**
+ * Home = "Analyser un match". The supporter's club (from onboarding) comes
+ * first with its next fixtures; the search lets them pick any other club.
+ */
 export default function DashboardPage() {
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [supportedNation, setSupportedNation] = useState<string | null>(null);
-  const [pickingTeam, setPickingTeam] = useState(false);
+  const router = useRouter();
+  const [favorite, setFavorite] = useState<FavoriteClub | null | undefined>(undefined);
+  const [picked, setPicked] = useState<ClubSummary | null>(null);
+  // Fixtures keyed by club id: a club switch shows the loader without a sync reset.
+  const [loaded, setLoaded] = useState<{ clubId: number; upcoming: ClubFixture[] } | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    const load = () =>
-      getMatchesAction().then((m) => {
-        if (!active) return;
-        setMatches(m);
-        setLoading(false);
-      });
-    load();
-    // Poll so live scores / finished results update without a manual reload.
-    const id = setInterval(load, 60_000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, []);
+  // The club we're showing: the one just searched, else the favourite.
+  const current: { apiId: number; name: string; logo: string | null } | null =
+    picked ?? (favorite ? { apiId: favorite.apiId, name: favorite.name, logo: favorite.logo } : null);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
-      const nation = data.user?.user_metadata?.supported_nation;
-      if (typeof nation === "string" && nation) setSupportedNation(nation);
+      const m = data.user?.user_metadata ?? {};
+      if (typeof m.favorite_club_id === "number" && typeof m.favorite_club_name === "string") {
+        setFavorite({
+          apiId: m.favorite_club_id,
+          name: m.favorite_club_name,
+          logo: typeof m.favorite_club_logo === "string" ? m.favorite_club_logo : null,
+          competitionSlug: typeof m.favorite_club_competition === "string" ? m.favorite_club_competition : "",
+        });
+      } else {
+        setFavorite(null);
+      }
     });
   }, []);
 
-  const kickoffMs = (m: Match) => new Date(m.date + "T" + m.time + ":00").getTime();
-  const LIVE_STATUSES = new Set(["1H", "HT", "2H"]);
+  const currentId = current?.apiId;
+  useEffect(() => {
+    if (!currentId) return;
+    let active = true;
+    getClubFixturesAction(currentId)
+      .then((r) => active && setLoaded({ clubId: currentId, upcoming: r.upcoming }))
+      .catch(() => active && setLoaded({ clubId: currentId, upcoming: [] }));
+    return () => {
+      active = false;
+    };
+  }, [currentId]);
 
-  const nationQuery = supportedNation ? norm(supportedNation) : null;
-  const isTeamMatch = (m: Match) =>
-    nationQuery != null &&
-    [m.homeTeam.name, m.homeTeam.nameEn, m.homeTeam.shortName, m.awayTeam.name, m.awayTeam.nameEn, m.awayTeam.shortName]
-      .filter(Boolean)
-      .some((s) => norm(s as string) === nationQuery);
-
-  // 1) Match(es) currently being played — the favorite's live match wins if
-  // there is one, otherwise the soonest-started live match.
-  const liveMatches = matches
-    .filter((m) => LIVE_STATUSES.has(m.status ?? ""))
-    .sort((a, b) => kickoffMs(a) - kickoffMs(b));
-  const liveMatch = (nationQuery ? liveMatches.find(isTeamMatch) : undefined) ?? liveMatches[0];
-
-  // Scheduled matches, soonest first. The free API can't flip the 2026 season to
-  // FT, so past matches stay "NS" — we must exclude ones whose kickoff already
-  // passed, otherwise a stale match becomes the "next match" hero. Fall back to
-  // all scheduled if nothing is genuinely upcoming, so the home is never empty.
-  const scheduled = matches
-    .filter((m) => !m.status || m.status === "NS")
-    .sort((a, b) => kickoffMs(a) - kickoffMs(b));
-  const nowMs = Date.now();
-  const future = scheduled.filter((m) => kickoffMs(m) > nowMs);
-  const upcoming = future.length > 0 ? future : scheduled;
-
-  // 2) The favorite team's next upcoming match, right after the live match.
-  const favoriteMatch = nationQuery ? upcoming.find(isTeamMatch) : undefined;
-
-  // Fallback hero when there's neither a live match nor a favorite team set.
-  const fallbackHero = !liveMatch && !favoriteMatch ? upcoming[0] : undefined;
-
-  const topMatches = [liveMatch, favoriteMatch, fallbackHero].filter(
-    (m, i, arr): m is Match => Boolean(m) && arr.findIndex((x) => x?.id === m!.id) === i
-  );
-  const topIds = new Set(topMatches.map((m) => m.id));
-
-  // 3) Everything else — all remaining upcoming matches.
-  const restMatches = upcoming.filter((m) => !topIds.has(m.id)).slice(0, 6);
-  const today = new Date().toISOString().split("T")[0];
-
-  // Group the rest into date buckets so the feed reads as "Aujourd'hui" / "Ven. 3 juil." sections.
-  const byDate: Record<string, Match[]> = {};
-  for (const m of restMatches) {
-    if (!byDate[m.date]) byDate[m.date] = [];
-    byDate[m.date].push(m);
+  function makeFavorite(c: ClubSummary) {
+    saveFavoriteClubAction({ apiId: c.apiId, name: c.name, logo: c.logo, competitionSlug: c.competition.slug })
+      .then(() => setFavorite({ apiId: c.apiId, name: c.name, logo: c.logo, competitionSlug: c.competition.slug }))
+      .catch(() => {});
   }
+
+  const fixturesReady = current && loaded?.clubId === current.apiId;
+  const upcoming = fixturesReady ? loaded!.upcoming.slice(0, 5) : [];
+  const isFavorite = current && favorite && current.apiId === favorite.apiId;
 
   return (
     <>
       <AppSidebar />
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        <main className="px-4 md:px-8 py-8 max-w-3xl mx-auto">
+          <header className="mb-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--accent-soft)] mb-2">Analyser un match</p>
+            <h1 className="text-2xl md:text-3xl font-black text-[var(--text)] leading-tight">
+              Quelle équipe tu veux analyser ?
+            </h1>
+            <p className="text-sm text-[var(--text-muted)] mt-2">
+              Cherche un club, choisis un de ses matchs à venir. L&apos;analyse s&apos;ouvre 7 jours avant le
+              coup d&apos;envoi.
+            </p>
+          </header>
 
-      {/* Main */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <main className="flex-1 overflow-auto p-4 md:p-6 space-y-6">
-          {loading ? (
-            <div className="rounded-3xl glass p-8 animate-pulse h-64" />
-          ) : topMatches.length > 0 ? (
-            <>
-              {topMatches.map((m) => (
-                <MatchHeroCard key={m.id} match={m} isFavorite={isTeamMatch(m)} />
-              ))}
-              {!favoriteMatch && !supportedNation && (
-                <button
-                  onClick={() => setPickingTeam(true)}
-                  className="block w-full text-center text-xs text-[#666] hover:text-[var(--accent)] transition-colors -mt-3"
-                >
-                  Choisis ton équipe pour voir ses matchs en premier →
-                </button>
+          <TeamSearch onSelect={setPicked} />
+
+          {favorite === undefined && !picked && (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-[var(--text-muted)]">
+              <Loader2 size={16} className="animate-spin" /> Chargement…
+            </div>
+          )}
+
+          {current && (
+            <section className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <TeamCrest logo={current.logo} name={current.name} size={44} />
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-black text-[var(--text)] truncate">{current.name}</h2>
+                  <p className="text-[11px] text-[var(--text-muted)]">Prochains matchs</p>
+                </div>
+                {picked && !isFavorite && (
+                  <button
+                    onClick={() => makeFavorite(picked)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--accent-soft)] hover:text-[var(--text)] transition-colors"
+                  >
+                    <Star size={13} /> Mon équipe
+                  </button>
+                )}
+                {isFavorite && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--accent-soft)]">
+                    <Star size={13} fill="currentColor" /> Mon équipe
+                  </span>
+                )}
+                {picked && favorite && (
+                  <button
+                    onClick={() => setPicked(null)}
+                    aria-label="Revenir à mon équipe"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/[0.05] transition-colors"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+
+              {!fixturesReady ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-[var(--text-muted)]">
+                  <Loader2 size={16} className="animate-spin" /> On cherche les prochains matchs…
+                </div>
+              ) : upcoming.length === 0 ? (
+                <div className="rounded-2xl glass p-6 text-center text-sm text-[var(--text-muted)]">
+                  Aucun match à venir pour {current.name} pour le moment.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcoming.map((f) => (
+                    <ClubFixtureRow
+                      key={f.id}
+                      fixture={f}
+                      highlightTeamId={current.apiId}
+                      onAnalyze={(fx) => router.push(`/match/${fx.id}`)}
+                    />
+                  ))}
+                </div>
               )}
-            </>
-          ) : (
-            <div className="rounded-2xl glass flex flex-col items-center gap-2 py-16 text-[#3a4560]">
-              <p className="text-sm">Aucun match à venir pour le moment</p>
-            </div>
+
+              <Link
+                href="/dashboard/competitions"
+                className="mt-5 inline-flex text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+              >
+                Parcourir les compétitions →
+              </Link>
+            </section>
           )}
 
-          {!loading && restMatches.length > 0 && (
-            <div className="space-y-5">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#555]">
-                Prochains matchs
-              </h3>
-              {Object.entries(byDate).map(([date, dayMatches]) => {
-                const d = new Date(date + "T12:00:00");
-                const label =
-                  date === today
-                    ? "Aujourd'hui"
-                    : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-
-                return (
-                  <div key={date}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4
-                        className={`text-[11px] font-bold uppercase tracking-wide ${
-                          date === today ? "text-[var(--accent)]" : "text-[#444]"
-                        }`}
-                      >
-                        {label}
-                      </h4>
-                      <div className="flex-1 h-px bg-white/[0.05]" />
-                    </div>
-                    <div className="rounded-2xl glass overflow-hidden">
-                      {dayMatches.map((m) => (
-                        <UpcomingMatchCard key={m.id} match={m} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {!loading && (
-            <Link
-              href="/dashboard/matchs"
-              className="flex items-center justify-center gap-2 rounded-2xl border border-white/[0.06] py-3 text-sm font-semibold text-[#999] hover:text-[var(--accent)] hover:border-[var(--accent)]/25 hover:bg-white/[0.02] transition-colors"
-            >
-              Voir tous les matchs
-              <ArrowRight size={14} />
-            </Link>
+          {favorite === null && !picked && (
+            <p className="mt-8 text-center text-sm text-[var(--text-muted)]">
+              Ou{" "}
+              <Link href="/dashboard/competitions" className="text-[var(--accent-soft)] hover:underline">
+                parcours les compétitions
+              </Link>{" "}
+              pour trouver une équipe.
+            </p>
           )}
         </main>
       </div>
-
-      {pickingTeam && (
-        <FavoriteTeamModal
-          matches={matches}
-          onClose={() => setPickingTeam(false)}
-          onPicked={(nation) => {
-            setSupportedNation(nation);
-            setPickingTeam(false);
-          }}
-        />
-      )}
     </>
   );
 }

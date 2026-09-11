@@ -71,7 +71,15 @@ export interface Team {
   flag: string;
   logo?: string;
   group: string;
+  /** FIFA ranking for national teams; 0 for clubs (see `rating`). */
   fifaRanking: number;
+  /**
+   * Club strength on the Elo scale, derived from the league table (clubs only).
+   * When set, the match model uses it instead of the nation Elo lookup.
+   */
+  rating?: number;
+  /** League table rank for clubs (1 = leader), when known. */
+  leagueRank?: number;
   coach: string;
   recentForm: FormResult[];
   momentum?: TeamMomentum;
@@ -119,9 +127,13 @@ export interface Match {
   time: string;
   stadium: string;
   city: string;
-  country: "USA" | "Canada" | "Mexique";
+  country: string;
   group: string;
   round: string;
+  /** Exact kickoff instant (ISO 8601) when known — the 7-day analysis rule keys off it. */
+  kickoffIso?: string;
+  /** Competition the fixture belongs to (clubs); absent for the 2026 World Cup. */
+  competition?: { slug: string; name: string; shortName: string; flag: string; leagueId: number };
   h2h: H2HMatch[];
   odds: Odds[];
   status?: "NS" | "1H" | "HT" | "2H" | "FT" | "AET" | "PEN";

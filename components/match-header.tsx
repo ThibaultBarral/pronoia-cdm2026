@@ -1,4 +1,5 @@
 import { MapPin, CalendarClock, Shield } from "lucide-react";
+import TeamCrest from "@/components/clubs/team-crest";
 import { Match } from "@/lib/types";
 
 const COUNTRY_NAME: Record<string, string> = {
@@ -35,15 +36,21 @@ function InfoRow({
 function TeamColumn({ team }: { team: Match["homeTeam"] }) {
   const inner = (
     <>
-      <span className="text-5xl md:text-7xl">{team.flag}</span>
+      {team.logo ? (
+        <TeamCrest logo={team.logo} name={team.name} size={72} />
+      ) : (
+        <span className="text-5xl md:text-7xl">{team.flag}</span>
+      )}
       <div className="text-center">
         <div className="text-base md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors leading-tight">
           {team.name}
         </div>
-        {!team.isPlaceholder && (
+        {!team.isPlaceholder && (team.leagueRank || team.fifaRanking > 0) && (
           <div className="flex items-center justify-center gap-1 mt-1">
             <Shield size={10} className="text-[#666]" />
-            <span className="text-[11px] text-[#666]">#{team.fifaRanking} FIFA</span>
+            <span className="text-[11px] text-[#666]">
+              {team.leagueRank ? `${team.leagueRank}${team.leagueRank === 1 ? "er" : "e"} au classement` : `#${team.fifaRanking} FIFA`}
+            </span>
           </div>
         )}
       </div>

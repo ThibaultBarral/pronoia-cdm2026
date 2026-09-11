@@ -40,7 +40,9 @@ function ratingOf(team: Team): number {
     // last5Pts ∈ [0,15] → bonus ∈ [-30,+30]
     bonus = ((team.momentum.last5Pts - 7.5) / 7.5) * 30;
   }
-  return getElo(team.nameEn ?? team.name) + bonus;
+  // Clubs carry a table-derived rating; nations go through the Elo lookup.
+  const base = team.rating ?? getElo(team.nameEn ?? team.name);
+  return base + bonus;
 }
 
 function expectedGoals(rA: number, rB: number): { la: number; lb: number } {

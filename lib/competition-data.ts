@@ -14,12 +14,17 @@ import { fetchStandings, type ApiStandingRow } from "./api-football";
 import { getCachedOrFetch } from "./api-cache";
 import { getCompetition, type Competition } from "./competitions";
 
+/** Season key API-Football uses for 2026/27 (kept here to avoid a cycle with club-data). */
+const CLUB_SEASON = 2026;
+
 const hasApiKey = () => Boolean(process.env.API_FOOTBALL_KEY);
 
 export interface CompetitionClub {
   apiId: number;
   name: string;
   slug: string;
+  /** Official club crest (API-Football CDN). */
+  logo: string | null;
   /** Stylised monogram (no licensed logos by default). */
   monogram: string;
   rank: number;
@@ -59,6 +64,7 @@ function mapRow(row: ApiStandingRow): CompetitionClub {
     apiId: row.team.id,
     name: row.team.name,
     slug: clubSlug(row.team.name),
+    logo: row.team.logo ?? null,
     monogram: monogram(row.team.name),
     rank: row.rank,
     points: row.points,
@@ -84,11 +90,21 @@ export async function getCompetitionClubs(
   if (!comp || !hasApiKey()) return [];
 
   try {
-    const groups = await getCachedOrFetch(
-      `standings:${comp.leagueId}:${comp.dataSeason}`,
-      86400,
-      () => fetchStandings(comp.leagueId, comp.dataSeason),
+    // Current season first (2026/27); before its first standings exist, fall
+    // back to the final table of the previous season so the club list is never
+    // empty for a live competition.
+    let groups = await getCachedOrFetch(
+      `standings:${comp.leagueId}:${CLUB_SEASON}`,
+      43200,
+      () => fetchStandings(comp.leagueId, CLUB_SEASON),
     );
+    if (!groups.flat().length && comp.dataSeason !== CLUB_SEASON) {
+      groups = await getCachedOrFetch(
+        `standings:${comp.leagueId}:${comp.dataSeason}`,
+        86400,
+        () => fetchStandings(comp.leagueId, comp.dataSeason),
+      );
+    }
     const clubs = groups.flat().map(mapRow);
     // Sort by rank, then dedupe by club id (league-phase tables can repeat).
     const seen = new Set<number>();
