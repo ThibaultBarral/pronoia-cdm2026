@@ -189,17 +189,21 @@ export interface AdminStats {
 }
 
 const PLAN_ORDER: Plan[] = [
-  "free", "mini", "pro", "pro_yearly", "lifetime",
+  "free", "week", "month", "year",
+  "mini", "pro", "pro_yearly", "lifetime",
   "decouverte", "monthly", "elite", "pro_weekly", "elite_weekly",
   "essential", "weekly", "pass_cdm", "season",
 ];
 const PLAN_LABEL: Record<Plan, string> = {
   free: "Gratuit",
-  mini: "Mini",
-  pro: "Pro",
-  pro_yearly: "Pro (annuel)",
-  lifetime: "À vie",
+  week: "Semaine",
+  month: "Mois",
+  year: "Saison",
   // legacy
+  mini: "Mini (ancien)",
+  pro: "Pro (ancien)",
+  pro_yearly: "Pro annuel (ancien)",
+  lifetime: "À vie (ancien)",
   decouverte: "Découverte (ancien)",
   monthly: "Pro (ancien tarif)",
   elite: "Elite (ancien)",

@@ -1,9 +1,9 @@
 <svg viewBox="0 0 580 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Copafever">
   <defs>
     <linearGradient id="grn" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0F9D58"/>
-      <stop offset="50%" stop-color="#16C172"/>
-      <stop offset="100%" stop-color="#3DF08A"/>
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="50%" stop-color="#4F8CFF"/>
+      <stop offset="100%" stop-color="#8EC5FF"/>
     </linearGradient>
     <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur stdDeviation="2.4" result="b"/>

@@ -13,7 +13,7 @@ export default function FinalCta() {
         pill: "Shall we?",
         title: "Pick a match,",
         titleAccent: "get the read in 60 seconds.",
-        subtitle: "Unlimited analyses, value bets and bankroll with Pro.",
+        subtitle: "Real data, a clear read, nothing to bet.",
         ctaPrimary: "Analyse a match",
         ctaSecondary: "See pricing",
         trust: "No commitment · Cancel in one click · GDPR-compliant",
@@ -22,7 +22,7 @@ export default function FinalCta() {
         pill: "On y va ?",
         title: "Choisis un match,",
         titleAccent: "la lecture tombe en 60 secondes.",
-        subtitle: "Analyses illimitées, value bets et bankroll avec Pro.",
+        subtitle: "Des données réelles, une lecture claire, rien à miser.",
         ctaPrimary: "J'analyse un match",
         ctaSecondary: "Voir les tarifs",
         trust: "Sans engagement · Annulable en 1 clic · Conforme RGPD",
@@ -43,11 +43,11 @@ export default function FinalCta() {
         transition={{ duration: 0.5 }}
         className="max-w-2xl mx-auto text-center"
       >
-        <span className="inline-flex items-center rounded-full glass px-4 py-1.5 text-sm font-bold text-[var(--accent)] mb-7">
+        <span className="inline-flex items-center rounded-full glass px-4 py-1.5 text-sm font-bold text-[var(--accent-soft)] mb-7">
           {copy.pill}
         </span>
         <h2 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.05]">
-          <span className="text-[#f4f5f7]">{copy.title}</span>{" "}
+          <span className="text-[var(--text)]">{copy.title}</span>{" "}
           <span
             style={{
               background: "linear-gradient(135deg, var(--accent), var(--accent-soft))",
@@ -58,7 +58,7 @@ export default function FinalCta() {
             {copy.titleAccent}
           </span>
         </h2>
-        <p className="text-[#9aa3b2] text-lg mt-6">{copy.subtitle}</p>
+        <p className="text-[var(--text-muted)] text-lg mt-6">{copy.subtitle}</p>
 
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
           <motion.a
@@ -66,14 +66,14 @@ export default function FinalCta() {
             onClick={() => trackEvent("signup_click", { location: "final_cta" })}
             whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(var(--accent-rgb),0.4)" }}
             whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--accent)] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-soft)]"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--accent)] text-white font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-strong)]"
           >
             {copy.ctaPrimary}
             <ArrowRight size={16} />
           </motion.a>
           <LocaleLink
             href="/tarifs"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl glass text-[#c2c8d0] text-sm font-bold hover:text-[#f4f5f7] transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl glass text-[#c3cbe3] text-sm font-bold hover:text-[var(--text)] transition-colors"
           >
             {copy.ctaSecondary}
           </LocaleLink>

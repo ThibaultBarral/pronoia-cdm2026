@@ -1,24 +1,19 @@
 /**
  * Monetization model (Whop) — single source of truth.
  *
- * Three offers, no free tier:
- *   Mini (entry, capped, the "appât") < Pro (full toolkit, illimité, the offer we
- *   push everywhere) < Lifetime (Pro forever, one payment).
- * Pro is sold in two durations (month / year, the year is the hero — pre-selected,
- * "-50%" anchor). There is no trial and no free analysis: an account with no
- * active plan is shown the paywall directly.
+ * One plan, three durations, no free tier (grid of 2026-09-11):
+ *   Semaine 9,99 € · Mois 19,99 € · Saison 169 € (12 months, -30 % vs monthly).
+ * Same product in all three — every analysis, the AI chat, the history — only
+ * the billing period changes. No anchor price, no countdown, no capped tier.
+ * There is no trial and no free analysis: an account with no active plan is
+ * shown the paywall directly.
  *
- * Gating has two axes:
- *   1. Feature gating — Mini gets the AI analysis only (no value bets, no
- *      bankroll toolkit, no AI chat); Pro/Lifetime unlock everything.
- *   2. A monthly analysis quota — only Mini is capped (MONTHLY_ANALYSIS_LIMIT);
- *      Pro/Lifetime are unlimited.
- *
- * Legacy plans (decouverte / monthly / elite / pro_weekly / elite_weekly /
- * essential / weekly / pass_cdm / season) are kept `hidden` for grandfathering
- * only: existing members keep their entitlements via webhooks / restore /
- * hasFeature. Match facts (stats, form, H2H, line-ups) stay public so pages
- * remain indexable for SEO.
+ * Legacy plans (mini / pro / pro_yearly / lifetime, and the older decouverte /
+ * monthly / elite / pro_weekly / elite_weekly / essential / weekly / pass_cdm /
+ * season) are kept `hidden` for grandfathering only: existing members keep
+ * their entitlements via webhooks / restore / hasFeature. Only the legacy Mini
+ * / Découverte tiers carry a monthly quota (MONTHLY_ANALYSIS_LIMIT). Match
+ * facts (stats, form, H2H, line-ups) stay public so pages remain indexable.
  *
  * Display fields are safe for client components. Real Whop plan IDs live in
  * server-only env vars (WHOP_PLAN_*), resolved via planIdForPlan / planForPlanId
@@ -29,12 +24,15 @@ import type { Locale } from "@/lib/i18n/config";
 
 export type Plan =
   | "free" // sentinel for "no active plan yet" — never sold, never grants access
-  // current grid — 3 sellable offers
-  | "mini" // entry, monthly, capped
-  | "pro" // Pro monthly
-  | "pro_yearly" // Pro yearly (the hero offer)
-  | "lifetime" // Pro forever, one payment
+  // current grid — one plan, 3 durations
+  | "week" // 7 days, 9,99 €
+  | "month" // 30 days, 19,99 €
+  | "year" // 12 months, 169 € ("Saison")
   // legacy (grandfathered, hidden from sale)
+  | "mini" // entry, monthly, capped (grid of July 2026)
+  | "pro" // Pro monthly (July 2026)
+  | "pro_yearly" // Pro yearly (July 2026)
+  | "lifetime" // Pro forever, one payment (July 2026)
   | "decouverte"
   | "monthly"
   | "elite"
@@ -50,11 +48,12 @@ export type PaidPlan = Exclude<Plan, "free">;
 export type SubStatus = "active" | "trialing" | "expired" | "canceled";
 
 /**
- * Monthly analysis quota per paid plan. Absent = unlimited. Only the entry tier
- * (Mini) is capped, to create upgrade pressure while protecting margin.
+ * Monthly analysis quota per paid plan. Absent = unlimited. The current grid
+ * has no capped tier; only legacy entry tiers keep their historical cap.
  * Enforcement lives server-side (ai-guard); this map is the single source.
  */
 export const MONTHLY_ANALYSIS_LIMIT: Partial<Record<PaidPlan, number>> = {
+  // legacy, kept so grandfathered Mini members keep their historical cap.
   mini: 5,
   // legacy, kept so grandfathered Découverte members keep their historical cap.
   decouverte: 20,
@@ -100,29 +99,86 @@ export interface Offer {
   envKey: string;
 }
 
+/** What every current offer includes — identical across the three durations. */
+export const ACCESS_FEATURES = [
+  "Analyses de match illimitées",
+  "Scénario, probabilités & buts attendus",
+  "Forces & faiblesses, joueurs à suivre",
+  "Chat IA sur chaque match",
+  "7 compétitions, toute la saison 2026/27",
+  "Historique illimité de tes analyses",
+];
+
+/** Monthly price × 12, the honest reference the Saison discount is computed from. */
+export const MONTHLY_PRICE_EUR = 19.99;
+export const YEAR_LIST_PRICE_EUR = Math.round(MONTHLY_PRICE_EUR * 12 * 100) / 100; // 239.88
+export const YEAR_PRICE_EUR = 169;
+
+/** Legacy Pro feature list — kept for the hidden July-2026 offers only. */
 const PRO_FEATURES = [
   "Analyses IA illimitées",
-  "Value bets du jour, cotes & EV",
   "Buteurs probables & joueurs clés",
   "Chat IA contextuel",
-  "Bankroll & suivi du ROI",
   "Historique illimité",
 ];
 
 /**
- * Display order = paywall hierarchy: Mini (entry), Pro yearly (hero), Pro
- * monthly, Lifetime. Legacy plans are `hidden` (retired from sale) but kept in
- * the array so webhooks / restore / hasFeature keep resolving existing
- * memberships.
+ * Display order = paywall order: Semaine, Mois (the reference, highlighted),
+ * Saison. Legacy plans are `hidden` (retired from sale) but kept in the array
+ * so webhooks / restore / hasFeature keep resolving existing memberships.
  */
 export const OFFERS: Offer[] = [
+  {
+    plan: "week",
+    name: "Semaine",
+    duration: "week",
+    priceLabel: "9,99 €",
+    unit: "/ semaine",
+    sublabel: "7 jours, pour un week-end de championnat et une soirée européenne",
+    ctaLabel: "Choisir Semaine · 9,99 €",
+    note: "Sans engagement · résiliable à tout moment",
+    features: ACCESS_FEATURES,
+    envKey: "WHOP_PLAN_WEEK",
+  },
+  {
+    plan: "month",
+    name: "Mois",
+    duration: "month",
+    priceLabel: "19,99 €",
+    unit: "/ mois",
+    sublabel: "Le rythme de référence, toutes les analyses",
+    ctaLabel: "Choisir Mois · 19,99 €",
+    note: "Sans engagement · résiliable à tout moment",
+    badge: "LE PLUS CHOISI",
+    badgeKind: "green",
+    highlight: true,
+    features: ACCESS_FEATURES,
+    envKey: "WHOP_PLAN_MONTH",
+  },
+  {
+    plan: "year",
+    name: "Saison",
+    duration: "year",
+    priceLabel: "169 €",
+    unit: "/ saison",
+    sublabel: "12 mois, soit 14,10 €/mois : -30 % par rapport au mensuel",
+    ctaLabel: "Choisir Saison · 169 €",
+    note: "soit 14,10 €/mois · 239,88 € au tarif mensuel",
+    badge: "-30 % VS MENSUEL",
+    badgeKind: "life",
+    features: ACCESS_FEATURES,
+    envKey: "WHOP_PLAN_YEAR",
+  },
+
+  // ── Grid of July 2026 — grandfathering only (hidden from sale) ─────────────
   {
     plan: "mini",
     name: "Mini",
     duration: "month",
+    hidden: true,
     priceLabel: "2,99 €",
     unit: "/ mois",
-    sublabel: "Pour tester — 5 analyses IA par mois",
+    sublabel: "Ancien plan Mini (juillet 2026, 5 analyses par mois)",
     ctaLabel: "Choisir Mini — 2,99 €/mois",
     note: "Sans engagement · résiliable à tout moment",
     features: [
@@ -130,28 +186,19 @@ export const OFFERS: Offer[] = [
       "Analyse complète : scénario, probas & xG",
       "Forme, H2H & compositions",
     ],
-    lockedFeatures: [
-      "Value bets du jour",
-      "Bankroll & suivi du ROI",
-      "Chat IA contextuel",
-      "Historique illimité",
-    ],
+    lockedFeatures: ["Chat IA contextuel", "Historique illimité"],
     envKey: "WHOP_PLAN_MINI",
   },
   {
     plan: "pro_yearly",
     name: "Pro",
     duration: "year",
+    hidden: true,
     priceLabel: "59,99 €",
-    anchorPrice: "119,88 €",
-    discountLabel: "-50%",
     unit: "/ an",
-    sublabel: "Tout illimité — value bets, bankroll, chat IA",
+    sublabel: "Ancien plan Pro (juillet 2026)",
     ctaLabel: "Débloquer Pro — 59,99 €/an",
     note: "soit 5 €/mois · sans engagement, annulable à tout moment",
-    badge: "MEILLEURE OFFRE · -50%",
-    badgeKind: "green",
-    highlight: true,
     features: PRO_FEATURES,
     envKey: "WHOP_PLAN_PRO_YEARLY",
   },
@@ -159,9 +206,10 @@ export const OFFERS: Offer[] = [
     plan: "pro",
     name: "Pro",
     duration: "month",
+    hidden: true,
     priceLabel: "9,99 €",
     unit: "/ mois",
-    sublabel: "Tout illimité — value bets, bankroll, chat IA",
+    sublabel: "Ancien plan Pro (juillet 2026)",
     ctaLabel: "Débloquer Pro — 9,99 €/mois",
     note: "Sans engagement · résiliable à tout moment",
     features: PRO_FEATURES,
@@ -171,14 +219,13 @@ export const OFFERS: Offer[] = [
     plan: "lifetime",
     name: "À vie",
     duration: "lifetime",
+    hidden: true,
     priceLabel: "79 €",
     unit: "une seule fois",
     oneTime: true,
     sublabel: "Tout Pro · un seul paiement, pour toujours",
     ctaLabel: "Accès à vie — 79 €",
     note: "≈ 1 an et demi d'annuel, puis plus jamais",
-    badge: "ACCÈS À VIE",
-    badgeKind: "life",
     features: [...PRO_FEATURES, "Pour toujours, aucun renouvellement"],
     envKey: "WHOP_PLAN_LIFETIME",
   },
@@ -326,15 +373,18 @@ export function visibleOffers(_now: number = Date.now(), locale: Locale = "fr"):
 // ── Per-feature entitlements ─────────────────────────────────────────────────
 
 /**
- * Premium tools gated by tier:
- *  - Mini: none (AI analysis only, capped monthly quota).
- *  - Pro/Lifetime: the full toolkit (value bets, bankroll, AI chat).
+ * Premium tools gated by tier. The current grid (week/month/year) includes
+ * everything; only the legacy capped tiers (Mini, Découverte, Essential) miss
+ * the toolkit.
  */
 export type Feature = "chat_ia" | "value_bets";
 
 const PRO_TOOLKIT: Feature[] = ["chat_ia", "value_bets"];
 
 const PLAN_FEATURES: Record<PaidPlan, Feature[]> = {
+  week: PRO_TOOLKIT,
+  month: PRO_TOOLKIT,
+  year: PRO_TOOLKIT,
   mini: [],
   pro: PRO_TOOLKIT,
   pro_yearly: PRO_TOOLKIT,
@@ -372,7 +422,7 @@ export function hasFeature(
   return hasAccess(sub) && planHasFeature(sub.plan, feature);
 }
 
-/** Convenience: active access on a plan that isn't the capped Mini tier. */
+/** Convenience: active access on a plan that isn't a capped legacy tier. */
 export function hasProAccess(
   sub: (SubscriptionState & { vip?: boolean }) | null | undefined
 ): boolean {
@@ -408,7 +458,7 @@ export interface SubscriptionState {
  * - Lifetime: always (while not expired/canceled).
  * - Trialing: until trial_end (legacy plans only — no new plan sells a trial).
  * - Pass CDM / Pass Saison (legacy): until current_period_end (fixed end date).
- * - Recurring (mini/pro/pro_yearly + legacy tiers): while active, or
+ * - Recurring (week/month/year + legacy tiers): while active, or
  *   canceled-but-still-in-period.
  * NB: this checks entitlement, not the monthly analysis quota (see ai-guard).
  */
@@ -426,7 +476,7 @@ export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
   if (sub.plan === "lifetime") return sub.status !== "canceled";
   if (sub.status === "trialing") return within(sub.trialEnd);
   if (sub.plan === "pass_cdm" || sub.plan === "season") return within(sub.currentPeriodEnd);
-  // recurring (mini / pro / pro_yearly / legacy monthly-ish plans)
+  // recurring (week / month / year / legacy plans)
   if (sub.status === "active") return true;
   // canceled at period end but still inside the paid window
   return within(sub.currentPeriodEnd);

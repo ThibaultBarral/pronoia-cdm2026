@@ -5,9 +5,9 @@ import FaqSection from "@/components/faq-section";
 import SiteFooter from "@/components/site-footer";
 
 export const metadata: Metadata = {
-  title: "Tarifs — Copafever | Analyses IA & paris CDM 2026",
+  title: "Tarifs | Copafever, l'analyse de matchs de foot par la data",
   description:
-    "Mini 2,99 €/mois · Pro 9,99 €/mois (ou 59,99 €/an) · Accès à vie 79 €. Analyses IA, value bets et bankroll. Toutes les compétitions après la Coupe du Monde 2026.",
+    "Semaine 9,99 € · Mois 19,99 € · Saison 169 €. Un seul plan, trois durées : analyses de match complètes sur les 7 grandes compétitions de la saison 2026/27.",
   alternates: { canonical: "/tarifs" },
 };
 

@@ -2,37 +2,43 @@
 
 /* ── Copafever brand tokens (single source of truth) ───────────
    Change these and the whole UI follows. Never hardcode an accent. */
+/* ── Copafever brand tokens (single source of truth) ───────────
+   DA « soirée de Ligue des Champions » : nuit bleu profond, bleu électrique
+   pour l'accent, argent étoilé pour les reliefs. Change these and the whole UI
+   follows. Never hardcode an accent. */
 :root {
-  --bg:            #0A0A0A;   /* fond principal */
-  --bg-elevated:   #141414;   /* cartes, surfaces */
-  --border:        #1C1F22;
-  --accent:        #16C172;   /* vert principal — CTA, liens, highlights */
-  --accent-strong: #0F9D58;   /* hover, états actifs */
-  --accent-soft:   #3DF08A;   /* dégradés, glow */
-  --text:          #F4F5F7;
-  --text-muted:    #9BA1A8;
-  --amber:         #E5A53D;   /* niveau "Moyen" */
+  --bg:            #050A1F;   /* nuit bleu profond — fond principal */
+  --bg-elevated:   #0B1330;   /* cartes, surfaces */
+  --border:        #182451;
+  --accent:        #4F8CFF;   /* bleu électrique — CTA, liens, highlights */
+  --accent-strong: #2563EB;   /* hover, états actifs */
+  --accent-soft:   #8EC5FF;   /* dégradés, glow, bleu ciel */
+  --star:          #E6EBFA;   /* argent étoilé — reliefs, titres secondaires */
+  --text:          #F3F5FC;
+  --text-muted:    #94A0C2;
+  --amber:         #E5B53D;   /* niveau "Moyen" */
 
   /* RGB triples pour les rgba() / glows */
-  --accent-rgb:        22, 193, 114;
-  --accent-strong-rgb: 15, 157, 88;
-  --accent-soft-rgb:   61, 240, 138;
+  --accent-rgb:        79, 140, 255;
+  --accent-strong-rgb: 37, 99, 235;
+  --accent-soft-rgb:   142, 197, 255;
+  --star-rgb:          230, 235, 250;
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --color-card: var(--bg-elevated);
-  --color-card-hover: #1c1c1c;
+  --color-card-hover: #101a3d;
   --color-border: var(--border);
-  --color-muted: #2a2a2a;
+  --color-muted: #142049;
   --color-muted-foreground: var(--text-muted);
 
   --color-neon: var(--accent);
   --color-neon-dim: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
-  --color-gold: #ffd700;
-  --color-gold-dim: #d4a900;
+  --color-gold: #E6EBFA;
+  --color-gold-dim: #B7C2E4;
 
   --color-win: #22c55e;
   --color-draw: var(--amber);
@@ -42,7 +48,7 @@
   --color-primary-foreground: var(--bg);
   --color-secondary: var(--border);
   --color-secondary-foreground: var(--text);
-  --color-accent: #1a1a1a;
+  --color-accent: #101a3d;
   --color-accent-foreground: var(--text);
   --color-destructive: #ef4444;
   --color-ring: var(--accent);
@@ -63,14 +69,14 @@
   --popover-foreground: var(--text);
   --primary: var(--accent);
   --primary-foreground: var(--bg);
-  --secondary: #1a2035;
+  --secondary: #142049;
   --secondary-foreground: var(--text);
-  --muted: #151c2c;
+  --muted: #0F1838;
   --muted-foreground: var(--text-muted);
   --accent-foreground: var(--text);
   --destructive: #ef4444;
   --destructive-foreground: var(--text);
-  --input: #1a2035;
+  --input: #142049;
   --ring: var(--accent);
   --radius: 1rem;
 }
@@ -93,7 +99,7 @@ body {
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-elevated); }
-::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #1c2a5e; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* Gradient utilities */
@@ -126,9 +132,25 @@ body {
 }
 
 .glow-neon { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.35), 0 0 60px rgba(var(--accent-rgb),0.12); }
-.glow-gold { box-shadow: 0 0 24px rgba(255,215,0,0.35), 0 0 60px rgba(255,215,0,0.12); }
+.glow-gold { box-shadow: 0 0 24px rgba(var(--star-rgb),0.25), 0 0 60px rgba(var(--star-rgb),0.08); }
 .text-glow-neon { text-shadow: 0 0 24px rgba(var(--accent-rgb),0.6); }
-.text-glow-gold { text-shadow: 0 0 24px rgba(255,215,0,0.6); }
+.text-glow-gold { text-shadow: 0 0 24px rgba(var(--star-rgb),0.5); }
+
+/* Ciel étoilé discret (motif CSS, aucun logo sous licence) */
+.starfield {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(var(--star-rgb),0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 62%, rgba(var(--star-rgb),0.7) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 44% 30%, rgba(var(--star-rgb),0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 58% 78%, rgba(var(--star-rgb),0.8) 50%, transparent 51%),
+    radial-gradient(2px 2px at 70% 22%, rgba(var(--accent-soft-rgb),0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 82% 56%, rgba(var(--star-rgb),0.7) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 90% 12%, rgba(var(--star-rgb),0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 84%, rgba(var(--accent-soft-rgb),0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 36% 90%, rgba(var(--star-rgb),0.5) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 50%, rgba(var(--star-rgb),0.45) 50%, transparent 51%);
+  background-repeat: no-repeat;
+}
 
 /* Animations */
 @keyframes fade-in-up {
@@ -184,12 +206,12 @@ body {
 .ai-response h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffd700;
+  color: var(--accent-soft);
   margin-bottom: 0.5rem;
   margin-top: 1rem;
 }
 .ai-response p {
-  color: #c0c0c0;
+  color: #c3cbe3;
   line-height: 1.7;
   margin-bottom: 0.75rem;
 }
@@ -199,7 +221,7 @@ body {
   margin-bottom: 0.75rem;
 }
 .ai-response ul li {
-  color: #c0c0c0;
+  color: #c3cbe3;
   padding: 0.25rem 0 0.25rem 1.2rem;
   position: relative;
   line-height: 1.6;
@@ -211,7 +233,7 @@ body {
   left: 0;
 }
 .ai-response strong { color: var(--text); font-weight: 600; }
-.ai-response em { color: #ffd700; font-style: normal; font-weight: 500; }
+.ai-response em { color: var(--accent-soft); font-style: normal; font-weight: 500; }
 
 .streaming-cursor::after {
   content: "█";

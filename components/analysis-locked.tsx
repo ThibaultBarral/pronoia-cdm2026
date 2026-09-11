@@ -13,9 +13,9 @@ export default function AnalysisLocked({ matchId }: { matchId: string }) {
   const [pending, startCheckout] = useTransition();
 
   function unlock() {
-    trackEvent("unlock_ticket_click", { plan: "pro_yearly", match_id: matchId });
+    trackEvent("unlock_ticket_click", { plan: "month", match_id: matchId });
     startCheckout(async () => {
-      const res = await beginCheckout("pro_yearly");
+      const res = await beginCheckout("month");
       if (res.ok) window.location.href = res.url;
       else window.location.href = `/login?mode=signup&next=/match/${matchId}`;
     });
@@ -36,9 +36,9 @@ export default function AnalysisLocked({ matchId }: { matchId: string }) {
         <button
           onClick={unlock}
           disabled={pending}
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-[#06231a] font-bold px-6 py-2.5 text-sm glow-neon transition-all hover:scale-105 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-bold px-6 py-2.5 text-sm glow-neon transition-all hover:scale-105 disabled:opacity-60"
         >
-          <Sparkles size={15} /> {pending ? "Redirection…" : "Débloquer Copafever Pro"}
+          <Sparkles size={15} /> {pending ? "Redirection…" : "Débloquer l'analyse"}
         </button>
       </div>
     </div>

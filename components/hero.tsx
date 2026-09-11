@@ -1,33 +1,31 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight } from "lucide-react";
-import PhoneMockup from "@/components/landing/phone-mockup";
-import { type FeaturedMatch } from "@/components/landing/featured-match-card";
+import { ArrowRight, Database } from "lucide-react";
+import PhoneMockup, { type PhoneMockupProps } from "@/components/landing/phone-mockup";
 import { trackEvent } from "@/lib/analytics";
-import { useTranslations, useLocale } from "@/lib/i18n/locale-provider";
+import { useTranslations } from "@/lib/i18n/locale-provider";
 
 export interface HeroStats {
+  /** Analysable matches across the covered season. */
   matches: number;
-  verified: number;
-  winRate: number;
+  /** Competitions covered. */
+  competitions: number;
 }
 
 /** Real-numbers proof strip — honest counts fed from the server. */
 function StatStrip({ stats }: { stats: HeroStats }) {
-  const en = useLocale() === "en";
   const items = [
-    stats.matches > 0 && { value: `${stats.matches}`, label: en ? "matches covered" : "matchs couverts" },
-    stats.verified > 0 && { value: `${stats.verified}`, label: en ? "verified picks" : "pronos vérifiés" },
-    stats.winRate > 0 && { value: `${stats.winRate}%`, label: en ? "hit rate" : "de réussite" },
+    stats.matches > 0 && { value: stats.matches.toLocaleString("fr-FR"), label: "matchs sur la saison" },
+    stats.competitions > 0 && { value: `${stats.competitions}`, label: "compétitions couvertes" },
+    { value: "100 %", label: "données réelles" },
   ].filter(Boolean) as { value: string; label: string }[];
-  if (!items.length) return null;
   return (
     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-3">
       {items.map((it) => (
         <div key={it.label} className="flex flex-col items-center lg:items-start">
-          <span className="text-2xl md:text-3xl font-black text-[var(--accent)] tabular-nums">{it.value}</span>
-          <span className="text-[11px] text-[#5a6472] uppercase tracking-wide">{it.label}</span>
+          <span className="text-2xl md:text-3xl font-black text-[var(--accent-soft)] tabular-nums">{it.value}</span>
+          <span className="text-[11px] text-[var(--text-muted)] uppercase tracking-wide">{it.label}</span>
         </div>
       ))}
     </div>
@@ -49,8 +47,8 @@ const headlineStagger = {
   show: { transition: { staggerChildren: 0.14, delayChildren: 0.12 } },
 };
 
-/** What the AI predicts — the three green pills under the headline. */
-function PredictPills() {
+/** What the analysis is built on — the three pills under the headline. */
+function InputPills() {
   const t = useTranslations();
   const pills = [t("hero.pill1"), t("hero.pill2"), t("hero.pill3")];
   return (
@@ -68,20 +66,20 @@ function PredictPills() {
   );
 }
 
-export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; featuredMatch?: FeaturedMatch }) {
+export default function Hero({ stats, mockup }: { stats?: HeroStats; mockup?: PhoneMockupProps }) {
   const t = useTranslations();
 
   return (
     <section className="gradient-hero relative overflow-hidden pt-16 pb-20 px-4">
-      {/* Floating orbs */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* Night sky */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden starfield">
         <motion.div
-          className="absolute top-10 left-[10%] w-72 h-72 rounded-full bg-[var(--accent)]/8 blur-3xl"
+          className="absolute top-10 left-[10%] w-72 h-72 rounded-full bg-[var(--accent)]/10 blur-3xl"
           animate={{ y: [0, -20, 0], scale: [1, 1.05, 1] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute top-20 right-[8%] w-64 h-64 rounded-full bg-[var(--accent-soft)]/6 blur-3xl"
+          className="absolute top-20 right-[8%] w-64 h-64 rounded-full bg-[var(--accent-soft)]/8 blur-3xl"
           animate={{ y: [0, 20, 0], scale: [1, 1.08, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
         />
@@ -96,8 +94,8 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
               variants={fadeUp} initial="hidden" animate="show" custom={0}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-neon mb-6"
             >
-              <Sparkles size={12} className="text-[var(--accent)]" />
-              <span className="text-[11px] text-[var(--accent)] font-bold tracking-wide uppercase">
+              <Database size={12} className="text-[var(--accent-soft)]" />
+              <span className="text-[11px] text-[var(--accent-soft)] font-bold tracking-wide uppercase">
                 {t("hero.badge")}
               </span>
             </motion.div>
@@ -106,7 +104,7 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
               variants={headlineStagger} initial="hidden" animate="show"
               className="text-[2.6rem] sm:text-6xl lg:text-[3.4rem] xl:text-6xl font-black leading-[1.03] tracking-tight mb-6"
             >
-              <motion.span variants={lineUp} className="block text-[#f4f5f7]">{t("hero.line1")}</motion.span>
+              <motion.span variants={lineUp} className="block text-[var(--text)]">{t("hero.line1")}</motion.span>
               <motion.span
                 variants={lineUp}
                 className="block text-glow-neon relative w-fit mx-auto lg:mx-0"
@@ -119,16 +117,16 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
                 {t("hero.line2")}
                 <span className="absolute left-0 -bottom-1 h-1.5 w-full rounded-full bg-[var(--accent)]/25" />
               </motion.span>
-              <motion.span variants={lineUp} className="block text-[#f4f5f7]">{t("hero.line3")}</motion.span>
+              <motion.span variants={lineUp} className="block text-[var(--text)]">{t("hero.line3")}</motion.span>
             </motion.h1>
 
             <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2} className="mb-6">
-              <PredictPills />
+              <InputPills />
             </motion.div>
 
             <motion.p
               variants={fadeUp} initial="hidden" animate="show" custom={2.4}
-              className="text-[#9aa3b2] text-base md:text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed"
+              className="text-[var(--text-muted)] text-base md:text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed"
             >
               {t("hero.subhead")}
             </motion.p>
@@ -140,18 +138,18 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
               <motion.a
                 href="/login?mode=signup"
                 onClick={() => trackEvent("signup_click", { location: "hero" })}
-                whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(var(--accent-rgb),0.4)" }}
+                whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(var(--accent-rgb),0.45)" }}
                 whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[var(--accent)] text-[#080b12] font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-soft)]"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[var(--accent)] text-white font-bold text-sm glow-neon transition-colors hover:bg-[var(--accent-strong)]"
               >
                 {t("hero.ctaPrimary")}
                 <ArrowRight size={16} />
               </motion.a>
               <motion.a
-                href="#matches"
+                href="#how-it-works"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl glass text-[#7a8599] text-sm hover:text-[#f0f0f0] transition-colors"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl glass text-[var(--text-muted)] text-sm hover:text-[var(--text)] transition-colors"
               >
                 {t("hero.ctaSecondary")}
               </motion.a>
@@ -169,12 +167,7 @@ export default function Hero({ stats, featuredMatch }: { stats?: HeroStats; feat
             variants={fadeUp} initial="hidden" animate="show" custom={2.6}
             className="flex justify-center lg:justify-end"
           >
-            <PhoneMockup
-              homeFlag={featuredMatch?.home.flag}
-              homeName={featuredMatch?.home.name}
-              awayFlag={featuredMatch?.away.flag}
-              awayName={featuredMatch?.away.name}
-            />
+            <PhoneMockup {...mockup} />
           </motion.div>
         </div>
       </div>

@@ -50,16 +50,20 @@ export default function CGUPage() {
       <H>4. Offres et paiement</H>
       <p>L&apos;accès aux analyses IA complètes requiert une offre payante :</p>
       <ul className="list-disc pl-5 space-y-1.5">
-        <li><strong className="text-[#f0f0f0]">Mini</strong> — 2,99 € / mois, abonnement reconductible : 5 analyses IA par mois.</li>
-        <li><strong className="text-[#f0f0f0]">Pro</strong> — 9,99 € / mois ou 59,99 € / an, abonnement reconductible : analyses IA illimitées, value bets du jour, buteurs & joueurs clés, chat IA, bankroll et toutes les compétitions (CDM 2026 puis saison de clubs).</li>
-        <li><strong className="text-[#f0f0f0]">Accès à vie</strong> — 79 €, paiement unique, sans reconduction : tout Pro, pour toujours.</li>
+        <li><strong className="text-[#f0f0f0]">Semaine</strong> : 9,99 € pour 7 jours, abonnement reconductible.</li>
+        <li><strong className="text-[#f0f0f0]">Mois</strong> : 19,99 € pour 30 jours, abonnement reconductible.</li>
+        <li><strong className="text-[#f0f0f0]">Saison</strong> : 169 € pour 12 mois, abonnement reconductible.</li>
       </ul>
+      <p>
+        Les trois formules donnent le même accès : analyses de match illimitées, chat IA, historique,
+        sur l&apos;ensemble des compétitions couvertes (saison 2026/27). Seule la durée de facturation change.
+      </p>
       <p>
         Les paiements sont opérés par notre prestataire <strong className="text-[#f0f0f0]">Whop</strong>,
         qui collecte et traite les données de paiement ; Copafever ne stocke aucune donnée bancaire.
-        Les prix sont indiqués toutes taxes comprises. Les abonnements Mini et Pro sont reconduits
-        automatiquement à échéance jusqu&apos;à résiliation ; l&apos;Accès à vie est un paiement unique
-        sans reconduction.
+        Les prix sont indiqués toutes taxes comprises. Les abonnements sont reconduits
+        automatiquement à échéance jusqu&apos;à résiliation. Les offres souscrites avant le
+        11 septembre 2026 (Mini, Pro, Accès à vie) restent honorées aux conditions de l&apos;époque.
       </p>
 
       <H>5. Résiliation et rétractation</H>

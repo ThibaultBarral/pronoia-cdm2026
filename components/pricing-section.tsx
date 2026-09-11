@@ -1,45 +1,36 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Infinity as InfinityIcon, type LucideIcon, CalendarDays, Zap } from "lucide-react";
+import { Check, CalendarDays, CalendarRange, Trophy, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { visibleOffers, type PaidPlan } from "@/lib/plans";
+import { visibleOffers, type Offer } from "@/lib/plans";
 import { trackEvent } from "@/lib/analytics";
 import { useLocale, useTranslations } from "@/lib/i18n/locale-provider";
 
-const ICONS: Record<PaidPlan, LucideIcon> = {
-  mini: Zap,
-  pro: CalendarDays,
-  pro_yearly: CalendarDays,
-  lifetime: InfinityIcon,
-  // legacy
-  decouverte: Zap,
-  monthly: CalendarDays,
-  elite: CalendarDays,
-  pro_weekly: CalendarDays,
-  elite_weekly: CalendarDays,
-  essential: Zap,
-  weekly: Zap,
-  pass_cdm: CalendarDays,
-  season: CalendarDays,
+const ICONS: Partial<Record<Offer["duration"], LucideIcon>> = {
+  week: CalendarDays,
+  month: CalendarRange,
+  year: Trophy,
 };
 
-/** Public, informational pricing (no checkout) — CTAs send to signup. No free tier, no trial. */
+/**
+ * Public, informational pricing (no checkout) — CTAs send to signup. One plan,
+ * three durations, same content in each: only the billing period changes. No
+ * struck-through anchor price, no countdown, no capped entry tier.
+ */
 export default function PricingSection({ id = "tarifs" }: { id?: string }) {
   const t = useTranslations();
   const locale = useLocale();
-
-  const offers = visibleOffers(undefined, locale).filter((o) => o.plan !== "mini");
-  const mini = visibleOffers(undefined, locale).find((o) => o.plan === "mini");
+  const offers = visibleOffers(undefined, locale);
 
   return (
-    <section id={id} className="border-t border-white/5 bg-[#060910]">
+    <section id={id} className="border-t border-white/5 bg-[#03061a]">
       <div className="max-w-5xl mx-auto px-4 py-16">
         <div className="text-center mb-10">
-          <p className="text-xs text-[#3a4560] uppercase tracking-widest mb-2 font-medium">
+          <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest mb-2 font-medium">
             {t("pricing.label")}
           </p>
-          <h2 className="text-3xl md:text-4xl font-bold text-[#f0f0f0]">
+          <h2 className="text-3xl md:text-4xl font-bold text-[var(--text)]">
             {t("pricing.titlePre")}{" "}
             <span style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-soft))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               {t("pricing.titleAccent")}
@@ -48,18 +39,18 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
           <p className="text-sm text-[var(--text-muted)] mt-3 max-w-lg mx-auto">
             {t("pricing.subtitle")}
           </p>
-          <p className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/5 text-[12px] font-medium text-[var(--accent)]">
-            <span aria-hidden>🔁</span>
-            Après la Coupe du Monde, Copafever continue sur les grands championnats (Ligue 1, Champions League…).
+          <p className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/8 text-[12px] font-medium text-[var(--accent-soft)]">
+            <span aria-hidden>🏟️</span>
+            Saison 2026/27 : Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des Champions, Ligue Europa.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 items-stretch max-w-5xl mx-auto">
           {offers.map((o, i) => {
-            const Icon = ICONS[o.plan];
-            const gold = o.plan === "lifetime";
+            const Icon = ICONS[o.duration] ?? CalendarDays;
+            const silver = o.badgeKind === "life";
             const highlight = o.highlight;
-            const accentColor = gold ? "#ffd700" : "var(--accent)";
+            const accentColor = silver ? "var(--star)" : "var(--accent-soft)";
             return (
               <motion.div
                 key={o.plan}
@@ -71,42 +62,29 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
                 style={
                   highlight
                     ? { borderColor: "rgba(var(--accent-rgb),0.55)" }
-                    : gold
-                      ? { borderColor: "rgba(255,215,0,0.30)" }
+                    : silver
+                      ? { borderColor: "rgba(var(--star-rgb),0.30)" }
                       : undefined
                 }
               >
                 {o.badge && (
                   <span
                     className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wide px-3 py-1 rounded-full whitespace-nowrap"
-                    style={gold ? { background: "#ffd700", color: "#1a1300" } : { background: "var(--accent)", color: "#06231a" }}
+                    style={silver ? { background: "var(--star)", color: "#0B1330" } : { background: "var(--accent)", color: "#ffffff" }}
                   >
-                    {gold && <InfinityIcon size={12} />}
                     {o.badge}
                   </span>
                 )}
 
                 <div className="flex items-center gap-2.5 mb-4">
-                  <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: gold ? "rgba(255,215,0,0.12)" : "rgba(var(--accent-rgb),0.12)" }}>
+                  <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: silver ? "rgba(var(--star-rgb),0.12)" : "rgba(var(--accent-rgb),0.14)" }}>
                     <Icon size={18} style={{ color: accentColor }} />
                   </span>
                   <h3 className="text-xl font-black text-[var(--text)]">{o.name}</h3>
                 </div>
 
-                {o.anchorPrice && (
-                  <div className="flex items-center gap-2 mb-1.5">
-                    {o.discountLabel && (
-                      <span className="inline-flex items-center text-[11px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#ef4444]/15 text-[#ff6b6b] border border-[#ef4444]/30">
-                        {o.discountLabel}
-                      </span>
-                    )}
-                    <span className="text-lg font-bold text-[var(--text-muted)] line-through decoration-[#ef4444]/60 decoration-2">
-                      {o.anchorPrice}
-                    </span>
-                  </div>
-                )}
                 <div className="flex items-end gap-1.5">
-                  <span className="text-[40px] leading-none font-black" style={{ color: gold ? "#ffd700" : "var(--text)" }}>
+                  <span className="text-[40px] leading-none font-black" style={{ color: silver ? "var(--star)" : "var(--text)" }}>
                     {o.priceLabel}
                   </span>
                   <span className="text-sm text-[var(--text-muted)] mb-1.5">{o.unit}</span>
@@ -115,7 +93,7 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
 
                 <ul className="space-y-3 mb-7 flex-1">
                   {o.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-[#d0d0d0]">
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-[#c3cbe3]">
                       <Check size={16} strokeWidth={3} className="mt-0.5 shrink-0" style={{ color: accentColor }} />
                       <span>{f}</span>
                     </li>
@@ -125,13 +103,13 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
                 <Link
                   href="/login?mode=signup"
                   onClick={() => trackEvent("signup_click", { location: "pricing", plan: o.plan })}
-                  className="w-full text-center rounded-xl py-3.5 text-sm font-black text-[#06231a] transition-transform hover:scale-[1.02]"
+                  className={`w-full text-center rounded-xl py-3.5 text-sm font-black transition-transform hover:scale-[1.02] ${silver ? "text-[#0B1330]" : "text-white"}`}
                   style={{
-                    background: gold
-                      ? "linear-gradient(135deg, #f5b800, #ffd700)"
+                    background: silver
+                      ? "linear-gradient(135deg, #C9D3F0, var(--star))"
                       : highlight
-                        ? "linear-gradient(135deg, var(--accent-strong), var(--accent-soft))"
-                        : "linear-gradient(135deg, #0fb5a0, var(--accent))",
+                        ? "linear-gradient(135deg, var(--accent-strong), var(--accent))"
+                        : "linear-gradient(135deg, #1E4FBF, var(--accent))",
                   }}
                 >
                   {t("pricing.cta")}
@@ -143,31 +121,6 @@ export default function PricingSection({ id = "tarifs" }: { id?: string }) {
             );
           })}
         </div>
-
-        {/* Mini — deliberately understated entry offer, full detail on hover/tap via title. */}
-        {mini && (
-          <Link
-            href="/login?mode=signup"
-            onClick={() => trackEvent("signup_click", { location: "pricing", plan: "mini" })}
-            className="mt-5 max-w-3xl mx-auto rounded-2xl glass px-5 py-3.5 hover:bg-white/[0.04] transition-colors block"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-x-2 gap-y-1 text-center">
-              <span className="text-xs text-[var(--text-muted)]">
-                <span className="font-bold text-[#cdd3db]">{mini.name} · {mini.priceLabel}{mini.unit}</span> —{" "}
-                {mini.sublabel}
-              </span>
-              <span className="text-xs font-bold text-[var(--accent)] shrink-0">
-                {locale === "en" ? "Choose Mini →" : "Choisir Mini →"}
-              </span>
-            </div>
-            {mini.lockedFeatures && mini.lockedFeatures.length > 0 && (
-              <p className="text-[11px] text-[var(--text-muted)]/80 text-center mt-1.5">
-                {locale === "en" ? "Not included: " : "Non inclus : "}
-                {mini.lockedFeatures.join(" · ")}
-              </p>
-            )}
-          </Link>
-        )}
 
         <p className="text-center text-xs text-[var(--text-muted)] mt-8 max-w-2xl mx-auto leading-relaxed">
           {t("pricing.legal")}

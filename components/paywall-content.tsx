@@ -2,22 +2,16 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, Infinity as InfinityIcon, RotateCcw, AlertCircle, Settings } from "lucide-react";
+import { Check, RotateCcw, AlertCircle, Settings } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { startCheckout } from "@/lib/checkout-client";
 import { restoreSubscription } from "@/actions/restore-subscription";
-import { planName, type Plan, type PaidPlan } from "@/lib/plans";
-
-const MINI_INCLUDED = ["5 analyses IA par mois", "Analyse complète : scénario, probas & xG", "Forme, H2H & compositions"];
-const MINI_EXCLUDED = ["Value bets du jour", "Bankroll & suivi du ROI", "Chat IA contextuel", "Historique illimité"];
+import { planName, visibleOffers, ACCESS_FEATURES, type Plan, type PaidPlan } from "@/lib/plans";
 
 /**
- * Sober, no-trial pricing page — inspired by mobile-app paywalls that push a
- * single "hero" offer: Pro yearly gets the highlighted card (pre-selected
- * visual weight, "-50%" anchor), Pro monthly and Lifetime sit below, and Mini
- * (the capped entry offer) is deliberately understated at the bottom — but
- * expands to its own explicit included/excluded list on click, so no plan is
- * ever a mystery.
+ * Sober, no-trial paywall: one plan, three durations (Semaine / Mois / Saison),
+ * the same content in each. The monthly offer carries the visual weight; no
+ * anchor price, no countdown, no capped entry tier.
  */
 export default function PaywallContent({
   currentPlan,
@@ -34,7 +28,7 @@ export default function PaywallContent({
   const [info, setInfo] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [restoring, startRestore] = useTransition();
-  const [miniOpen, setMiniOpen] = useState(false);
+  const offers = visibleOffers();
 
   useEffect(() => {
     if (!hasAccess) trackEvent("paywall_view", { source: "pricing_page" });
@@ -73,10 +67,10 @@ export default function PaywallContent({
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--text)]">
-          Passe à Copafever <span className="text-[var(--accent)]">Pro</span>
+          Débloque <span className="text-[var(--accent-soft)]">Copafever</span>
         </h1>
         <p className="text-sm text-[var(--text-muted)] mt-2.5">
-          Analyses illimitées. Value bets du jour. Bankroll & suivi du ROI.
+          Toutes les analyses, le chat IA et l&apos;historique. Choisis ton rythme.
         </p>
       </div>
 
@@ -95,7 +89,7 @@ export default function PaywallContent({
             rel="noreferrer"
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
               manageUrl
-                ? "bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20"
+                ? "bg-[var(--accent)]/12 text-[var(--accent-soft)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/20"
                 : "glass text-[var(--text-muted)] cursor-not-allowed"
             }`}
           >
@@ -104,97 +98,65 @@ export default function PaywallContent({
         </div>
       )}
 
-      {/* Benefit checklist — what Pro (any duration) and Lifetime unlock */}
+      {/* Benefit checklist — identical for every duration */}
       <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">
-        Inclus avec Pro et l&apos;Accès à vie
+        Inclus, quelle que soit la durée
       </p>
       <ul className="space-y-2.5 mb-6">
-        {[
-          "Analyses IA illimitées",
-          "Value bets du jour",
-          "Bankroll et suivi du ROI",
-          "Historique illimité",
-        ].map((f) => (
-          <li key={f} className="flex items-center gap-2.5 text-sm text-[#d0d0d0]">
-            <Check size={16} strokeWidth={3} className="shrink-0 text-[var(--accent)]" />
+        {ACCESS_FEATURES.map((f) => (
+          <li key={f} className="flex items-center gap-2.5 text-sm text-[#c3cbe3]">
+            <Check size={16} strokeWidth={3} className="shrink-0 text-[var(--accent-soft)]" />
             {f}
           </li>
         ))}
       </ul>
 
-      {/* Pro yearly — the hero offer */}
-      <button
-        onClick={() => checkout("pro_yearly")}
-        disabled={pending === "pro_yearly" || isCurrent("pro_yearly")}
-        className="relative w-full text-left rounded-2xl p-4 mb-3 glass-neon glow-neon disabled:opacity-70"
-        style={{ borderColor: "rgba(var(--accent-rgb),0.6)", borderWidth: 2 }}
-      >
-        <span className="absolute -top-3 left-4 inline-flex items-center text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--accent)] text-[#06231a]">
-          Meilleure offre · -50%
-        </span>
-        <div className="flex items-start justify-between gap-3 mt-1">
-          <div>
-            <div className="text-base font-black text-[var(--text)]">Annuel</div>
-            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">soit 5 €/mois</div>
-          </div>
-          <div className="text-right">
-            <div className="text-xl font-black text-[var(--text)]">59,99 €</div>
-            <div className="text-[11px] text-[var(--text-muted)]">/ an</div>
-          </div>
-        </div>
-        {isCurrent("pro_yearly") && (
-          <div className="mt-2 text-xs font-bold text-[var(--accent)]">✓ Offre actuelle</div>
-        )}
-      </button>
-
-      {/* Pro monthly */}
-      <button
-        onClick={() => checkout("pro")}
-        disabled={pending === "pro" || isCurrent("pro")}
-        className="w-full text-left rounded-2xl p-4 mb-3 glass disabled:opacity-70"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-base font-bold text-[var(--text)]">Mensuel</div>
-          <div className="text-right">
-            <div className="text-lg font-black text-[var(--text)]">9,99 €</div>
-            <div className="text-[11px] text-[var(--text-muted)]">/ mois</div>
-          </div>
-        </div>
-        {isCurrent("pro") && <div className="mt-2 text-xs font-bold text-[var(--accent)]">✓ Offre actuelle</div>}
-      </button>
-
-      {/* Lifetime */}
-      <button
-        onClick={() => checkout("lifetime")}
-        disabled={pending === "lifetime" || isCurrent("lifetime")}
-        className="w-full text-left rounded-2xl p-4 mb-6 glass disabled:opacity-70"
-      >
-        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full mb-2 bg-[#ffd700]/15 text-[#ffd700]">
-          <InfinityIcon size={11} /> Accès à vie
-        </span>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-base font-bold text-[var(--text)]">À vie</div>
-            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-              ≈ 1 an et demi d&apos;annuel, sans abonnement
+      {/* Durations */}
+      {offers.map((o) => {
+        const highlight = o.highlight;
+        return (
+          <button
+            key={o.plan}
+            onClick={() => checkout(o.plan)}
+            disabled={pending === o.plan || isCurrent(o.plan)}
+            className={`relative w-full text-left rounded-2xl p-4 mb-3 disabled:opacity-70 ${
+              highlight ? "glass-neon glow-neon" : "glass"
+            }`}
+            style={highlight ? { borderColor: "rgba(var(--accent-rgb),0.6)", borderWidth: 2 } : undefined}
+          >
+            {o.badge && (
+              <span
+                className="absolute -top-3 left-4 inline-flex items-center text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full"
+                style={
+                  o.badgeKind === "life"
+                    ? { background: "var(--star)", color: "#0B1330" }
+                    : { background: "var(--accent)", color: "#ffffff" }
+                }
+              >
+                {o.badge}
+              </span>
+            )}
+            <div className={`flex items-start justify-between gap-3 ${o.badge ? "mt-1" : ""}`}>
+              <div>
+                <div className="text-base font-black text-[var(--text)]">{o.name}</div>
+                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{o.sublabel}</div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-xl font-black text-[var(--text)]">
+                  {pending === o.plan ? "…" : o.priceLabel}
+                </div>
+                <div className="text-[11px] text-[var(--text-muted)]">{o.unit}</div>
+              </div>
             </div>
-          </div>
-          <div className="text-lg font-black text-[var(--text)]">79 €</div>
-        </div>
-        {isCurrent("lifetime") && <div className="mt-2 text-xs font-bold text-[var(--accent)]">✓ Offre actuelle</div>}
-      </button>
+            {isCurrent(o.plan) && (
+              <div className="mt-2 text-xs font-bold text-[var(--accent-soft)]">✓ Offre actuelle</div>
+            )}
+          </button>
+        );
+      })}
 
-      {/* Main CTA */}
-      <button
-        onClick={() => checkout("pro_yearly")}
-        disabled={pending === "pro_yearly" || isCurrent("pro_yearly")}
-        className="w-full rounded-2xl py-4 text-base font-black text-[#06231a] transition-transform hover:scale-[1.01] active:scale-100 disabled:opacity-60"
-        style={{ background: "linear-gradient(135deg, #0fb5a0, var(--accent))" }}
-      >
-        {pending === "pro_yearly" ? "Redirection…" : "Débloquer Copafever Pro"}
-      </button>
       <p className="text-center text-[11px] text-[var(--text-muted)] mt-2.5">
-        59,99 €/an · sans engagement, annulable à tout moment
+        Sans engagement · résiliable à tout moment · paiement sécurisé via Whop
       </p>
 
       {(error || info) && (
@@ -209,53 +171,11 @@ export default function PaywallContent({
         </div>
       )}
 
-      {/* Mini — deliberately understated, entry offer, but fully detailed on click */}
-      <div className="mt-6 pt-5 border-t border-white/5">
-        <button
-          onClick={() => setMiniOpen((v) => !v)}
-          className="w-full flex items-center justify-between gap-3 text-left opacity-75 hover:opacity-100 transition-opacity"
-        >
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Offre Mini</div>
-            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Pour tester, à petit prix</div>
-          </div>
-          <div className="text-sm text-[var(--text-muted)] shrink-0">2,99 € / mois</div>
-        </button>
-
-        {miniOpen && (
-          <div className="mt-3 space-y-2">
-            {MINI_INCLUDED.map((f) => (
-              <div key={f} className="flex items-center gap-2.5 text-sm text-[#d0d0d0]">
-                <Check size={15} strokeWidth={3} className="shrink-0 text-[var(--accent)]" />
-                {f}
-              </div>
-            ))}
-            {MINI_EXCLUDED.map((f) => (
-              <div key={f} className="flex items-center gap-2.5 text-sm text-[var(--text-muted)]">
-                <X size={15} strokeWidth={3} className="shrink-0" />
-                <span className="line-through decoration-[var(--text-muted)]/50">{f}</span>
-              </div>
-            ))}
-            <button
-              onClick={() => checkout("mini")}
-              disabled={pending === "mini" || isCurrent("mini")}
-              className="w-full rounded-xl py-3 mt-2 text-sm font-bold text-[var(--text)] glass hover:bg-white/[0.06] transition-colors disabled:opacity-60"
-            >
-              {pending === "mini" ? "Redirection…" : "Choisir Mini — 2,99 €/mois"}
-            </button>
-          </div>
-        )}
-        {isCurrent("mini") && <div className="mt-2 text-xs font-bold text-[var(--text-muted)]">✓ Offre actuelle</div>}
-      </div>
-
       {/* Footer */}
       <div className="mt-8 text-center space-y-3">
         <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto leading-relaxed">
-          Mini et Pro : abonnements annulables à tout moment, sans engagement.
-          Accès à vie : un seul paiement, pour toujours.
-          <br />
-          Les analyses sont fournies à titre informatif. Les paris sportifs comportent des risques ·
-          Réservé aux 18 ans et plus · Jouez responsable.
+          Copafever est un outil d&apos;analyse de matchs, fourni à titre informatif. Ce n&apos;est ni un
+          service de paris, ni un conseil financier.
         </p>
         <button
           onClick={restore}

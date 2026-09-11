@@ -16,7 +16,7 @@ import { planHasFeature, type Feature } from "@/lib/plans";
  */
 export default function FeatureGate({
   feature,
-  label = "Réservé à Copafever Pro",
+  label = "Réservé aux abonnés",
   children,
 }: {
   feature: Feature;

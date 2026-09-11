@@ -48,7 +48,7 @@ function Bar({ label, pct, accent }: { label: string; pct: number; accent: boole
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-sm text-[#b8bfca]">{label}</span>
+        <span className="text-sm text-[#c3cbe3]">{label}</span>
         <span className={`text-sm font-black tabular-nums ${accent ? "text-[var(--accent)]" : "text-[#e8e8e8]"}`}>
           {pct}%
         </span>
@@ -60,7 +60,7 @@ function Bar({ label, pct, accent }: { label: string; pct: number; accent: boole
           viewport={{ once: true }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           className="h-full rounded-full"
-          style={{ background: accent ? "var(--accent)" : "#5b6472" }}
+          style={{ background: accent ? "var(--accent)" : "rgba(var(--star-rgb),0.25)" }}
         />
       </div>
     </div>
@@ -103,7 +103,7 @@ export default function LivePrediction({ card, analysesCount }: { card: Predicti
             <CountUp to={analysesCount} className="font-black text-[var(--accent)] tabular-nums" /> {copy.eyebrow}
           </span>
         </div>
-        <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-[#f4f5f7] leading-[1.08] mb-12">
+        <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-[var(--text)] leading-[1.08] mb-12">
           {copy.title}{" "}
           <span
             style={{
@@ -131,7 +131,7 @@ export default function LivePrediction({ card, analysesCount }: { card: Predicti
                 <Sparkles size={16} className="text-[var(--accent)]" />
               </span>
               <div className="min-w-0">
-                <p className="text-base font-black text-[#f4f5f7]">{copy.aiLabel}</p>
+                <p className="text-base font-black text-[var(--text)]">{copy.aiLabel}</p>
                 <p className="text-xs text-[var(--text-muted)] leading-snug">{card.kickoff}</p>
               </div>
             </div>
@@ -147,14 +147,14 @@ export default function LivePrediction({ card, analysesCount }: { card: Predicti
               <span className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center text-3xl shrink-0">
                 {card.homeFlag}
               </span>
-              <span className="text-sm font-black text-[#f4f5f7] text-center truncate w-full">{card.homeName}</span>
+              <span className="text-sm font-black text-[var(--text)] text-center truncate w-full">{card.homeName}</span>
             </div>
             <span className="text-lg font-black text-[var(--text-muted)] shrink-0">VS</span>
             <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
               <span className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center text-3xl shrink-0">
                 {card.awayFlag}
               </span>
-              <span className="text-sm font-black text-[#f4f5f7] text-center truncate w-full">{card.awayName}</span>
+              <span className="text-sm font-black text-[var(--text)] text-center truncate w-full">{card.awayName}</span>
             </div>
           </div>
 
@@ -170,7 +170,7 @@ export default function LivePrediction({ card, analysesCount }: { card: Predicti
             <div className="flex items-center justify-between rounded-2xl bg-white/[0.03] border border-white/5 px-4 py-3">
               <span className="inline-flex items-center gap-2 text-sm text-[#d8dde5]">
                 <CheckCircle2 size={16} className="text-[var(--accent)]" />
-                {copy.scoreEstimate} : <span className="font-black text-[#f4f5f7]">{card.scoreHome} - {card.scoreAway}</span>
+                {copy.scoreEstimate} : <span className="font-black text-[var(--text)]">{card.scoreHome} - {card.scoreAway}</span>
               </span>
               <span className="text-[10px] font-black uppercase tracking-wide text-[var(--text-muted)]">Free</span>
             </div>

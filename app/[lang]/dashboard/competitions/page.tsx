@@ -136,7 +136,7 @@ export default async function CompetitionsPage() {
               </div>
               {isLifetime ? (
                 <span className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold bg-[var(--accent)]/12 text-[var(--accent)] border border-[var(--accent)]/25 shrink-0">
-                  <Check size={16} strokeWidth={3} /> Couvert par ton Accès à vie
+                  <Check size={16} strokeWidth={3} /> Couvert par ton abonnement
                 </span>
               ) : (
                 <Link

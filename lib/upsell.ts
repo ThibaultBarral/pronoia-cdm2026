@@ -18,7 +18,7 @@ export const LOCKED_TEASERS: LockedTeaser[] = [
     id: "chat_ia",
     label: "Chat IA",
     title: "Le Chat IA est réservé aux membres",
-    body: "Pose tes questions à l'IA sur n'importe quel match et obtiens une réponse claire en quelques secondes. Inclus dans Copafever Pro à 9,99 €/mois en illimité.",
+    body: "Pose tes questions à l'IA sur n'importe quel match et obtiens une réponse claire en quelques secondes. Inclus dans toutes les formules, dès 9,99 € la semaine.",
   },
 ];
 

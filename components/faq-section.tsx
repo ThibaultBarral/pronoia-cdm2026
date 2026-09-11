@@ -16,10 +16,10 @@ export default function FaqSection() {
   return (
     <section id="faq" className="max-w-3xl mx-auto px-4 py-16">
       <div className="text-center mb-10">
-        <p className="text-xs text-[#3a4560] uppercase tracking-widest mb-2 font-medium">
+        <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest mb-2 font-medium">
           {t("faq.label")}
         </p>
-        <h2 className="text-3xl md:text-4xl font-bold text-[#f0f0f0]">
+        <h2 className="text-3xl md:text-4xl font-bold text-[var(--text)]">
           {t("faq.titlePre")}{" "}
           <span className="text-[var(--accent)]">{t("faq.titleAccent")}</span>
         </h2>
@@ -40,7 +40,7 @@ export default function FaqSection() {
                 className="w-full flex items-center gap-3 text-left px-5 py-4"
                 aria-expanded={isOpen}
               >
-                <span className="flex-1 text-sm md:text-base font-bold text-[#f0f0f0]">
+                <span className="flex-1 text-sm md:text-base font-bold text-[var(--text)]">
                   {item.q}
                 </span>
                 <span

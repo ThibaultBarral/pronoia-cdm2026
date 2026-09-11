@@ -21,7 +21,7 @@ import { useTranslations } from "@/lib/i18n/locale-provider";
 const DM_X = "https://x.com/0xCopa";
 const DM_INSTA = "https://ig.me/m/0xcopa";
 
-// Questions réelles que se posent les parieurs. Une issue (X ou Insta) par chip.
+// Questions réelles que se posent les visiteurs. Une issue (X ou Insta) par chip.
 const QUESTIONS: { qKey: string; to: "twitter" | "instagram" }[] = [
   { qKey: "askFounder.q1", to: "instagram" },
   { qKey: "askFounder.q2", to: "twitter" },
@@ -120,7 +120,7 @@ export default function AskFounder() {
             </span>
           </div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#f0f0f0]">{t("askFounder.title")}</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-[var(--text)]">{t("askFounder.title")}</h2>
           </div>
           <p className="text-[#7a8599] text-sm max-w-md">
             {t("askFounder.subtitlePre")}{" "}

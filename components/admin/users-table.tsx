@@ -33,7 +33,7 @@ type SortKey =
 
 type Access = "all" | "paid" | "vip" | "admin" | "free";
 
-const PLAN_ORDER: Plan[] = ["free", "mini", "pro", "pro_yearly", "lifetime"];
+const PLAN_ORDER: Plan[] = ["free", "week", "month", "year", "mini", "pro", "pro_yearly", "lifetime"];
 
 const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "name", label: "Utilisateur" },

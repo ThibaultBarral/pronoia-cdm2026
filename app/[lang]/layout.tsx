@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0a0a0a",
+  themeColor: "#050A1F",
 };
 
 /** hreflang map: French-only site, served at the root. */
@@ -47,16 +47,16 @@ export async function generateMetadata({
   const { lang } = await params;
   const locale: Locale = isLocale(lang) ? lang : defaultLocale;
 
-  const title = "Copafever — Analyses IA & paris de la Coupe du Monde 2026";
+  const title = "Copafever : l'analyse de matchs de foot par la data";
   const description =
-    "Copafever : analyses IA, value bets, cotes en direct, compositions et stats réelles pour chaque match de la Coupe du Monde 2026. Parie plus malin.";
+    "Copafever analyse chaque match de Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des Champions et Ligue Europa à partir de millions de données réelles. Une lecture claire du match, sans paris.";
 
   return {
     metadataBase: new URL(SITE),
     title: { default: title, template: "%s | Copafever" },
     description,
     applicationName: "Copafever",
-    keywords: ["Copafever", "Coupe du Monde 2026", "CDM 2026", "analyse IA football", "paris sportifs CDM 2026", "value bets", "cotes Coupe du Monde", "pronostics CDM 2026"],
+    keywords: ["Copafever", "analyse de match football", "analyse IA football", "statistiques football", "Ligue 1", "Premier League", "Ligue des Champions", "saison 2026/27"],
     authors: [{ name: "Copafever" }],
     creator: "Copafever",
     publisher: "Copafever",
@@ -71,8 +71,8 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: "Copafever — Analyses IA CDM 2026",
-      description: "Analyses IA, value bets et cotes en direct pour la Coupe du Monde 2026.",
+      title: "Copafever : l'analyse de matchs de foot par la data",
+      description: "Chaque match des grands championnats, lu par la data et expliqué en clair. Sans paris.",
     },
     robots: {
       index: true,
@@ -99,7 +99,7 @@ export default async function RootLayout({
 
   return (
     <html lang={localeMeta[locale].htmlLang} className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0] antialiased" suppressHydrationWarning>
+      <body className="min-h-screen bg-[var(--bg)] text-[var(--text)] antialiased" suppressHydrationWarning>
         <Analytics />
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <script
@@ -115,7 +115,7 @@ export default async function RootLayout({
                   alternateName: "Copa Fever",
                   url: SITE,
                   logo: `${SITE}/copafever-icon.svg`,
-                  description: "Analyses IA et value bets pour la Coupe du Monde 2026.",
+                  description: "Analyse de matchs de football par la data : forme, effectifs, confrontations et statistiques, expliqués en clair.",
                 },
                 {
                   "@type": "WebSite",

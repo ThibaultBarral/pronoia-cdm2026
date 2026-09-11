@@ -1,42 +1,35 @@
 import Navbar from "@/components/navbar";
 import Hero from "@/components/hero";
-import PromoBanner from "@/components/landing/promo-banner";
 import LivePrediction, { type PredictionCard } from "@/components/landing/live-prediction";
 import DecodedMatches from "@/components/landing/decoded-matches";
-import AllNations, { type Nation } from "@/components/landing/all-nations";
-import HowItPredicts from "@/components/landing/how-it-predicts";
-import LiveMode from "@/components/landing/live-mode";
-import ShareReferral from "@/components/landing/share-referral";
-import FinalCta from "@/components/landing/final-cta";
-import ProductShowcase from "@/components/landing/product-showcase";
-import TikTokReels from "@/components/landing/tiktok-reels";
+import DataEngine from "@/components/landing/data-engine";
+import AnalysisAnatomy from "@/components/landing/analysis-anatomy";
+import CompetitionsSection from "@/components/landing/competitions-section";
+import NotABettingApp from "@/components/landing/not-a-betting-app";
 import AskFounder from "@/components/landing/ask-founder";
+import FinalCta from "@/components/landing/final-cta";
 import PricingSection from "@/components/pricing-section";
-import SocialProof from "@/components/social-proof";
-import ComparisonSection from "@/components/landing/comparison-section";
-import VerifiedResults from "@/components/landing/verified-results";
 import FaqSection from "@/components/faq-section";
-import HomeClient from "@/components/home-client";
 import SiteFooter from "@/components/site-footer";
+import type { PhoneMockupProps } from "@/components/landing/phone-mockup";
 import { getMatches } from "@/lib/data-service";
 import { predictMatch } from "@/lib/match-model";
-import { getTrackRecordStats, getTrackRecordList } from "@/lib/track-record";
 import { getFaq } from "@/lib/faq";
 import { SOCIAL_LINKS } from "@/lib/social";
+import { COMPETITIONS, TOTAL_SEASON_MATCHES } from "@/lib/competitions";
 import { defaultLocale, isLocale } from "@/lib/i18n/config";
 import type { Match } from "@/lib/types";
 import type { Locale } from "@/lib/i18n/config";
 
 export const revalidate = 3600;
 
-/** Human kickoff label for prediction cards ("Coupe du Monde · sam. 4 juil. à 23:00"). */
-function kickoffLabel(m: Match, locale: Locale): string {
-  const league = locale === "en" ? "World Cup" : "Coupe du Monde";
+/** Human kickoff label for prediction cards ("Ligue 1 · sam. 4 oct. · 21:00"). */
+function kickoffLabel(m: Match): string {
   let when = m.round;
   try {
     const d = new Date(`${m.date}T${m.time || "00:00"}`);
     if (!Number.isNaN(d.getTime())) {
-      const dateStr = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "fr-FR", {
+      const dateStr = new Intl.DateTimeFormat("fr-FR", {
         weekday: "short",
         day: "numeric",
         month: "short",
@@ -44,18 +37,24 @@ function kickoffLabel(m: Match, locale: Locale): string {
       when = m.time ? `${dateStr} · ${m.time}` : dateStr;
     }
   } catch {}
-  return `${league} · ${when}`;
+  return `${competitionLabel(m)} · ${when}`;
+}
+
+/** Competition name for a fixture (club competitions once wired; national otherwise). */
+function competitionLabel(m: Match): string {
+  const withComp = m as Match & { competition?: { name?: string } };
+  return withComp.competition?.name ?? "Sélections";
 }
 
 /** Build a plain, client-safe prediction card from a real fixture. */
-function toPredictionCard(m: Match, locale: Locale): PredictionCard {
+function toPredictionCard(m: Match): PredictionCard {
   const p = predictMatch(m);
   return {
     homeName: m.homeTeam.name,
     homeFlag: m.homeTeam.flag,
     awayName: m.awayTeam.name,
     awayFlag: m.awayTeam.flag,
-    kickoff: kickoffLabel(m, locale),
+    kickoff: kickoffLabel(m),
     probHome: p.probabilities.home,
     probDraw: p.probabilities.draw,
     probAway: p.probabilities.away,
@@ -64,44 +63,36 @@ function toPredictionCard(m: Match, locale: Locale): PredictionCard {
   };
 }
 
+/** W/D/L string (oldest → newest, last 5) from a team's real recent form. */
+function formString(m: Match["homeTeam"]): string | undefined {
+  const f = m.recentForm?.slice(0, 5).map((r) => r.result).reverse().join("");
+  return f && f.length ? f : undefined;
+}
+
 export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
-  const locale = isLocale(lang) ? lang : defaultLocale;
-  const [matches, trackStats, trackList] = await Promise.all([
-    getMatches(),
-    getTrackRecordStats(),
-    getTrackRecordList(60),
-  ]);
+  const locale: Locale = isLocale(lang) ? lang : defaultLocale;
+  void locale;
 
-  // Honest "Trouvé juste" proof — only the real settled-as-won predictions.
-  const verifiedRows = trackList
-    .filter((r) => r.status === "won")
-    .slice(0, 6)
-    .map((r) => ({
-      id: r.id,
-      matchLabel: r.matchLabel,
-      homeFlag: r.homeFlag,
-      awayFlag: r.awayFlag,
-      market: r.market,
-      selection: r.selection,
-      odds: r.odds,
-    }));
-  const showVerified = verifiedRows.length >= 3;
+  const matches = await getMatches().catch(() => [] as Match[]);
 
-  // Upcoming fixtures, soonest first, real teams only.
+  // Upcoming fixtures (kickoff still ahead), soonest first, real teams only.
+  const now = Date.now();
   const upcoming = matches
     .filter(
       (m) =>
         (m.status ?? "NS") === "NS" &&
         !m.homeTeam.isPlaceholder &&
-        !m.awayTeam.isPlaceholder,
+        !m.awayTeam.isPlaceholder &&
+        new Date(`${m.date}T${m.time || "00:00"}`).getTime() > now,
     )
     .sort(
       (a, b) =>
         new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime(),
     );
 
-  // Hero "next big match" — strongest pairing among the next dozen.
+  // Hero mockup: the soonest marquee fixture with real model numbers when there
+  // is one; otherwise an illustrative example (clearly labelled as such).
   const marquee = upcoming
     .slice(0, 12)
     .sort(
@@ -109,19 +100,29 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
         a.homeTeam.fifaRanking + a.awayTeam.fifaRanking -
         (b.homeTeam.fifaRanking + b.awayTeam.fifaRanking),
     )[0];
-  const featuredMatch = marquee
-    ? {
-        id: marquee.id,
-        home: { name: marquee.homeTeam.name, flag: marquee.homeTeam.flag },
-        away: { name: marquee.awayTeam.name, flag: marquee.awayTeam.flag },
-        date: marquee.date,
-        time: marquee.time,
-        round: marquee.round,
-      }
-    : undefined;
 
-  // Live prediction card (the marquee fixture, real model numbers).
-  const liveCard: PredictionCard | undefined = marquee ? toPredictionCard(marquee, locale) : undefined;
+  let mockup: PhoneMockupProps | undefined;
+  if (marquee) {
+    const p = predictMatch(marquee);
+    mockup = {
+      homeFlag: marquee.homeTeam.flag,
+      homeName: marquee.homeTeam.name,
+      awayFlag: marquee.awayTeam.flag,
+      awayName: marquee.awayTeam.name,
+      competition: competitionLabel(marquee),
+      probHome: p.probabilities.home,
+      probDraw: p.probabilities.draw,
+      probAway: p.probabilities.away,
+      xgHome: p.expectedGoals.home,
+      xgAway: p.expectedGoals.away,
+      formHome: formString(marquee.homeTeam),
+      formAway: formString(marquee.awayTeam),
+      illustrative: false,
+    };
+  }
+
+  // Live read card (the marquee fixture, real model numbers).
+  const liveCard: PredictionCard | undefined = marquee ? toPredictionCard(marquee) : undefined;
 
   // "Three fixtures already decoded" — next three strong, distinct fixtures.
   const decoded = upcoming
@@ -133,23 +134,11 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
     )
     .filter((m) => m.id !== marquee?.id)
     .slice(0, 3)
-    .map((m) => toPredictionCard(m, locale));
-
-  // "48 nations" flag wall — unique real teams from the fixtures.
-  const seen = new Set<string>();
-  const nations: Nation[] = [];
-  for (const m of matches) {
-    for (const t of [m.homeTeam, m.awayTeam]) {
-      if (t.isPlaceholder || !t.flag || seen.has(t.name)) continue;
-      seen.add(t.name);
-      nations.push({ name: t.name, flag: t.flag });
-    }
-  }
-
-  // Honest analyses counter for the live section.
-  const analysesCount = Math.max(trackStats.verified, matches.length, 100);
+    .map(toPredictionCard);
 
   const FAQ = getFaq(locale);
+  const description =
+    "Copafever analyse chaque match de football à partir de millions de données réelles : forme, effectifs, confrontations, statistiques joueurs. Une lecture claire du match, sans paris.";
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -157,10 +146,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       name: "Copafever",
       url: "https://copafever.com",
       logo: "https://copafever.com/copafever-icon.svg",
-      description:
-        locale === "en"
-          ? "AI-powered betting assistant: analysis, value bets and bankroll tracking for the 2026 World Cup and major leagues."
-          : "Assistant de paris propulsé par l'IA : analyses, value bets et suivi de bankroll pour la Coupe du Monde 2026 et les grands championnats.",
+      description,
       sameAs: SOCIAL_LINKS.map((s) => s.href),
     },
     {
@@ -186,33 +172,21 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PromoBanner />
       <Navbar />
       <Hero
-        stats={{ matches: matches.length, verified: trackStats.verified, winRate: trackStats.winRate }}
-        featuredMatch={featuredMatch}
+        stats={{ matches: TOTAL_SEASON_MATCHES, competitions: COMPETITIONS.length }}
+        mockup={mockup}
       />
-      {liveCard && <LivePrediction card={liveCard} analysesCount={analysesCount} />}
-      <ComparisonSection winRate={trackStats.winRate} />
-      {showVerified && (
-        <VerifiedResults
-          data={{ winRate: trackStats.winRate, won: trackStats.won, total: trackStats.total, rows: verifiedRows }}
-        />
-      )}
-      <DecodedMatches cards={decoded} />
-      <ProductShowcase />
-      <TikTokReels />
-      <AllNations nations={nations} />
-      <HowItPredicts />
-      <LiveMode />
-      <ShareReferral />
-      <SocialProof />
+      {liveCard && <LivePrediction card={liveCard} analysesCount={Math.max(matches.length, 100)} />}
+      <DataEngine />
+      <AnalysisAnatomy />
+      <CompetitionsSection />
+      <NotABettingApp />
+      {decoded.length >= 3 && <DecodedMatches cards={decoded} />}
       <AskFounder />
       <FinalCta />
       <PricingSection />
       <FaqSection />
-      <div id="matches" />
-      <HomeClient matches={matches} />
       <SiteFooter />
     </main>
   );

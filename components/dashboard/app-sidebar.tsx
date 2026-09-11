@@ -165,7 +165,7 @@ export default function AppSidebar() {
                 Débloque les analyses IA complètes
               </p>
               <p className="text-[11px] text-[#8a929e] leading-snug mb-2.5">
-                Value bets, bankroll & analyses illimitées dès 2,99 €/mois.
+                Toutes les analyses, le chat IA et l&apos;historique, dès 9,99 € la semaine.
               </p>
               <div className="w-full text-center rounded-lg bg-[var(--accent)] text-[#06231a] text-xs font-bold py-2">
                 Voir les plans →
