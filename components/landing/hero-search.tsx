@@ -58,7 +58,7 @@ export default function HeroSearch({ matches }: { matches: number }) {
         {!key ? (
           <>
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-[var(--text)] leading-[1.02] text-center">
-              Tape une équipe.
+              Choisis ton équipe.
               <br />
               <span
                 style={{
@@ -67,7 +67,7 @@ export default function HeroSearch({ matches }: { matches: number }) {
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                On te lit le match.
+                On analyse le match.
               </span>
             </h1>
             <p className="text-[var(--text-muted)] text-base sm:text-lg mt-5 mb-8 text-center leading-relaxed">

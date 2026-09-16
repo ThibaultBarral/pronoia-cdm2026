@@ -19,7 +19,7 @@ export const revalidate = 3600;
  * is gone from here; their components stay in the repo.
  */
 const STEPS = [
-  { n: "1", t: "Tape une équipe", d: "Ou choisis une compétition." },
+  { n: "1", t: "Choisis ton équipe", d: "Ou une compétition." },
   { n: "2", t: "Choisis le match", d: "Jusqu'à 7 jours avant le coup d'envoi." },
   { n: "3", t: "Lis l'analyse", d: "Scénario, forces, joueurs à suivre, chat IA." },
 ];
