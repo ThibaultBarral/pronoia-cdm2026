@@ -12,13 +12,12 @@ export default function Navbar() {
         {/* Logo */}
         <LocaleLink href="/" className="flex items-center group">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-7 w-auto" />
+          <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-7 w-auto" />
         </LocaleLink>
 
         {/* Nav links — hidden on mobile */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-[var(--text-muted)]">
           <LocaleLink href="/#how-it-works" className="hover:text-[var(--text)] transition-colors">{t("navbar.howItWorks")}</LocaleLink>
-          <LocaleLink href="/#competitions" className="hover:text-[var(--text)] transition-colors">{t("navbar.competitions")}</LocaleLink>
           <LocaleLink href="/#tarifs" className="hover:text-[var(--text)] transition-colors">{t("navbar.pricing")}</LocaleLink>
           <LocaleLink href="/#faq" className="hover:text-[var(--text)] transition-colors">{t("navbar.faq")}</LocaleLink>
         </nav>

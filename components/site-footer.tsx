@@ -42,7 +42,7 @@ export default function SiteFooter() {
           {/* Brand + social */}
           <div className="col-span-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-7 w-auto mb-3" />
+            <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-7 w-auto mb-3" />
             <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-xs mb-4">
               {t("footer.tagline")}
             </p>

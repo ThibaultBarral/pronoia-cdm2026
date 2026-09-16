@@ -56,7 +56,7 @@ export default function MobileNav() {
       >
         <Link href="/dashboard" className="flex items-center" aria-label="Accueil">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
+          <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-6 w-auto" />
         </Link>
         <button
           onClick={() => setOpen(true)}
@@ -86,7 +86,7 @@ export default function MobileNav() {
             {/* Header row */}
             <div className="flex items-center justify-between px-4 h-14 border-b border-white/5 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
+              <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-6 w-auto" />
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Fermer le menu"

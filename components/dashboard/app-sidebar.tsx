@@ -41,7 +41,7 @@ export default function AppSidebar() {
       <div className="px-5 pt-5 pb-4">
         <Link href="/" className="flex flex-col gap-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
+          <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-6 w-auto" />
           <div className="text-[10px] text-[var(--text-muted)] tracking-wide">Analyse de matchs · Saison 2026/27</div>
         </Link>
       </div>

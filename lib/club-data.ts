@@ -17,6 +17,7 @@ import "server-only";
 import {
   fetchFixtureById,
   fetchTeamSeasonFixtures,
+  fetchLeagueUpcoming,
   fetchSquad,
   fetchCoach,
   fetchH2H,
@@ -25,7 +26,7 @@ import {
   type ApiTeam,
 } from "./api-football";
 import { getCachedOrFetch } from "./api-cache";
-import { COMPETITIONS, type Competition } from "./competitions";
+import { COMPETITIONS, getCompetition, type Competition } from "./competitions";
 import { getCompetitionClubs, type CompetitionClub } from "./competition-data";
 import { mapSquad, mapForm, computeMomentum, mapH2H, mapStatus } from "./data-service";
 import type { Match, Team, Lineup } from "./types";
@@ -218,6 +219,22 @@ export async function getClubFixtures(
     .filter((r) => !FINISHED_STATUSES.has(r.status ?? ""))
     .sort((a, b) => Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso));
   return { past, upcoming };
+}
+
+/** Next fixtures of a competition (landing chips) — lean rows, soonest first. */
+export async function getCompetitionUpcoming(slug: string, limit = 8): Promise<ClubFixture[]> {
+  const comp = getCompetition(slug);
+  if (!comp || !hasApiKey()) return [];
+  const fixtures = await getCachedOrFetch(
+    `league-upcoming:${comp.leagueId}:${CLUB_SEASON}`,
+    3600,
+    () => fetchLeagueUpcoming(comp.leagueId, CLUB_SEASON, limit),
+  ).catch(() => [] as ApiFixtureResponse[]);
+  const now = Date.now();
+  return fixtures
+    .map((f) => toClubFixture(f, now))
+    .sort((a, b) => Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso))
+    .slice(0, limit);
 }
 
 /** Registered squad of a club — cached 24h. */

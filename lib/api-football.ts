@@ -310,6 +310,18 @@ export const RECENT_SEASONS = [2026, 2024, 2023] as const;
 export const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
 
 /** All fixtures for a team in a given season (all competitions) — cached 12h */
+/** Next `next` fixtures of a league — cached 1h (feeds the landing chips). */
+export async function fetchLeagueUpcoming(
+  leagueId: number,
+  season: number,
+  next = 10
+): Promise<ApiFixtureResponse[]> {
+  return apiFetch<ApiFixtureResponse>(
+    `/fixtures?league=${leagueId}&season=${season}&next=${next}`,
+    3600
+  );
+}
+
 export async function fetchTeamSeasonFixtures(
   teamId: number,
   season: number

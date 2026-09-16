@@ -95,7 +95,7 @@ export default function LoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/copafever-icon.svg" alt="" className="w-14 h-14 rounded-2xl mx-auto mb-4" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-8 w-auto mx-auto" />
+          <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-8 w-auto mx-auto" />
           <p className="text-sm text-[#555] mt-2">Analyse de matchs · Saison 2026/27</p>
         </div>
 

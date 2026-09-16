@@ -76,7 +76,7 @@ export default function OnboardingPage() {
         {/* Progress */}
         <div className="flex items-center justify-between mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/copafever-primary.svg?v=2" alt="Copafever" className="h-6 w-auto" />
+          <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-6 w-auto" />
           <div className="flex items-center gap-1.5">
             {[1, 2].map((i) => (
               <span

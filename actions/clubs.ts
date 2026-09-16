@@ -4,6 +4,7 @@ import {
   searchClubs,
   getClubById,
   getClubFixtures,
+  getCompetitionUpcoming,
   type ClubSummary,
   type ClubFixture,
 } from "@/lib/club-data";
@@ -47,4 +48,9 @@ export async function saveFavoriteClubAction(club: {
     },
   });
   return { ok: !error };
+}
+
+/** Next fixtures of a competition — the landing page chips. */
+export async function getCompetitionFixturesAction(slug: string): Promise<ClubFixture[]> {
+  return getCompetitionUpcoming(slug, 8);
 }
