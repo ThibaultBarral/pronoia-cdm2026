@@ -239,11 +239,14 @@ function ratingFromRank(rank: number | undefined, isEuropean: boolean): number {
 }
 
 function monogram(name: string): string {
-  return name
+  const words = name
     .replace(/\b(FC|CF|AC|AS|SC|SS|RC|CD|UD|SD|FK|BK|AFC|CFC)\b/gi, "")
     .trim()
     .split(/\s+/)
-    .filter(Boolean)
+    .filter(Boolean);
+  // Single-word clubs ("Marseille", "Lille") → 3-letter code, not a lone initial.
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words
     .slice(0, 3)
     .map((w) => w[0])
     .join("")

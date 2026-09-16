@@ -34,8 +34,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const done = FINISHED.has(match.status ?? "");
   const comp = compLabel(match);
   const title = done
-    ? `${match.homeTeam.name} ${match.score?.home}-${match.score?.away} ${match.awayTeam.name} : résultat et stats ${comp} | Copafever`
-    : `${match.homeTeam.name} vs ${match.awayTeam.name} : analyse du match ${comp} | Copafever`;
+    ? `${match.homeTeam.name} ${match.score?.home}-${match.score?.away} ${match.awayTeam.name} : résultat et stats ${comp}`
+    : `${match.homeTeam.name} vs ${match.awayTeam.name} : analyse du match ${comp}`;
   const description = done
     ? `Résultat, stats et forme pour ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · ${comp}`
     : `Analyse complète : forme, effectifs, confrontations et lecture du match ${match.homeTeam.name} vs ${match.awayTeam.name} · ${match.round} · ${comp}`;
@@ -146,7 +146,7 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
             {hasRealData && (
               <span className="hidden sm:flex items-center gap-1 text-[10px] text-[var(--accent)]/70 border border-[var(--accent)]/10 bg-[var(--accent)]/5 px-2 py-0.5">
                 <Wifi size={9} />
-                En direct
+                Données réelles
               </span>
             )}
             <span className="text-[10px] text-[var(--accent-soft)] font-mono border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5">
