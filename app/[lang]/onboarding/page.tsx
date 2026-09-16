@@ -100,9 +100,7 @@ export default function OnboardingPage() {
               <h1 className="text-3xl sm:text-4xl font-black text-[var(--text)] leading-tight mb-3">
                 Quelle équipe tu veux analyser ?
               </h1>
-              <p className="text-[var(--text-muted)] mb-6">
-                Ton club, celui de ton pote, celui qui joue ce week-end. On te sort ses prochains matchs.
-              </p>
+              <div className="mb-6" />
               <TeamSearch onSelect={pickClub} autoFocus />
             </motion.section>
           ) : (
@@ -129,10 +127,7 @@ export default function OnboardingPage() {
                   </h1>
                 </div>
               </div>
-              <p className="text-[var(--text-muted)] mb-6">
-                Choisis un match : tu obtiens tout de suite la lecture courte du modèle (favori, score
-                probable). L&apos;analyse complète se débloque ensuite.
-              </p>
+              <div className="mb-5" />
 
               {upcoming === null ? (
                 <div className="flex items-center justify-center gap-2 py-12 text-sm text-[var(--text-muted)]">
@@ -141,8 +136,7 @@ export default function OnboardingPage() {
               ) : upcoming.length === 0 ? (
                 <div className="rounded-2xl glass p-6 text-center">
                   <p className="text-sm text-[var(--text-muted)]">
-                    Aucun match à venir trouvé pour {club.name} pour le moment. Tu peux quand même
-                    continuer, ses matchs apparaîtront dans ton espace dès qu&apos;ils seront programmés.
+                    Aucun match à venir pour {club.name} pour le moment.
                   </p>
                 </div>
               ) : (

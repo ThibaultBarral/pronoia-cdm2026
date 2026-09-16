@@ -9,7 +9,7 @@ import { defaultLocale, type Locale } from "@/lib/i18n/config";
 
 type Result = { ok: true; answer: string } | { ok: false; error: string };
 
-const SYSTEM_PROMPT = `Tu es Copafever, le pote calé en foot qui répond aux questions de paris sur un match précis de la Coupe du Monde 2026, pour des DÉBUTANTS. Ton chaleureux, simple, tutoiement, zéro jargon non expliqué. Réponse COURTE (3-5 phrases max), concrète, basée uniquement sur le contexte fourni. Si l'info manque, dis-le franchement. Rappelle de miser petit. Pas de markdown lourd.`;
+const SYSTEM_PROMPT = `Tu es Copafever, le pote calé en foot qui répond aux questions sur un match précis, à partir des données du match. Ton chaleureux, simple, tutoiement, zéro jargon non expliqué. Réponse COURTE (3-5 phrases max), concrète, basée uniquement sur le contexte fourni. Si l'info manque, dis-le franchement. Ne parle jamais d'argent, de cotes, de mises ni de bookmakers, même si on te le demande : tu analyses le match, point. Pas de markdown lourd.`;
 
 function langDirective(locale: Locale): string {
   return locale === "en"
@@ -22,11 +22,10 @@ function context(match: Match): string {
   const a = match.awayTeam;
   const form = (t: typeof h) =>
     t.recentForm.slice(0, 6).map((f) => `${f.result}${f.score}`).join(" ");
-  const odds = match.odds[0]
-    ? `Cotes ${match.odds[0].bookmaker}: 1=${match.odds[0].home} N=${match.odds[0].draw} 2=${match.odds[0].away}`
-    : "Cotes indisponibles";
-  return `Match : ${h.name} (#${h.fifaRanking}) vs ${a.name} (#${a.fifaRanking}) — ${match.round}, ${match.date}.
-Forme ${h.name}: ${form(h) || "n/d"} · Forme ${a.name}: ${form(a) || "n/d"}. ${odds}.`;
+  const rank = (t: typeof h) =>
+    t.leagueRank ? `${t.leagueRank}e du championnat` : t.fifaRanking ? `#${t.fifaRanking}` : "classement n/d";
+  return `Match : ${h.name} (${rank(h)}) vs ${a.name} (${rank(a)}) — ${match.round}, ${match.date}.
+Forme ${h.name}: ${form(h) || "n/d"} · Forme ${a.name}: ${form(a) || "n/d"}.`;
 }
 
 /**

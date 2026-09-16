@@ -32,8 +32,8 @@ export default function CGUPage() {
       <H>2. Objet</H>
       <p>
         Copafever fournit des analyses générées par intelligence artificielle relatives aux matchs
-        de football, notamment la Coupe du Monde 2026 : statistiques, cotes, formes d&apos;équipes,
-        détection de « value bets » et recommandations. Ces contenus sont fournis à titre
+        de football des grands championnats européens : statistiques, forme des équipes, effectifs,
+        confrontations et probabilités. Ces contenus sont fournis à titre
         <strong className="text-[#f0f0f0]"> informatif et de divertissement uniquement</strong> et ne
         constituent ni un conseil financier, ni une garantie de résultat.
       </p>
@@ -75,11 +75,11 @@ export default function CGUPage() {
         d&apos;exécution du service.
       </p>
 
-      <H>6. Jeu responsable</H>
+      <H>6. Usage des analyses</H>
       <p>
-        Les paris sportifs comportent un risque de perte financière et sont strictement réservés aux
-        personnes majeures (18 ans et plus). Jouez de manière responsable. En cas de difficulté :
-        Joueurs Info Service, 09 74 75 13 13 (appel non surtaxé).
+        Les analyses expriment des probabilités, jamais des certitudes. Elles ne constituent ni un
+        conseil financier, ni une incitation à une quelconque dépense. Le Service est réservé aux
+        personnes majeures (18 ans et plus).
       </p>
 
       <H>7. Propriété intellectuelle</H>

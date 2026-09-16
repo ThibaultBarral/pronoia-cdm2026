@@ -449,7 +449,7 @@ export interface SubscriptionState {
   status: SubStatus | null;
   currentPeriodEnd: string | null;
   trialEnd: string | null;
-  /** Temporary full access earned via the daily pack (jackpot). */
+  /** Temporary full access earned via the legacy daily pack. */
   bonusAccessUntil?: string | null;
 }
 
@@ -467,7 +467,7 @@ export function hasAccess(sub: SubscriptionState | null | undefined): boolean {
   const now = Date.now();
   const within = (iso: string | null) => !!iso && now <= Date.parse(iso);
 
-  // Temporary bonus access (daily-pack jackpot) — grants full access even to a
+  // Temporary bonus access (legacy daily pack) — grants full access even to a
   // `free` plan while it lasts.
   if (within(sub.bonusAccessUntil ?? null)) return true;
 

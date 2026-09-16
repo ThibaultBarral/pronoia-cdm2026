@@ -4,8 +4,7 @@ export default function LegalFooter({ className = "" }: { className?: string }) 
     <p
       className={`text-[11px] leading-relaxed text-[var(--text-muted)] ${className}`}
     >
-      Analyses fournies à titre informatif · Copafever n&apos;est pas un service de paris et ne
-      promet aucun gain.
+      Analyses fournies à titre informatif · des probabilités, jamais des certitudes.
     </p>
   );
 }

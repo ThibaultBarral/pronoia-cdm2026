@@ -1,6 +1,6 @@
 /** FAQ — shared by the visible accordion (components/faq-section) and the
  *  FAQPage JSON-LD on the landing. Keep answers honest and concrete.
- *  Copafever is a match-analysis tool: no betting, no money promise, ever. */
+ *  Copafever is a match-analysis tool. */
 import type { Locale } from "@/lib/i18n/config";
 
 export interface FaqItem {
@@ -12,10 +12,6 @@ const FAQ_FR: FaqItem[] = [
   {
     q: "C'est quoi Copafever, en une phrase ?",
     a: "Copafever est un outil d'analyse de matchs de football : pour chaque rencontre, il croise la forme réelle des deux équipes, les confrontations passées, les effectifs, les absents et les statistiques joueurs, puis l'IA en tire une lecture claire du match, avant le coup d'envoi.",
-  },
-  {
-    q: "Copafever, c'est un site de paris ?",
-    a: "Non. Copafever n'est pas un service de paris, ne propose aucune cote, aucune mise et aucun conseil pour placer de l'argent. Il ne promet aucun gain. C'est un outil pour comprendre un match, comme un supporter qui aurait lu toutes les stats avant toi. Ce que tu fais de cette lecture ne regarde que toi.",
   },
   {
     q: "D'où viennent les données ?",

@@ -4,15 +4,15 @@ import { getMyAnalysis } from "@/lib/supabase/analyses-db";
 import { getTrackRecordStats } from "@/lib/track-record";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchAnalysisData } from "@/lib/analysis-schema";
-import { PronoCard, ResultCard, CARD_SIZE } from "./card";
+import { ReadCard, ResultCard, CARD_SIZE } from "./card";
 
 /**
  * 9:16 shareable image of a match analysis. Two variants:
- *  - "prono"    : pre-match read (predicted score, 1X2 probabilities, value bet).
- *  - "resultat" : post-match proof (real score, IA call ✅/✗, real track record).
+ *  - "lecture"  : pre-match read (predicted score, 1X2 probabilities).
+ *  - "resultat" : post-match proof (real score, IA call ✅/✗, verified hit rate).
  *
  * The variant is auto-detected from the match status (finished → résultat) and
- * can be forced with `?v=prono` / `?v=resultat`. Available to any signed-in user
+ * can be forced with `?v=lecture` / `?v=resultat`. Available to any signed-in user
  * who has generated this match's analysis (it reads their own stored analysis).
  * The card layout lives in ./card (pure, no server imports).
  */
@@ -50,7 +50,7 @@ export async function GET(
   const finished = Boolean(match && FINISHED.has(match.status ?? ""));
   const forced = new URL(req.url).searchParams.get("v");
   const wantResult =
-    forced === "resultat" || (forced !== "prono" && finished);
+    forced === "resultat" || (forced !== "lecture" && finished);
 
   const dateLabel = new Intl.DateTimeFormat("fr-FR", {
     day: "numeric",
@@ -69,7 +69,7 @@ export async function GET(
           awayFlag,
           track: await getTrackRecordStats(),
         })
-      : PronoCard({ data, homeName, awayName, homeFlag, awayFlag, dateLabel });
+      : ReadCard({ data, homeName, awayName, homeFlag, awayFlag, dateLabel });
 
   return new ImageResponse(element, { ...CARD_SIZE, emoji: "twemoji" });
 }

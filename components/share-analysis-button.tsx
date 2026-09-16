@@ -10,7 +10,7 @@ import { Share2, Download, AlertCircle } from "lucide-react";
  * downloads the PNG to post manually.
  *
  * `variant` forces the card style; by default the route auto-detects it from the
- * match status (finished → résultat, otherwise → pronostic).
+ * match status (finished → résultat, otherwise → lecture).
  */
 export default function ShareAnalysisButton({
   matchId,
@@ -19,7 +19,7 @@ export default function ShareAnalysisButton({
 }: {
   matchId: string;
   title: string;
-  variant?: "prono" | "resultat";
+  variant?: "lecture" | "resultat";
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

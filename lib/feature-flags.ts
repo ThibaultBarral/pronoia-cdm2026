@@ -9,8 +9,9 @@ export const FEATURE = {
   lockedNav: process.env.NEXT_PUBLIC_FEATURE_LOCKED_NAV !== "false",
   /** 2-step onboarding: segmentation → pricing (Feature 3). */
   onboardingV2: process.env.NEXT_PUBLIC_FEATURE_ONBOARDING_V2 !== "false",
-  /** Celebration modal + social-proof toasts (Feature 5). */
-  socialProof: process.env.NEXT_PUBLIC_FEATURE_SOCIAL_PROOF !== "false",
-  /** Combo of the day + odds ticker (Feature 7). */
-  combo: process.env.NEXT_PUBLIC_FEATURE_COMBO !== "false",
+  /** Celebration modal + social-proof toasts (Feature 5). OFF since the
+   *  2026-09 repositioning: the wins it celebrates are worded around picks. */
+  socialProof: process.env.NEXT_PUBLIC_FEATURE_SOCIAL_PROOF === "true",
+  /** Combo of the day + ticker (Feature 7). OFF since the 2026-09 repositioning. */
+  combo: process.env.NEXT_PUBLIC_FEATURE_COMBO === "true",
 };

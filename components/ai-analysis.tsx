@@ -1,19 +1,19 @@
 "use client";
 
-import { useCallback, useState, useEffect, useRef, useTransition } from "react";
+import { useCallback, useState, useEffect, useRef, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Sparkles, AlertCircle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Match } from "@/lib/types";
 import { analyzeMatch } from "@/actions/analyze-match";
-import { getMatchPreview, type MatchPreview } from "@/actions/match-preview";
+import { getMatchPreview, type MatchPreview, type MatchPreviewResult } from "@/actions/match-preview";
 import { trackEvent } from "@/lib/analytics";
 import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import { useSubscription } from "@/lib/use-subscription";
 import AnalysisLoader from "@/components/analysis-loader";
 import AnalysisLocked from "@/components/analysis-locked";
 import AnalysisScan from "@/components/analysis-scan";
-import AnalysisTeaser from "@/components/analysis-teaser";
+import AnalysisTeaser, { type TeaserMode } from "@/components/analysis-teaser";
 import AnalysisResult, { ProbRow } from "@/components/analysis-result";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import { useLocale } from "@/lib/i18n/locale-provider";
@@ -119,7 +119,9 @@ export default function AIAnalysis({
   const hasPaidAccess = sub?.access === true;
   // Legacy capped Mini members don't get the scorers/key-players section.
   const canPlayers = sub?.access === true && sub.plan !== "mini";
-  const [preview, setPreview] = useState<MatchPreview | null>(null);
+  const [previewResult, setPreviewResult] = useState<MatchPreviewResult | null>(null);
+  const preview = previewResult?.ok ? previewResult.preview : null;
+  const teaserMode: TeaserMode = previewResult && !previewResult.ok ? (previewResult.gate === "auth" ? "auth" : "free") : "paywall";
   const [data, setData] = useState<MatchAnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
@@ -127,16 +129,26 @@ export default function AIAnalysis({
   // The "analysis in progress" scan plays once per match per tab for
   // non-members; after that the page opens straight on the short read.
   const scanKey = `cf-scan-${match.id}`;
-  const [scanned, setScanned] = useState(false);
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem(scanKey)) setScanned(true);
-    } catch {
-      /* private mode: replay the scan, harmless */
-    }
-  }, [scanKey]);
+  // sessionStorage as an external store: the server snapshot is "not seen"
+  // (hydration-safe), the client reads the real flag. Private mode → replay.
+  const scannedStored = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener("storage", cb);
+      return () => window.removeEventListener("storage", cb);
+    },
+    () => {
+      try {
+        return Boolean(sessionStorage.getItem(scanKey));
+      } catch {
+        return false;
+      }
+    },
+    () => false,
+  );
+  const [scannedNow, setScannedNow] = useState(false);
+  const scanned = scannedStored || scannedNow;
   const finishScan = useCallback(() => {
-    setScanned(true);
+    setScannedNow(true);
     try {
       sessionStorage.setItem(scanKey, "1");
     } catch {
@@ -150,8 +162,8 @@ export default function AIAnalysis({
     if (hasPaidAccess) return;
     let active = true;
     getMatchPreview(match)
-      .then((p) => active && setPreview(p))
-      .catch(() => {});
+      .then((r) => active && setPreviewResult(r))
+      .catch(() => active && setPreviewResult({ ok: false, gate: "auth" }));
     return () => {
       active = false;
     };
@@ -215,9 +227,6 @@ export default function AIAnalysis({
               </span>
             )}
           </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-            Probabilités · Score probable · Scénario · Joueurs à suivre
-          </div>
         </div>
       </div>
 
@@ -228,10 +237,12 @@ export default function AIAnalysis({
           <div className="space-y-5">
             {!scanned ? (
               <AnalysisScan match={match} onDone={finishScan} />
-            ) : preview ? (
+            ) : previewResult ? (
               <>
-                <ModelPreview preview={preview} homeName={h.name} awayName={a.name} homeFlag={h.flag} awayFlag={a.flag} />
-                <AnalysisTeaser matchId={match.id} preview={preview} home={h} away={a} />
+                {preview && (
+                  <ModelPreview preview={preview} homeName={h.name} awayName={a.name} homeFlag={h.flag} awayFlag={a.flag} />
+                )}
+                <AnalysisTeaser matchId={match.id} preview={preview} mode={teaserMode} home={h} away={a} />
               </>
             ) : (
               <div className="flex justify-center py-6">
@@ -284,7 +295,7 @@ export default function AIAnalysis({
               <ShareAnalysisButton
                 matchId={match.id}
                 title={`${h.name} vs ${a.name}`}
-                variant="prono"
+                variant="lecture"
               />
             </div>
           </div>

@@ -3,6 +3,9 @@
 import type { Match, Team } from "@/lib/types";
 import { predictMatch } from "@/lib/match-model";
 import type { Confidence } from "@/lib/analysis-schema";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getSubscription } from "@/lib/ai-guard";
 
 /**
  * The free, model-only short read of a match — shown to non-members above the
@@ -36,7 +39,46 @@ function formLine(t: Team): string | null {
   return `${t.name} : ${w} victoire${w > 1 ? "s" : ""}, ${d} nul${d > 1 ? "s" : ""}, ${l} défaite${l > 1 ? "s" : ""} sur les ${f.length} derniers matchs (${gf} buts marqués, ${ga} encaissés).`;
 }
 
-export async function getMatchPreview(match: Match): Promise<MatchPreview> {
+/**
+ * Why the short read is gated (2026-09-16): it is the one free taste of the
+ * product, so it is worth an account. A visitor must sign up to see it, and a
+ * free account gets it on ONE match only (the first one it opens); every other
+ * match shows the paywall. Members are never gated. The "which match was the
+ * free one" memory lives in app_events (name = "free_read"), no schema change.
+ */
+export type MatchPreviewResult =
+  | { ok: true; preview: MatchPreview }
+  | { ok: false; gate: "auth" | "paywall" };
+
+const FREE_READ_EVENT = "free_read";
+
+export async function getMatchPreview(match: Match): Promise<MatchPreviewResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, gate: "auth" };
+
+  const sub = await getSubscription();
+  if (!sub?.access) {
+    const admin = createAdminClient();
+    const { data: prior } = await admin
+      .from("app_events")
+      .select("props")
+      .eq("user_id", user.id)
+      .eq("name", FREE_READ_EVENT)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const freeMatchId = (prior?.props as { matchId?: string } | null)?.matchId;
+    if (freeMatchId && freeMatchId !== match.id) return { ok: false, gate: "paywall" };
+    if (!freeMatchId) {
+      await admin.from("app_events").insert({ user_id: user.id, name: FREE_READ_EVENT, props: { matchId: match.id } });
+    }
+  }
+
+  return { ok: true, preview: computePreview(match) };
+}
+
+function computePreview(match: Match): MatchPreview {
   const pred = predictMatch(match);
   const { home, draw, away } = pred.probabilities;
   const favorite: MatchPreview["favorite"] =

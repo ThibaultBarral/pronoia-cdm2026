@@ -138,7 +138,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
   const FAQ = getFaq(locale);
   const description =
-    "Copafever analyse chaque match de football à partir de millions de données réelles : forme, effectifs, confrontations, statistiques joueurs. Une lecture claire du match, sans paris.";
+    "Copafever analyse chaque match de football à partir de millions de données réelles : forme, effectifs, confrontations, statistiques joueurs. Une lecture claire du match.";
   const jsonLd = [
     {
       "@context": "https://schema.org",

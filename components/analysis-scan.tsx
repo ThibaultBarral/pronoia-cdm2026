@@ -12,7 +12,9 @@ import type { Match, Team } from "@/lib/types";
  * numbers are already there), it exists so the short read feels earned rather
  * than instant, and so the visitor sees how much goes into the paid analysis.
  *
- * Runs ~5 s, then calls `onDone`. Kept short: it plays once per match per tab.
+ * Runs ~7.5 s (Thibault wants it to feel like it really goes and fetches the
+ * data, between 5 and 10 s), then calls `onDone`. It plays once per match per
+ * tab.
  */
 
 interface ScanLine {
@@ -42,6 +44,7 @@ function buildLines(match: Match): ScanLine[] {
   const lines: ScanLine[] = [];
 
   lines.push({ label: "Connexion aux données du match", value: `${match.competition?.shortName ?? "—"} · ${match.round}` });
+  lines.push({ label: "Matchs de la saison chargés", value: `${(h.recentForm?.length ?? 0) + (a.recentForm?.length ?? 0)} résultats` });
   if (fh.n) lines.push({ label: `Forme ${h.name}`, value: `${fh.w}V ${fh.d}N ${fh.l}D · ${fh.gf} buts / ${fh.ga} encaissés` });
   if (fa.n) lines.push({ label: `Forme ${a.name}`, value: `${fa.w}V ${fa.d}N ${fa.l}D · ${fa.gf} buts / ${fa.ga} encaissés` });
   if (h.leagueRank && a.leagueRank) lines.push({ label: "Classement en championnat", value: `${h.leagueRank}e vs ${a.leagueRank}e` });
@@ -53,7 +56,9 @@ function buildLines(match: Match): ScanLine[] {
   if (h.stats?.xGFor || a.stats?.xGFor) {
     lines.push({ label: "Buts attendus (xG) par match", value: `${(h.stats.xGFor ?? 0).toFixed(2)} vs ${(a.stats.xGFor ?? 0).toFixed(2)}` });
   }
+  lines.push({ label: "Statistiques joueurs", value: `${squad || "—"} profils` });
   lines.push({ label: "Simulation du match", value: "10 000 itérations" });
+  lines.push({ label: "Probabilités et buts attendus", value: "calculés" });
   lines.push({ label: "Lecture du modèle", value: "prête" });
   return lines;
 }
@@ -61,8 +66,8 @@ function buildLines(match: Match): ScanLine[] {
 export default function AnalysisScan({ match, onDone }: { match: Match; onDone: () => void }) {
   const lines = useMemo(() => buildLines(match), [match]);
   const [shown, setShown] = useState(0);
-  // Total ≈ 5 s regardless of how many lines the match has.
-  const stepMs = Math.max(280, Math.min(520, Math.round(4600 / lines.length)));
+  // Total ≈ 7.5 s regardless of how many lines the match has.
+  const stepMs = Math.max(400, Math.min(800, Math.round(7000 / lines.length)));
 
   useEffect(() => {
     if (shown >= lines.length) {

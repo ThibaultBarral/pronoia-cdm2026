@@ -21,6 +21,23 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "30mb",
     },
   },
+  // Routes retired with the 2026-09 repositioning (match analysis only). The
+  // pages still exist in the repo for reference; they are just no longer served.
+  async redirects() {
+    const gone = [
+      "/dashboard/values",
+      "/dashboard/bankroll",
+      "/dashboard/matchs",
+      "/dashboard/roadmap",
+      "/combine-du-jour",
+      "/track-record",
+      "/admin/predictions",
+    ];
+    return gone.flatMap((source) => [
+      { source, destination: "/dashboard", permanent: true },
+      { source: `/:lang(fr|en)${source}`, destination: "/dashboard", permanent: true },
+    ]);
+  },
   async headers() {
     return [
       {

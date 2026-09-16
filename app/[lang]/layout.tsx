@@ -49,7 +49,7 @@ export async function generateMetadata({
 
   const title = "Copafever : l'analyse de matchs de foot par la data";
   const description =
-    "Copafever analyse chaque match de Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des Champions et Ligue Europa à partir de millions de données réelles. Une lecture claire du match, sans paris.";
+    "Copafever analyse chaque match de Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des Champions et Ligue Europa à partir de millions de données réelles. Une lecture claire du match.";
 
   return {
     metadataBase: new URL(SITE),
@@ -72,7 +72,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title: "Copafever : l'analyse de matchs de foot par la data",
-      description: "Chaque match des grands championnats, lu par la data et expliqué en clair. Sans paris.",
+      description: "Chaque match des grands championnats, lu par la data et expliqué en clair.",
     },
     robots: {
       index: true,

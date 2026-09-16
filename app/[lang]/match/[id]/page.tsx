@@ -156,21 +156,16 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-4 space-y-4">
         {/* Title block — kicker + matchup H1 + one-line orientation. Clean and
             direct, so the eye lands on the matchup then the single action below. */}
         <div className="animate-fade-in">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--accent-soft)] mb-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--accent-soft)] mb-1">
             {comp} · {match.round}
           </p>
-          <h1 className="text-2xl md:text-3xl font-black text-[var(--text)] leading-tight">
+          <h1 className="text-xl md:text-3xl font-black text-[var(--text)] leading-tight">
             {match.homeTeam.name} <span className="text-[var(--text-muted)]">vs</span> {match.awayTeam.name}
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1.5">
-            {finished
-              ? "Résultat, forme et statistiques du match."
-              : "La lecture du match : forme, effectifs, confrontations et probabilités."}
-          </p>
         </div>
 
         <div className="animate-fade-in">
@@ -187,9 +182,7 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
                 Affiche à venir, adversaires à déterminer
               </h2>
               <p className="text-sm text-[#888] max-w-md mx-auto">
-                Ce match de {match.round} oppose {match.homeTeam.name} à{" "}
-                {match.awayTeam.name}. L&apos;analyse sera disponible dès que les deux
-                qualifiés seront connus.
+                L&apos;analyse sera disponible dès que les deux qualifiés seront connus.
               </p>
               <Link
                 href="/dashboard"
@@ -207,9 +200,7 @@ export default async function MatchPage({ params, searchParams }: PageProps) {
                 L&apos;analyse s&apos;ouvre 7 jours avant le coup d&apos;envoi
               </h2>
               <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto">
-                Ce match est dans {daysUntil} jours. Plus tôt, la forme et les effectifs ne sont pas
-                encore fixés et l&apos;analyse ne vaudrait pas grand-chose. Reviens quelques jours avant,
-                ou regarde un match plus proche.
+                Ce match est dans {daysUntil} jours. Reviens quelques jours avant, ou regarde un match plus proche.
               </p>
               <Link
                 href="/dashboard"

@@ -5,7 +5,7 @@ import PaywallContent from "@/components/paywall-content";
 
 export const metadata: Metadata = {
   title: "Abonnement — Copafever",
-  description: "Débloque les analyses IA illimitées, les value bets et la bankroll.",
+  description: "Débloque les analyses complètes et le chat IA sur chaque match.",
 };
 
 export default async function PricingPage() {

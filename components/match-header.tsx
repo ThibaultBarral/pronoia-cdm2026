@@ -1,48 +1,17 @@
-import { MapPin, CalendarClock, Shield } from "lucide-react";
+import { MapPin, Shield } from "lucide-react";
 import TeamCrest from "@/components/clubs/team-crest";
 import { Match } from "@/lib/types";
-
-const COUNTRY_NAME: Record<string, string> = {
-  USA: "États-Unis",
-  Canada: "Canada",
-  Mexique: "Mexique",
-};
-
-/** One clean labelled fact row — icon chip + uppercase label + bold value. */
-function InfoRow({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: typeof MapPin;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/15 flex items-center justify-center shrink-0">
-        <Icon size={16} className="text-[var(--accent)]" />
-      </span>
-      <div className="min-w-0">
-        <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
-          {label}
-        </div>
-        <div className="text-sm font-semibold text-[#e8e8e8] truncate">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 function TeamColumn({ team }: { team: Match["homeTeam"] }) {
   const inner = (
     <>
       {team.logo ? (
-        <TeamCrest logo={team.logo} name={team.name} size={72} />
+        <TeamCrest logo={team.logo} name={team.name} size={56} />
       ) : (
-        <span className="text-5xl md:text-7xl">{team.flag}</span>
+        <span className="text-4xl md:text-6xl">{team.flag}</span>
       )}
       <div className="text-center">
-        <div className="text-base md:text-xl font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors leading-tight">
+        <div className="text-sm md:text-lg font-bold text-[#f0f0f0] group-hover:text-[var(--accent)] transition-colors leading-tight">
           {team.name}
         </div>
         {!team.isPlaceholder && (team.leagueRank || team.fifaRanking > 0) && (
@@ -57,15 +26,15 @@ function TeamColumn({ team }: { team: Match["homeTeam"] }) {
     </>
   );
 
-  return <div className="flex flex-col items-center gap-2 px-2 py-1">{inner}</div>;
+  return <div className="flex flex-col items-center gap-1.5 px-1">{inner}</div>;
 }
 
 export default function MatchHeader({ match }: { match: Match }) {
   const date = new Date(`${match.date}T${match.time}:00`);
   const dateStr = date.toLocaleDateString("fr-FR", {
-    weekday: "long",
+    weekday: "short",
     day: "numeric",
-    month: "long",
+    month: "short",
   });
 
   const live = match.status === "1H" || match.status === "2H" || match.status === "HT";
@@ -75,7 +44,7 @@ export default function MatchHeader({ match }: { match: Match }) {
     (live || finished) && match.score?.home != null && match.score?.away != null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl glass p-6 md:p-8">
+    <div className="relative overflow-hidden rounded-2xl glass p-4 md:p-6">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-32 h-32 bg-[var(--accent)]/5 rounded-full blur-3xl" />
@@ -116,10 +85,8 @@ export default function MatchHeader({ match }: { match: Match }) {
               </>
             ) : (
               <>
-                <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center">
-                  <span className="text-lg font-black text-[#888]">VS</span>
-                </div>
-                <span className="text-[var(--accent)] text-sm font-bold">{match.time}</span>
+                <span className="text-[var(--accent)] text-lg font-black tabular-nums">{match.time}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#666]">{dateStr}</span>
               </>
             )}
           </div>
@@ -127,18 +94,11 @@ export default function MatchHeader({ match }: { match: Match }) {
           <TeamColumn team={match.awayTeam} />
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-white/[0.06] my-6" />
-
-        {/* Two clean facts — kickoff + venue. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <InfoRow icon={CalendarClock} label="Coup d'envoi">
-            <span className="capitalize">{dateStr}</span> à {match.time}
-          </InfoRow>
-          <InfoRow icon={MapPin} label="Stade">
-            {match.stadium}, {match.city} ({COUNTRY_NAME[match.country] ?? match.country})
-          </InfoRow>
-        </div>
+        {/* Venue — one quiet line, the analysis is what the page is for. */}
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-[#666] truncate">
+          <MapPin size={11} className="shrink-0" />
+          <span className="truncate">{match.stadium}, {match.city}</span>
+        </p>
       </div>
     </div>
   );

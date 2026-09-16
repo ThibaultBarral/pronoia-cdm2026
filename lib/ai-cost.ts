@@ -18,7 +18,7 @@ const KIND_LABEL: Record<AiKind, string> = {
   match: "Analyse de match",
   team: "Analyse d'équipe",
   chat: "Chat IA (match)",
-  bets: "Lecture de tickets",
+  bets: "Lecture d'images (ancien)",
 };
 
 /**

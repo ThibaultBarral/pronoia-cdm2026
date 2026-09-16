@@ -226,7 +226,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
 
 // ─── Pré-match: vainqueur prédit ──────────────────────────────────────────────
 
-export function PronoCard({
+export function ReadCard({
   data,
   homeName,
   awayName,
@@ -258,7 +258,7 @@ export function PronoCard({
     : `${homeWins ? homeName : awayName} vainqueur probable`;
 
   return (
-    <Shell tag="CDM 2026">
+    <Shell tag="AVANT-MATCH">
       {/* Eyebrow */}
       <div style={{ display: "flex", flexDirection: "column", marginBottom: 56 }}>
         <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 4, color: ACCENT }}>
@@ -465,7 +465,7 @@ export function ResultCard({
             color: correct ? ACCENT : "#9BA1A8",
           }}
         >
-          {correct ? "✅  PRONOSTIC VALIDÉ" : "✗  PRONOSTIC MANQUÉ"}
+          {correct ? "✅  LECTURE CONFIRMÉE" : "✗  LECTURE MANQUÉE"}
         </div>
         <div style={{ display: "flex", fontSize: 34, color: "#cdd3db", marginTop: 20, textAlign: "center" }}>
           Notre IA voyait {predLabel} ({predPct}%)
@@ -475,7 +475,7 @@ export function ResultCard({
       {track.total > 0 && (
         <div style={{ display: "flex", width: "100%", marginTop: 40, gap: 20 }}>
           <StatTile label="RÉUSSITE VÉRIFIÉE" value={`${track.winRate} %`} />
-          <StatTile label="PRONOS RÉGLÉS" value={`${track.total}`} />
+          <StatTile label="MATCHS VÉRIFIÉS" value={`${track.total}`} />
           {track.currentStreak > 0 && (
             <StatTile label="SÉRIE EN COURS" value={`${track.currentStreak} ✅`} />
           )}

@@ -32,7 +32,7 @@ export default function ConfidentialitePage() {
       <ul className="list-disc pl-5 space-y-1.5">
         <li><strong className="text-[#f0f0f0]">Compte</strong> : adresse e-mail, identifiant, et le cas échéant nom/avatar fournis lors d&apos;une connexion via Google.</li>
         <li><strong className="text-[#f0f0f0]">Abonnement</strong> : offre souscrite, statut, dates de période et identifiant d&apos;adhésion Whop. <strong className="text-[#f0f0f0]">Aucune donnée bancaire</strong> n&apos;est stockée par Copafever.</li>
-        <li><strong className="text-[#f0f0f0]">Usage</strong> : nombre d&apos;analyses réalisées, nombre et dates de visites, et données saisies dans le suivi de bankroll (paris enregistrés).</li>
+        <li><strong className="text-[#f0f0f0]">Usage</strong> : nombre d&apos;analyses réalisées, nombre et dates de visites, club favori.</li>
         <li><strong className="text-[#f0f0f0]">Techniques</strong> : données de connexion et cookies strictement nécessaires au fonctionnement (session).</li>
       </ul>
 
@@ -50,7 +50,7 @@ export default function ConfidentialitePage() {
         <li><strong className="text-[#f0f0f0]">Supabase</strong> — authentification et base de données.</li>
         <li><strong className="text-[#f0f0f0]">Whop</strong> — paiement et gestion des abonnements.</li>
         <li><strong className="text-[#f0f0f0]">Anthropic</strong> — génération des analyses (modèle d&apos;IA).</li>
-        <li><strong className="text-[#f0f0f0]">Fournisseur de données sportives</strong> — résultats, effectifs et cotes (aucune donnée personnelle transmise).</li>
+        <li><strong className="text-[#f0f0f0]">Fournisseur de données sportives</strong> — résultats, effectifs, statistiques (aucune donnée personnelle transmise).</li>
         <li><strong className="text-[#f0f0f0]">Vercel</strong> — hébergement de l&apos;application.</li>
       </ul>
       <p>
