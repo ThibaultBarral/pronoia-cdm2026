@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
+import { useCallback, useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Sparkles, AlertCircle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { AUTH_REQUIRED, PAYWALL_REQUIRED } from "@/lib/plans";
 import { useSubscription } from "@/lib/use-subscription";
 import AnalysisLoader from "@/components/analysis-loader";
 import AnalysisLocked from "@/components/analysis-locked";
+import AnalysisScan from "@/components/analysis-scan";
+import AnalysisTeaser from "@/components/analysis-teaser";
 import AnalysisResult, { ProbRow } from "@/components/analysis-result";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import { useLocale } from "@/lib/i18n/locale-provider";
@@ -122,6 +124,25 @@ export default function AIAnalysis({
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const [isPending, startTransition] = useTransition();
+  // The "analysis in progress" scan plays once per match per tab for
+  // non-members; after that the page opens straight on the short read.
+  const scanKey = `cf-scan-${match.id}`;
+  const [scanned, setScanned] = useState(false);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(scanKey)) setScanned(true);
+    } catch {
+      /* private mode: replay the scan, harmless */
+    }
+  }, [scanKey]);
+  const finishScan = useCallback(() => {
+    setScanned(true);
+    try {
+      sessionStorage.setItem(scanKey, "1");
+    } catch {
+      /* ignore */
+    }
+  }, [scanKey]);
 
   // Non-members get the free, model-only preview (zero Claude cost), shown above
   // the blurred AI analysis. Skip the fetch entirely for paying members.
@@ -201,17 +222,22 @@ export default function AIAnalysis({
       </div>
 
       <div className="p-5">
-        {/* Non-member: free model-only preview, then a single sober lock card. */}
+        {/* Non-member: the scan plays first, then the free short read, then
+            the full analysis blurred with one CTA on top. */}
         {!hasPaidAccess && !data && (
           <div className="space-y-5">
-            {preview ? (
-              <ModelPreview preview={preview} homeName={h.name} awayName={a.name} homeFlag={h.flag} awayFlag={a.flag} />
+            {!scanned ? (
+              <AnalysisScan match={match} onDone={finishScan} />
+            ) : preview ? (
+              <>
+                <ModelPreview preview={preview} homeName={h.name} awayName={a.name} homeFlag={h.flag} awayFlag={a.flag} />
+                <AnalysisTeaser matchId={match.id} preview={preview} home={h} away={a} />
+              </>
             ) : (
               <div className="flex justify-center py-6">
                 <div className="w-6 h-6 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin-custom" />
               </div>
             )}
-            <AnalysisLocked matchId={match.id} />
           </div>
         )}
 

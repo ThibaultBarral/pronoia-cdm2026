@@ -14,7 +14,7 @@ const STEPS = [
   "Identification des joueurs clés",
   "Évaluation des forces & faiblesses",
   "Projection des scénarios",
-  "Calcul du pari à valeur",
+  "Joueurs à suivre et absents",
 ];
 
 export default function AnalysisLoader() {
