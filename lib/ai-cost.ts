@@ -12,13 +12,14 @@ export interface ClaudeUsage {
   cache_read_input_tokens?: number | null;
 }
 
-export type AiKind = "match" | "team" | "chat" | "bets";
+export type AiKind = "match" | "team" | "chat" | "bets" | "press";
 
 const KIND_LABEL: Record<AiKind, string> = {
   match: "Analyse de match",
   team: "Analyse d'équipe",
   chat: "Chat IA (match)",
   bets: "Lecture d'images (ancien)",
+  press: "Revue de presse (match)",
 };
 
 /**
@@ -32,6 +33,7 @@ const PRICES: Record<string, ModelPrice> = {
   "claude-sonnet-4-6": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
   "claude-opus-4-8": { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5 },
   "claude-haiku-4-5": { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1 },
+  "claude-sonnet-5": { input: 2, output: 10, cacheWrite: 2.5, cacheRead: 0.2 },
 };
 const DEFAULT_PRICE: ModelPrice = PRICES["claude-sonnet-4-5"];
 

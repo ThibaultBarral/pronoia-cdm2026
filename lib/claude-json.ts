@@ -20,6 +20,12 @@ export async function callClaudeJson<T>(opts: {
   model?: string;
   kind?: AiKind;
   userId?: string | null;
+  /**
+   * Reasoning effort for models with adaptive thinking (Sonnet 5 & co).
+   * "low" is right for structured writing from supplied facts: the thinking
+   * tokens it saves are most of the difference between a 6¢ and a 12¢ call.
+   */
+  effort?: "low" | "medium" | "high";
 }): Promise<T> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Clé API Anthropic manquante.");
@@ -36,6 +42,7 @@ export async function callClaudeJson<T>(opts: {
         { type: "text", text: opts.system, cache_control: { type: "ephemeral" } },
       ],
       messages: [{ role: "user", content: opts.user }],
+      ...(opts.effort ? { output_config: { effort: opts.effort } } : {}),
     });
     // Record token usage + computed cost (best-effort, never throws).
     if (opts.kind) {

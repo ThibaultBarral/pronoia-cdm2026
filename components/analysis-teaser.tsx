@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Lock, Sparkles, Goal, Users, TrendingUp, MessageCircle, Star, Target } from "lucide-react";
+import { Lock, Sparkles, Goal, Users, TrendingUp, MessageCircle, Star, Target, Flag, UserX, Swords, GitCompare, Shuffle, Newspaper } from "lucide-react";
 import type { MatchPreview } from "@/actions/match-preview";
 import type { Team } from "@/lib/types";
 import { trackEvent } from "@/lib/analytics";
@@ -155,7 +155,7 @@ export default function AnalysisTeaser({
             <>
               <p className="text-[var(--text)] font-black text-base leading-tight">L&apos;analyse complète est prête</p>
               <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                Scénario, forces &amp; faiblesses, joueurs à suivre, chat IA.
+                Enjeu, absents, compos, duels, sources croisées, presse, joueurs, chat IA.
               </p>
               <span className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] text-white font-bold px-5 py-2.5 text-sm glow-neon">
                 <Sparkles size={15} /> Débloquer l&apos;analyse complète
@@ -201,6 +201,32 @@ export default function AnalysisTeaser({
             </Blur>
           </Section>
 
+          <Section title="L'enjeu" icon={<Flag size={13} />}>
+            <Blur>
+              <p className="text-sm text-[#d0d0d0] leading-relaxed">
+                Pour {fav.name}, une victoire consolide sa place dans le haut du tableau avant une semaine chargée.
+                {other.name} joue sa série en cours et la pression monte sur le staff après les derniers résultats.
+              </p>
+            </Blur>
+          </Section>
+
+          <Section title="Absents et impact" icon={<UserX size={13} />}>
+            <Blur>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[h, a].map((t) => (
+                  <div key={t.name} className="rounded-xl glass p-3.5">
+                    <div className="text-xs font-black text-[var(--accent)] mb-1.5">{t.name}</div>
+                    <ul className="space-y-1 text-[13px] text-[#c3cbe3]">
+                      <li>Milieu titulaire · blessé</li>
+                      <li>Latéral droit · incertain</li>
+                    </ul>
+                    <p className="text-xs text-[#999] mt-2">Moins de projection sur le côté droit, relance plus centrale.</p>
+                  </div>
+                ))}
+              </div>
+            </Blur>
+          </Section>
+
           <Section title="Scénario probable" icon={<TrendingUp size={13} />}>
             <Blur>
               <p className="text-sm text-[#d0d0d0] leading-relaxed">
@@ -217,6 +243,19 @@ export default function AnalysisTeaser({
                   <div className="text-sm font-bold text-[#f0f0f0]">Les deux équipes marquent · {btts} %</div>
                   <p className="text-xs text-[#999] mt-1 leading-relaxed">{other.name} a trouvé le chemin des filets dans la majorité de ses derniers matchs.</p>
                 </div>
+              </div>
+            </Blur>
+          </Section>
+
+          <Section title="Les duels qui décident" icon={<Swords size={13} />}>
+            <Blur>
+              <div className="space-y-2">
+                {["Le pressing haut contre la relance courte", "Les ailiers face aux latéraux fatigués"].map((t) => (
+                  <div key={t} className="rounded-xl glass p-3.5">
+                    <div className="text-sm font-bold text-[#f0f0f0]">{t}</div>
+                    <p className="text-xs text-[#999] mt-1">Le camp qui gagne ce duel dicte le tempo de la première période.</p>
+                  </div>
+                ))}
               </div>
             </Blur>
           </Section>
@@ -250,6 +289,49 @@ export default function AnalysisTeaser({
                       <div className="text-sm font-bold text-[#f0f0f0] truncate">{p.name}</div>
                       <div className="text-xs text-[#999] truncate">{p.team.shortName} · en forme, décisif sur les derniers matchs</div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </Blur>
+          </Section>
+
+          <Section title="Sources croisées" icon={<GitCompare size={13} />}>
+            <Blur>
+              <div className="space-y-2">
+                {[
+                  ["Modèle vs marché", "converge"],
+                  ["Second avis", "converge"],
+                  ["Presse", "diverge"],
+                ].map(([l, v]) => (
+                  <div key={l} className="flex items-start gap-3 rounded-xl glass p-3.5">
+                    <span className="mt-0.5 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-[var(--accent)] text-[var(--accent)]">{v}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-bold text-[#f0f0f0]">{l}</div>
+                      <p className="text-xs text-[#999] mt-0.5">Le marché donne {favPct} % à {fav.name}, notre modèle est sur la même lecture.</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Blur>
+          </Section>
+
+          <Section title="Ce qui ferait basculer le match" icon={<Shuffle size={13} />}>
+            <Blur>
+              <ul className="space-y-1.5 text-sm text-[#d0d0d0]">
+                <li>→ Un but de {other.name} dans le premier quart d&apos;heure</li>
+                <li>→ Le retour du milieu titulaire dans le onze</li>
+                <li>→ Un carton rouge précoce sur un duel aérien</li>
+              </ul>
+            </Blur>
+          </Section>
+
+          <Section title="Ce que dit la presse" icon={<Newspaper size={13} />}>
+            <Blur>
+              <div className="space-y-2">
+                {["Compo probable : deux changements attendus", "Le coach relativise la pression avant le choc"].map((t) => (
+                  <div key={t} className="rounded-xl glass p-3.5">
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Média · hier</div>
+                    <div className="text-sm font-bold text-[#f0f0f0] mt-0.5">{t}</div>
                   </div>
                 ))}
               </div>

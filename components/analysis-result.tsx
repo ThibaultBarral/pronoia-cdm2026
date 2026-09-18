@@ -1,6 +1,6 @@
 import TeamCrest from "@/components/clubs/team-crest";
 import Link from "next/link";
-import { Gauge, Sparkles, TrendingUp, Goal, Users, Star } from "lucide-react";
+import { Gauge, Sparkles, TrendingUp, Goal, Users, Star, Flag, UserX, LayoutGrid, Swords, GitCompare, Shuffle, Newspaper, ExternalLink } from "lucide-react";
 import { type Confidence, type MatchAnalysisData } from "@/lib/analysis-schema";
 
 export const CONFIDENCE_FILL: Record<Confidence, number> = {
@@ -28,6 +28,23 @@ export function ProbRow({ label, pct, accent }: { label: string; pct: number; ac
     </div>
   );
 }
+
+/** Section heading shared by the Gold v2 blocks. */
+function H3({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+      <span className="text-[var(--accent)]">{icon}</span> {children}
+    </h3>
+  );
+}
+
+const ABSENCE_KIND: Record<string, string> = { injury: "blessé", suspension: "suspendu", doubt: "incertain", other: "absent" };
+
+const VERDICT_STYLE = {
+  convergent: { color: "var(--accent)", label: "converge" },
+  divergent: { color: "#ef4444", label: "diverge" },
+  neutre: { color: "#9aa3af", label: "neutre" },
+} as const;
 
 function CompareRow({ label, home, away }: { label: string; home: number; away: number }) {
   return (
@@ -166,6 +183,86 @@ export default function AnalysisResult({
         <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.scenario}</p>
       </div>
 
+      {/* Gold v2 — stakes */}
+      {data.stakes && (
+        <div>
+          <H3 icon={<Flag size={13} />}>L&apos;enjeu</H3>
+          <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.stakes}</p>
+        </div>
+      )}
+
+      {/* Gold v2 — absences & impact (real data + what it changes) */}
+      {(data.absenceImpact?.length || data.absences?.length) ? (
+        <div>
+          <H3 icon={<UserX size={13} />}>Absents et impact</H3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(["home", "away"] as const).map((side) => {
+              const t = side === "home" ? h : a;
+              const list = (data.absences ?? []).filter((x) => x.team === side);
+              const impact = data.absenceImpact?.find((x) => x.team === side)?.text;
+              return (
+                <div key={side} className="rounded-xl glass p-3.5">
+                  <div className={`text-xs font-black mb-1.5 ${side === "home" ? "text-[var(--accent)]" : "text-[#ef4444]"}`}>
+                    {t.flag} {t.name}
+                  </div>
+                  {list.length > 0 ? (
+                    <ul className="space-y-1 mb-2">
+                      {list.map((x, i) => (
+                        <li key={i} className="text-xs text-[#c0c0c0] flex gap-1.5">
+                          <span className="text-[#ef4444]">•</span>
+                          <span>
+                            <span className="font-semibold text-[#f0f0f0]">{x.name}</span>{" "}
+                            <span className="text-[var(--text-muted)]">· {ABSENCE_KIND[x.kind] ?? x.kind}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-xs text-[var(--text-muted)] mb-2">Aucune absence connue</div>
+                  )}
+                  {impact && <p className="text-xs text-[#999] leading-relaxed">{impact}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Gold v2 — probable line-ups */}
+      {data.probableLineups && data.probableLineups.length > 0 && (
+        <div>
+          <H3 icon={<LayoutGrid size={13} />}>Compos probables</H3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {data.probableLineups.map((l, i) => {
+              const t = l.team === "home" ? h : a;
+              return (
+                <div key={i} className="rounded-xl glass p-3.5">
+                  <div className={`text-xs font-black mb-1 ${l.team === "home" ? "text-[var(--accent)]" : "text-[#ef4444]"}`}>
+                    {t.flag} {t.name}
+                  </div>
+                  <p className="text-xs text-[#c0c0c0] leading-relaxed">{l.text}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Gold v2 — key duels */}
+      {data.keyDuels && data.keyDuels.length > 0 && (
+        <div>
+          <H3 icon={<Swords size={13} />}>Les duels qui décident</H3>
+          <div className="space-y-2">
+            {data.keyDuels.map((d, i) => (
+              <div key={i} className="rounded-xl glass p-3.5">
+                <div className="text-sm font-bold text-[#f0f0f0]">{d.title}</div>
+                <p className="text-xs text-[#999] mt-1 leading-relaxed">{d.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Secondary scenarios */}
       {data.secondaryScenarios.length > 0 && (
         <div className="space-y-2">
@@ -216,6 +313,93 @@ export default function AnalysisResult({
               {f.label}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Gold v2 — cross-check between sources */}
+      {data.signals && data.signals.length > 0 && (
+        <div>
+          <H3 icon={<GitCompare size={13} />}>Sources croisées</H3>
+          <div className="space-y-2">
+            {data.signals.map((sg, i) => {
+              const v = VERDICT_STYLE[sg.verdict] ?? VERDICT_STYLE.neutre;
+              return (
+                <div key={i} className="flex items-start gap-3 rounded-xl glass p-3.5">
+                  <span
+                    className="mt-0.5 shrink-0 text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full border"
+                    style={{ color: v.color, borderColor: v.color, opacity: 0.9 }}
+                  >
+                    {v.label}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-[#f0f0f0]">{sg.label}</div>
+                    <p className="text-xs text-[#999] mt-0.5 leading-relaxed">{sg.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {data.market && (
+            <p className="text-[11px] text-[var(--text-muted)] mt-2.5 leading-relaxed">
+              Consensus du marché sur {data.market.operators} opérateur{data.market.operators > 1 ? "s" : ""} (accord {data.market.agreement}) :{" "}
+              {h.shortName} {Math.round(data.market.implied.home)} % · nul {Math.round(data.market.implied.draw)} % · {a.shortName}{" "}
+              {Math.round(data.market.implied.away)} %
+              {data.market.movement && (
+                <>
+                  {" "}· sur {data.market.movement.days} jour{data.market.movement.days > 1 ? "s" : ""} : {h.shortName}{" "}
+                  {data.market.movement.home > 0 ? "+" : ""}{data.market.movement.home} pt, {a.shortName}{" "}
+                  {data.market.movement.away > 0 ? "+" : ""}{data.market.movement.away} pt
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Gold v2 — what would flip the read */}
+      {data.swingFactors && data.swingFactors.length > 0 && (
+        <div>
+          <H3 icon={<Shuffle size={13} />}>Ce qui ferait basculer le match</H3>
+          <ul className="space-y-1.5">
+            {data.swingFactors.map((f, i) => (
+              <li key={i} className="text-sm text-[#d0d0d0] flex gap-2 leading-relaxed">
+                <span className="text-[var(--accent)] shrink-0">→</span> {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Gold v2 — press digest with sources (J-2 only) */}
+      {data.press && (data.press.summary || data.press.items.length > 0) && (
+        <div>
+          <H3 icon={<Newspaper size={13} />}>Ce que dit la presse</H3>
+          {data.press.summary && <p className="text-sm text-[#d0d0d0] leading-relaxed mb-2.5">{data.press.summary}</p>}
+          {data.press.items.length > 0 && (
+            <div className="space-y-2">
+              {data.press.items.map((it, i) => (
+                <a
+                  key={i}
+                  href={it.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-3 rounded-xl glass p-3.5 hover:bg-white/[0.05] transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
+                      {it.source}{it.date ? ` · ${it.date}` : ""}
+                    </div>
+                    <div className="text-sm font-bold text-[#f0f0f0] mt-0.5">{it.title}</div>
+                    <p className="text-xs text-[#999] mt-0.5 leading-relaxed">{it.takeaway}</p>
+                  </div>
+                  <ExternalLink size={13} className="shrink-0 mt-1 text-[var(--text-muted)] group-hover:text-[var(--accent)]" />
+                </a>
+              ))}
+            </div>
+          )}
+          <p className="text-[10px] text-[var(--text-muted)] mt-2">
+            Revue de presse du {new Date(data.press.searchedAt).toLocaleDateString("fr-FR")}, sources ouvertes dans un nouvel onglet.
+          </p>
         </div>
       )}
 

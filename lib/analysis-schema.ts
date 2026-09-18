@@ -59,6 +59,53 @@ export interface MatchAnalysisData {
   firstScorer?: string;
   /** Key players to watch, from the real squads. */
   keyPlayers?: MatchKeyPlayer[];
+
+  // ─── Gold v2 (2026-09-18) — every field optional so older stored analyses render ───
+
+  /** What is at stake for each side (table, Europe, derby, calendar, fatigue). */
+  stakes?: string;
+  /** Real absences and what they change, per side. */
+  absenceImpact?: { team: "home" | "away"; text: string }[];
+  /** Probable line-ups in plain words (system + notable choices), per side. */
+  probableLineups?: { team: "home" | "away"; text: string }[];
+  /** The 2-3 individual or collective duels the match hinges on. */
+  keyDuels?: { title: string; detail: string }[];
+  /** Cross-check between our model, the market, the provider model and the press. */
+  signals?: { label: string; verdict: "convergent" | "divergent" | "neutre"; detail: string }[];
+  /** What would flip the read (2-4 concrete things). */
+  swingFactors?: string[];
+  /** Market consensus figures (data, not narrative) — for the Gold "marché" block. */
+  market?: {
+    operators: number;
+    implied: { home: number; draw: number; away: number };
+    agreement: "fort" | "moyen" | "faible";
+    movement?: { days: number; home: number; draw: number; away: number };
+  };
+  /** Real absences (data) so the UI can list them without re-deriving. */
+  absences?: { team: "home" | "away"; name: string; kind: "injury" | "suspension" | "doubt" | "other"; reason: string }[];
+  /** What the press says — searched at J-2, with sources. Absent before that. */
+  press?: PressDigest;
+}
+
+/** Press digest — built by a cheap search pass at J-2 (lib/press.ts). */
+export interface PressDigest {
+  /** 2-3 sentences: the story of the match as the press tells it. */
+  summary: string;
+  items: PressItem[];
+  /** Probable line-ups as reported, when found. */
+  lineups?: { home?: string; away?: string };
+  /** ISO date of the search. */
+  searchedAt: string;
+}
+
+export interface PressItem {
+  title: string;
+  source: string;
+  url: string;
+  /** Publication date when known (free text as found). */
+  date?: string;
+  /** One sentence: what this article changes for the match. */
+  takeaway: string;
 }
 
 // ─── Team analysis ────────────────────────────────────────────────────────────

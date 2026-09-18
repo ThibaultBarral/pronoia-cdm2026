@@ -56,9 +56,21 @@ function buildLines(match: Match): ScanLine[] {
   if (h.stats?.xGFor || a.stats?.xGFor) {
     lines.push({ label: "Buts attendus (xG) par match", value: `${(h.stats.xGFor ?? 0).toFixed(2)} vs ${(a.stats.xGFor ?? 0).toFixed(2)}` });
   }
-  lines.push({ label: "Statistiques joueurs", value: `${squad || "—"} profils` });
+  const contributors = (h.recentContributors?.length ?? 0) + (a.recentContributors?.length ?? 0);
+  lines.push({ label: "Statistiques joueurs", value: `${contributors || squad || "—"} profils` });
+  if (match.market) {
+    lines.push({
+      label: "Consensus du marché",
+      value: `${match.market.operators} opérateur${match.market.operators > 1 ? "s" : ""} · accord ${match.market.agreement}`,
+    });
+  }
+  if (match.market?.movement) {
+    lines.push({ label: "Mouvement de la ligne", value: `${match.market.movement.days} jour${match.market.movement.days > 1 ? "s" : ""} suivis` });
+  }
+  if (match.apiPrediction) lines.push({ label: "Second avis (modèle indépendant)", value: "reçu" });
   lines.push({ label: "Simulation du match", value: "10 000 itérations" });
   lines.push({ label: "Probabilités et buts attendus", value: "calculés" });
+  lines.push({ label: "Revue de presse", value: "sources croisées" });
   lines.push({ label: "Lecture du modèle", value: "prête" });
   return lines;
 }
