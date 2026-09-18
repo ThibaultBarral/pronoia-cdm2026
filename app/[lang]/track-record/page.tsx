@@ -59,7 +59,7 @@ export default async function TrackRecordPage() {
         <p className="text-[11px] text-[var(--text-muted)] text-center mt-6 leading-relaxed">
           Prédictions générées par l&apos;IA Copafever à partir de données et cotes réelles, vérifiées
           contre les résultats officiels. Aucune garantie de gain · Analyses à titre informatif ·
-          18+ · Jouer comporte des risques · joueurs-info-service.fr · 09 74 75 13 13
+          18+ · Jouer comporte des risques · joueurs-info-service.fr
         </p>
       </section>
 

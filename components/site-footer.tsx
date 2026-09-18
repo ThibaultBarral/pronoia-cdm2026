@@ -1,7 +1,6 @@
 "use client";
 
-import { SOCIAL_LINKS, CONTACT_EMAIL } from "@/lib/social";
-import { SocialIcon } from "@/components/social-icons";
+import { CONTACT_EMAIL } from "@/lib/social";
 import { LocaleLink } from "@/lib/i18n/navigation";
 import { useTranslations } from "@/lib/i18n/locale-provider";
 
@@ -39,33 +38,19 @@ export default function SiteFooter() {
     <footer className="border-t border-white/5 bg-[#03061a]">
       <div className="max-w-5xl mx-auto px-4 py-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-          {/* Brand + social */}
+          {/* Brand + contact */}
           <div className="col-span-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/copafever-primary.svg?v=3" alt="Copafever" className="h-7 w-auto mb-3" />
             <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-xs mb-4">
               {t("footer.tagline")}
             </p>
-            <p className="text-xs text-[var(--text-muted)] mb-4">
+            <p className="text-xs text-[var(--text-muted)]">
               {t("footer.contact")}{" "}
               <a href={`mailto:${CONTACT_EMAIL}`} className="text-[var(--accent)] hover:underline">
                 {CONTACT_EMAIL}
               </a>
             </p>
-            <div className="flex items-center gap-2">
-              {SOCIAL_LINKS.map((s) => (
-                <a
-                  key={s.id}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.label}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center glass text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.08] transition-colors"
-                >
-                  <SocialIcon id={s.id} size={17} />
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Nav columns */}

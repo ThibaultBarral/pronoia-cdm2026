@@ -2,17 +2,12 @@
 export const CONTACT_EMAIL = "copafever@gmail.com";
 
 /**
- * Social links — single source of truth (footer, navbar, JSON-LD sameAs).
+ * Social networks are no longer surfaced anywhere on the site (2026-09-18):
+ * no footer icons, no DM widget, no JSON-LD sameAs. Only the e-mail remains.
+ * The id union is kept for the (unused) SocialIcon component.
  */
 export interface SocialLink {
   id: "twitter" | "instagram" | "youtube" | "tiktok";
   label: string;
   href: string;
 }
-
-export const SOCIAL_LINKS: SocialLink[] = [
-  { id: "twitter", label: "X (Twitter)", href: "https://x.com/0xCopa" },
-  { id: "instagram", label: "Instagram", href: "https://www.instagram.com/0xcopa" },
-  { id: "youtube", label: "YouTube", href: "https://youtube.com/@0xcopa" },
-  { id: "tiktok", label: "TikTok", href: "https://www.tiktok.com/@0xcopa" },
-];

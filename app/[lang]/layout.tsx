@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { notFound } from "next/navigation";
-import ContactFab from "@/components/contact-fab";
 import { locales, defaultLocale, isLocale, localeMeta, type Locale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { LocaleProvider } from "@/lib/i18n/locale-provider";
@@ -140,7 +139,6 @@ export default async function RootLayout({
         />
         <LocaleProvider locale={locale} dict={dict}>
           {children}
-          <ContactFab />
         </LocaleProvider>
       </body>
     </html>

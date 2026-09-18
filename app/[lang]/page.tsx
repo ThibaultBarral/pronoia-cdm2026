@@ -4,7 +4,6 @@ import PricingSection from "@/components/pricing-section";
 import FaqSection from "@/components/faq-section";
 import SiteFooter from "@/components/site-footer";
 import { getFaq } from "@/lib/faq";
-import { SOCIAL_LINKS } from "@/lib/social";
 import { TOTAL_SEASON_MATCHES } from "@/lib/competitions";
 import { defaultLocale, isLocale } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
@@ -39,7 +38,6 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       url: "https://copafever.com",
       logo: "https://copafever.com/copafever-icon.svg",
       description,
-      sameAs: SOCIAL_LINKS.map((s) => s.href),
     },
     {
       "@context": "https://schema.org",
