@@ -488,25 +488,35 @@ export function ResultCard({
 
 // ─── Basic card — the TikTok-friendly one ─────────────────────────────────────
 
-/** Club crest (image) or, for nations, the flag emoji, in a soft medallion. */
-function Crest({ logo, flag, name }: { logo?: string; flag: string; name: string }) {
+/** Copafever palette (globals.css) — the card must look like the app. */
+const BLUE = "#4F8CFF";
+const BLUE_STRONG = "#2563EB";
+const BLUE_SOFT = "#8EC5FF";
+const NAVY = "#050A1F";
+const NAVY_ELEVATED = "#0B1330";
+const TEXT = "#F3F5FC";
+const MUTED = "#94A0C2";
+
+/** Club crest (image) or, for nations, the flag emoji, in a big rounded tile. */
+function CrestTile({ logo, flag, name }: { logo?: string; flag: string; name: string }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 260,
-        height: 260,
-        borderRadius: 999,
-        background: "rgba(255,255,255,0.05)",
-        border: "2px solid rgba(255,255,255,0.10)",
-        fontSize: 140,
+        width: 250,
+        height: 250,
+        borderRadius: 56,
+        background: "rgba(255,255,255,0.06)",
+        border: "3px solid rgba(255,255,255,0.10)",
+        boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+        fontSize: 170,
       }}
     >
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt={name} width={180} height={180} style={{ objectFit: "contain" }} />
+        <img src={logo} alt={name} width={176} height={176} style={{ objectFit: "contain" }} />
       ) : (
         flag || name.slice(0, 3).toUpperCase()
       )}
@@ -514,22 +524,29 @@ function Crest({ logo, flag, name }: { logo?: string; flag: string; name: string
   );
 }
 
+function Label({ children, color = MUTED }: { children: React.ReactNode; color?: string }) {
+  return (
+    <div style={{ display: "flex", fontSize: 30, fontWeight: 600, letterSpacing: 7, color }}>{children}</div>
+  );
+}
+
 /**
- * The basic 9:16 card: two crests, the favourite and its probability, the
- * likely score, one probability bar. Nothing else. Built for TikTok /
- * Reels: every element sits inside the safe zone (nothing in the top 220 px
- * or the bottom 420 px where the app chrome lives, nothing hugging the right
- * edge where the action rail sits), type large enough to read on a phone at
- * a glance.
+ * The basic 9:16 card, TikTok / Reels first: Copafever navy and electric
+ * blue, big rounded tiles, huge type, one message — the favourite, its
+ * probability, the likely score. Everything sits inside the safe zone
+ * (nothing in the top 200 px or the bottom 380 px, nothing hugging the right
+ * rail). `wordmark` is the real Copafever logo as a data URI.
  */
 export function BasicCard({
   match,
   pred,
   dateLabel,
+  wordmark,
 }: {
   match: Match;
   pred: MatchPrediction;
   dateLabel: string;
+  wordmark?: string;
 }) {
   const h = match.homeTeam;
   const a = match.awayTeam;
@@ -543,86 +560,197 @@ export function BasicCard({
   if (fav === "away" && sa <= sh) sa = sh + 1;
   if (fav === "draw") sa = sh;
   const comp = match.competition?.name ?? "Coupe du Monde 2026";
+  const favSize = favName.length > 16 ? 72 : favName.length > 11 ? 92 : 112;
 
   return (
     <div
       style={{
+        position: "relative",
         width: "100%",
         height: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        background: "linear-gradient(180deg, #060a1c 0%, #0B1330 55%, #060a1c 100%)",
-        color: "#F4F5F7",
-        fontFamily: "sans-serif",
-        padding: "200px 120px 380px 96px",
+        background: NAVY,
+        color: TEXT,
+        fontFamily: "Geist",
+        padding: "150px 110px 300px 96px",
+        overflow: "hidden",
       }}
     >
-      <Wordmark size={48} />
-      <div style={{ display: "flex", fontSize: 30, color: "#9BA1A8", marginTop: 18, letterSpacing: 1 }}>
-        {comp} · {dateLabel}
+      {/* Electric-blue glows, like the app's hero */}
+      <div
+        style={{
+          position: "absolute",
+          top: -420,
+          right: -380,
+          width: 1200,
+          height: 1200,
+          borderRadius: 9999,
+          background: "radial-gradient(circle, rgba(79,140,255,0.34), rgba(79,140,255,0) 62%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: -520,
+          left: -420,
+          width: 1200,
+          height: 1200,
+          borderRadius: 9999,
+          background: "radial-gradient(circle, rgba(142,197,255,0.16), rgba(79,140,255,0) 64%)",
+        }}
+      />
+
+      {/* Wordmark + competition pill */}
+      {wordmark ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={wordmark} alt="Copafever" width={380} height={78} />
+      ) : (
+        <Wordmark size={56} />
+      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginTop: 30,
+          fontSize: 28,
+          fontWeight: 600,
+          letterSpacing: 4,
+          lineHeight: 1,
+          color: BLUE_SOFT,
+          background: "rgba(79,140,255,0.12)",
+          border: "2px solid rgba(79,140,255,0.35)",
+          borderRadius: 9999,
+          padding: "18px 34px 16px",
+        }}
+      >
+        {comp.toUpperCase()} · {dateLabel.toUpperCase()}
       </div>
 
-      {/* Crests */}
-      <div style={{ display: "flex", alignItems: "center", gap: 48, marginTop: 90 }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 330 }}>
-          <Crest logo={h.logo} flag={h.flag} name={h.name} />
-          <div style={{ display: "flex", fontSize: 40, fontWeight: 900, marginTop: 24, textAlign: "center" }}>{h.name}</div>
+      {/* Matchup tile */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          marginTop: 50,
+          padding: "36px 40px",
+          borderRadius: 64,
+          background: "rgba(255,255,255,0.045)",
+          border: "2px solid rgba(255,255,255,0.09)",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 340 }}>
+          <CrestTile logo={h.logo} flag={h.flag} name={h.name} />
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 900, marginTop: 26, textAlign: "center", lineHeight: 1.1 }}>
+            {h.name}
+          </div>
         </div>
-        <div style={{ display: "flex", fontSize: 44, fontWeight: 900, color: "#5a6472" }}>VS</div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 330 }}>
-          <Crest logo={a.logo} flag={a.flag} name={a.name} />
-          <div style={{ display: "flex", fontSize: 40, fontWeight: 900, marginTop: 24, textAlign: "center" }}>{a.name}</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 110,
+            height: 110,
+            borderRadius: 9999,
+            background: NAVY_ELEVATED,
+            border: "2px solid rgba(255,255,255,0.10)",
+            fontSize: 34,
+            fontWeight: 900,
+            color: MUTED,
+          }}
+        >
+          VS
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 340 }}>
+          <CrestTile logo={a.logo} flag={a.flag} name={a.name} />
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 900, marginTop: 26, textAlign: "center", lineHeight: 1.1 }}>
+            {a.name}
+          </div>
         </div>
       </div>
 
-      {/* The prediction */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 110 }}>
-        <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 6, color: ACCENT }}>
-          {fav === "draw" ? "LE PLUS PROBABLE" : "FAVORI"}
-        </div>
-        <div style={{ display: "flex", fontSize: 84, fontWeight: 900, marginTop: 14, textAlign: "center", lineHeight: 1.05 }}>
+      {/* Favourite — the blue hero tile */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          marginTop: 32,
+          padding: "40px 40px 32px",
+          borderRadius: 64,
+          background: `linear-gradient(160deg, ${BLUE_STRONG} 0%, ${BLUE} 100%)`,
+          boxShadow: "0 40px 120px rgba(37,99,235,0.45)",
+        }}
+      >
+        <Label color="rgba(255,255,255,0.75)">{fav === "draw" ? "LE PLUS PROBABLE" : "FAVORI"}</Label>
+        <div style={{ display: "flex", fontSize: favSize, fontWeight: 900, marginTop: 10, textAlign: "center", lineHeight: 1.05 }}>
           {favName}
         </div>
-        <div style={{ display: "flex", alignItems: "flex-start", marginTop: 8 }}>
-          <span style={{ display: "flex", fontSize: 200, fontWeight: 900, lineHeight: 1, color: ACCENT }}>{top}</span>
-          <span style={{ display: "flex", fontSize: 80, fontWeight: 900, color: ACCENT, marginTop: 24 }}>%</span>
+        <div style={{ display: "flex", alignItems: "flex-start", marginTop: 6 }}>
+          <span style={{ display: "flex", fontSize: 200, fontWeight: 900, lineHeight: 1, letterSpacing: -8 }}>{top}</span>
+          <span style={{ display: "flex", fontSize: 80, fontWeight: 900, marginTop: 24, marginLeft: 6 }}>%</span>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 70 }}>
-        <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 6, color: "#9BA1A8" }}>
-          SCORE PROBABLE
-        </div>
-        <div style={{ display: "flex", fontSize: 150, fontWeight: 900, lineHeight: 1, marginTop: 12 }}>
+      {/* Score + bar in one tile */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          marginTop: 32,
+          padding: "34px 48px 36px",
+          borderRadius: 64,
+          background: "rgba(255,255,255,0.045)",
+          border: "2px solid rgba(255,255,255,0.09)",
+        }}
+      >
+        <Label>SCORE PROBABLE</Label>
+        <div style={{ display: "flex", fontSize: 130, fontWeight: 900, lineHeight: 1, marginTop: 8, letterSpacing: -4 }}>
           {sh} - {sa}
         </div>
+
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: 30 }}>
+          <div style={{ display: "flex", height: 28, borderRadius: 9999, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
+            <div style={{ display: "flex", width: `${p.home}%`, background: p.home === top ? BLUE : "rgba(255,255,255,0.22)" }} />
+            <div style={{ display: "flex", width: `${p.draw}%`, background: p.draw === top ? BLUE : "rgba(255,255,255,0.14)", marginLeft: 4, marginRight: 4 }} />
+            <div style={{ display: "flex", width: `${p.away}%`, background: p.away === top ? BLUE : "rgba(255,255,255,0.22)" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 22 }}>
+            {[
+              { label: h.shortName || h.name, pct: p.home },
+              { label: "NUL", pct: p.draw },
+              { label: a.shortName || a.name, pct: p.away },
+            ].map((b) => (
+              <div key={b.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+                <span style={{ display: "flex", fontSize: 48, fontWeight: 900, color: b.pct === top ? BLUE_SOFT : TEXT }}>
+                  {b.pct}%
+                </span>
+                <span style={{ display: "flex", fontSize: 26, fontWeight: 600, letterSpacing: 3, color: MUTED, marginTop: 4 }}>
+                  {b.label.toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* One bar */}
-      <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: 90 }}>
-        <div style={{ display: "flex", height: 26, borderRadius: 999, overflow: "hidden", background: "#141a2e" }}>
-          <div style={{ display: "flex", width: `${p.home}%`, background: p.home === top ? ACCENT : "#3a4450" }} />
-          <div style={{ display: "flex", width: `${p.draw}%`, background: p.draw === top ? ACCENT : "#2b333d" }} />
-          <div style={{ display: "flex", width: `${p.away}%`, background: p.away === top ? ACCENT : "#6b7280" }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18 }}>
-          {[
-            { label: h.shortName || h.name, pct: p.home },
-            { label: "Nul", pct: p.draw },
-            { label: a.shortName || a.name, pct: p.away },
-          ].map((b) => (
-            <div key={b.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-              <span style={{ display: "flex", fontSize: 40, fontWeight: 900, color: b.pct === top ? ACCENT : "#F4F5F7" }}>
-                {b.pct}%
-              </span>
-              <span style={{ display: "flex", fontSize: 26, color: "#9BA1A8", marginTop: 2 }}>{b.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", fontSize: 32, fontWeight: 800, color: "#9BA1A8", marginTop: 80 }}>
+      <div
+        style={{
+          display: "flex",
+          marginTop: 34,
+          fontSize: 30,
+          fontWeight: 600,
+          letterSpacing: 2,
+          color: MUTED,
+        }}
+      >
         copafever.com
       </div>
     </div>

@@ -46,6 +46,21 @@ export async function GET(
     new Date(`${match.date}T12:00:00`),
   );
 
+  // Brand assets served by the deployment itself (public/): Geist Black/SemiBold
+  // for Satori and the real wordmark as a data URI.
+  const [black, semi, wordmark] = await Promise.all([
+    fetch(new URL("/fonts/Geist-Black.woff", req.url)).then((r) => r.arrayBuffer()),
+    fetch(new URL("/fonts/Geist-SemiBold.woff", req.url)).then((r) => r.arrayBuffer()),
+    fetch(new URL("/copafever-primary.svg", req.url))
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((svg) => (svg ? `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}` : undefined))
+      .catch(() => undefined),
+  ]);
+  const fonts = [
+    { name: "Geist", data: black, weight: 900 as const, style: "normal" as const },
+    { name: "Geist", data: semi, weight: 600 as const, style: "normal" as const },
+  ];
+
   let element: React.ReactElement;
   if (wantResult) {
     const stored = await getMyAnalysis("match", id);
@@ -61,8 +76,8 @@ export async function GET(
       track: await getTrackRecordStats(),
     });
   } else {
-    element = BasicCard({ match, pred: predictMatch(match), dateLabel });
+    element = BasicCard({ match, pred: predictMatch(match), dateLabel, wordmark });
   }
 
-  return new ImageResponse(element, { ...CARD_SIZE, emoji: "twemoji" });
+  return new ImageResponse(element, { ...CARD_SIZE, emoji: "twemoji", fonts });
 }
