@@ -12,7 +12,7 @@ function H({ children }: { children: React.ReactNode }) {
 
 export default function CGUPage() {
   return (
-    <LegalLayout title="Conditions Générales d'Utilisation" updated="5 juin 2026">
+    <LegalLayout title="Conditions Générales d'Utilisation" updated="18 septembre 2026">
       <p className="rounded-lg border border-[var(--border)] bg-[#141414] px-3.5 py-2.5 text-xs text-[var(--text-muted)]">
         Document à valeur indicative à faire relire/compléter par un professionnel. Les mentions
         entre crochets <span className="text-[#c0c0c0]">[…]</span> sont à renseigner.
@@ -42,7 +42,9 @@ export default function CGUPage() {
       <p>
         L&apos;accès nécessite la création d&apos;un compte via une adresse e-mail (authentification
         gérée par Supabase). L&apos;utilisateur est responsable de la confidentialité de ses
-        identifiants et de toute activité réalisée depuis son compte. L&apos;inscription donne accès
+        identifiants et de toute activité réalisée depuis son compte. Pour créer un compte et
+        souscrire une offre, l&apos;utilisateur doit avoir la capacité juridique de contracter, ou
+        disposer de l&apos;autorisation de son représentant légal. L&apos;inscription donne accès
         à un aperçu gratuit de chaque match (verdict du modèle&nbsp;: probabilités, buts attendus) ;
         l&apos;analyse IA complète requiert une offre payante.
       </p>
@@ -78,8 +80,8 @@ export default function CGUPage() {
       <H>6. Usage des analyses</H>
       <p>
         Les analyses expriment des probabilités, jamais des certitudes. Elles ne constituent ni un
-        conseil financier, ni une incitation à une quelconque dépense. Le Service est réservé aux
-        personnes majeures (18 ans et plus).
+        conseil financier, ni une incitation à une quelconque dépense, et l&apos;utilisateur reste
+        seul responsable de l&apos;usage qu&apos;il en fait.
       </p>
 
       <H>7. Propriété intellectuelle</H>
@@ -92,8 +94,9 @@ export default function CGUPage() {
       <H>8. Responsabilité</H>
       <p>
         Le Service est fourni « en l&apos;état ». Les analyses étant produites par une IA à partir de
-        données pouvant être incomplètes, Copafever ne saurait être tenu responsable des décisions de
-        pari ni des pertes qui en découleraient. L&apos;éditeur ne garantit pas la disponibilité
+        données pouvant être incomplètes, Copafever ne saurait être tenu responsable des décisions
+        prises par l&apos;utilisateur sur la base de ces analyses, ni de leurs conséquences.
+        L&apos;éditeur ne garantit pas la disponibilité
         ininterrompue du Service.
       </p>
 
