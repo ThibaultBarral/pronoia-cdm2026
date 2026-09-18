@@ -1,5 +1,6 @@
 import type { MatchAnalysisData } from "@/lib/analysis-schema";
 import type { Match } from "@/lib/types";
+import type { MatchPrediction } from "@/lib/match-model";
 
 /**
  * Pure presentational components for the 9:16 shareable match card (Satori/next-og).
@@ -129,7 +130,7 @@ function Shell({
         >
           <Wordmark size={40} />
           <div style={{ display: "flex", fontSize: 26, color: "#5a6472" }}>
-            Analyse à titre informatif · +18
+            Analyse à titre informatif
           </div>
         </div>
       </div>
@@ -482,5 +483,148 @@ export function ResultCard({
         </div>
       )}
     </Shell>
+  );
+}
+
+// ─── Basic card — the TikTok-friendly one ─────────────────────────────────────
+
+/** Club crest (image) or, for nations, the flag emoji, in a soft medallion. */
+function Crest({ logo, flag, name }: { logo?: string; flag: string; name: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 260,
+        height: 260,
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.05)",
+        border: "2px solid rgba(255,255,255,0.10)",
+        fontSize: 140,
+      }}
+    >
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt={name} width={180} height={180} style={{ objectFit: "contain" }} />
+      ) : (
+        flag || name.slice(0, 3).toUpperCase()
+      )}
+    </div>
+  );
+}
+
+/**
+ * The basic 9:16 card: two crests, the favourite and its probability, the
+ * likely score, one probability bar. Nothing else. Built for TikTok /
+ * Reels: every element sits inside the safe zone (nothing in the top 220 px
+ * or the bottom 420 px where the app chrome lives, nothing hugging the right
+ * edge where the action rail sits), type large enough to read on a phone at
+ * a glance.
+ */
+export function BasicCard({
+  match,
+  pred,
+  dateLabel,
+}: {
+  match: Match;
+  pred: MatchPrediction;
+  dateLabel: string;
+}) {
+  const h = match.homeTeam;
+  const a = match.awayTeam;
+  const p = pred.probabilities;
+  const top = Math.max(p.home, p.draw, p.away);
+  const fav = p.draw === top ? "draw" : p.home >= p.away ? "home" : "away";
+  const favName = fav === "home" ? h.name : fav === "away" ? a.name : "Match nul";
+  let sh = Math.max(0, Math.round(pred.expectedGoals.home));
+  let sa = Math.max(0, Math.round(pred.expectedGoals.away));
+  if (fav === "home" && sh <= sa) sh = sa + 1;
+  if (fav === "away" && sa <= sh) sa = sh + 1;
+  if (fav === "draw") sa = sh;
+  const comp = match.competition?.name ?? "Coupe du Monde 2026";
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        background: "linear-gradient(180deg, #060a1c 0%, #0B1330 55%, #060a1c 100%)",
+        color: "#F4F5F7",
+        fontFamily: "sans-serif",
+        padding: "200px 120px 380px 96px",
+      }}
+    >
+      <Wordmark size={48} />
+      <div style={{ display: "flex", fontSize: 30, color: "#9BA1A8", marginTop: 18, letterSpacing: 1 }}>
+        {comp} · {dateLabel}
+      </div>
+
+      {/* Crests */}
+      <div style={{ display: "flex", alignItems: "center", gap: 48, marginTop: 90 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 330 }}>
+          <Crest logo={h.logo} flag={h.flag} name={h.name} />
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 900, marginTop: 24, textAlign: "center" }}>{h.name}</div>
+        </div>
+        <div style={{ display: "flex", fontSize: 44, fontWeight: 900, color: "#5a6472" }}>VS</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 330 }}>
+          <Crest logo={a.logo} flag={a.flag} name={a.name} />
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 900, marginTop: 24, textAlign: "center" }}>{a.name}</div>
+        </div>
+      </div>
+
+      {/* The prediction */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 110 }}>
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 6, color: ACCENT }}>
+          {fav === "draw" ? "LE PLUS PROBABLE" : "FAVORI"}
+        </div>
+        <div style={{ display: "flex", fontSize: 84, fontWeight: 900, marginTop: 14, textAlign: "center", lineHeight: 1.05 }}>
+          {favName}
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-start", marginTop: 8 }}>
+          <span style={{ display: "flex", fontSize: 200, fontWeight: 900, lineHeight: 1, color: ACCENT }}>{top}</span>
+          <span style={{ display: "flex", fontSize: 80, fontWeight: 900, color: ACCENT, marginTop: 24 }}>%</span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 70 }}>
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 900, letterSpacing: 6, color: "#9BA1A8" }}>
+          SCORE PROBABLE
+        </div>
+        <div style={{ display: "flex", fontSize: 150, fontWeight: 900, lineHeight: 1, marginTop: 12 }}>
+          {sh} - {sa}
+        </div>
+      </div>
+
+      {/* One bar */}
+      <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: 90 }}>
+        <div style={{ display: "flex", height: 26, borderRadius: 999, overflow: "hidden", background: "#141a2e" }}>
+          <div style={{ display: "flex", width: `${p.home}%`, background: p.home === top ? ACCENT : "#3a4450" }} />
+          <div style={{ display: "flex", width: `${p.draw}%`, background: p.draw === top ? ACCENT : "#2b333d" }} />
+          <div style={{ display: "flex", width: `${p.away}%`, background: p.away === top ? ACCENT : "#6b7280" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18 }}>
+          {[
+            { label: h.shortName || h.name, pct: p.home },
+            { label: "Nul", pct: p.draw },
+            { label: a.shortName || a.name, pct: p.away },
+          ].map((b) => (
+            <div key={b.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+              <span style={{ display: "flex", fontSize: 40, fontWeight: 900, color: b.pct === top ? ACCENT : "#F4F5F7" }}>
+                {b.pct}%
+              </span>
+              <span style={{ display: "flex", fontSize: 26, color: "#9BA1A8", marginTop: 2 }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", fontSize: 32, fontWeight: 800, color: "#9BA1A8", marginTop: 80 }}>
+        copafever.com
+      </div>
+    </div>
   );
 }

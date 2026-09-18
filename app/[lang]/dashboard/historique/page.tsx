@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowRight, Clock, History as HistoryIcon } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import { listMyAnalyses } from "@/lib/supabase/analyses-db";
+import { getAllClubs } from "@/lib/club-data";
+import TeamCrest from "@/components/clubs/team-crest";
 
 export const metadata: Metadata = {
   title: "Historique des analyses — Copafever",
@@ -24,6 +26,10 @@ function timeAgo(iso: string): string {
 export default async function HistoriquePage() {
   // Team analyses are a retired feature — only match analyses stay navigable.
   const items = (await listMyAnalyses()).filter((it) => it.kind === "match");
+  // Club crests resolved by name from the (cached) club list: the analyses
+  // table only stores flags, which clubs don't have.
+  const clubs = await getAllClubs().catch(() => []);
+  const logoOf = (name: string) => clubs.find((c) => c.name === name)?.logo ?? null;
 
   return (
     <>
@@ -61,10 +67,26 @@ export default async function HistoriquePage() {
                     href={href}
                     className="group flex items-center gap-4 rounded-2xl glass px-5 py-4 hover:bg-white/[0.05] transition-colors"
                   >
-                    <div className="flex items-center gap-1.5 text-xl shrink-0">
-                      {it.homeFlag && <span>{it.homeFlag}</span>}
-                      {it.awayFlag && <span>{it.awayFlag}</span>}
-                      {!it.homeFlag && !it.awayFlag && <span>🏳️</span>}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {(() => {
+                        const [home, away] = it.title.split(" vs ");
+                        const hl = home ? logoOf(home) : null;
+                        const al = away ? logoOf(away) : null;
+                        if (hl || al) {
+                          return (
+                            <>
+                              <TeamCrest logo={hl} name={home ?? ""} size={34} />
+                              <TeamCrest logo={al} name={away ?? ""} size={34} />
+                            </>
+                          );
+                        }
+                        return (
+                          <span className="text-xl">
+                            {it.homeFlag}{it.awayFlag}
+                            {!it.homeFlag && !it.awayFlag && "⚽"}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">
