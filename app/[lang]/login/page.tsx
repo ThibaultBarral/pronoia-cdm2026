@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  // useSearchParams needs a Suspense boundary on a statically rendered page.
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  // Open directly on the signup tab when arriving from a "Commencer" CTA (?mode=signup).
+  const [mode, setMode] = useState<"login" | "signup">(searchParams.get("mode") === "signup" ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pseudo, setPseudo] = useState("");
@@ -18,13 +29,6 @@ export default function LoginPage() {
 
   const router = useRouter();
   const supabase = createClient();
-
-  // Open directly on the signup tab when arriving from a "Commencer" CTA (?mode=signup).
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("mode") === "signup") {
-      setMode("signup");
-    }
-  }, []);
 
   // Destination post-login : ?next=… s'il est interne (anti open-redirect), sinon /dashboard.
   function nextPath() {

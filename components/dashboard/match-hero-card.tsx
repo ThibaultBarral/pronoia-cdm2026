@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Sparkles } from "lucide-react";
 import { Match } from "@/lib/types";
@@ -18,7 +19,14 @@ export default function MatchHeroCard({ match, isFavorite }: MatchHeroCardProps)
 
   const live = match.status === "1H" || match.status === "2H" || match.status === "HT";
   const kickoffMs = new Date(match.date + "T" + match.time + ":00").getTime();
-  const started = kickoffMs <= Date.now();
+  // Clock kept in state (a render must stay pure); re-read once a minute so a
+  // card left open flips to "started" at kick-off.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const started = kickoffMs <= now;
 
   return (
     <motion.div

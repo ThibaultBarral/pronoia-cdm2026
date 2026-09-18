@@ -196,16 +196,20 @@ export default function BankrollWidget({ externalShowForm, onExternalFormClose }
     });
   }, []);
 
-  useEffect(() => {
-    if (!externalShowForm) return;
-    if (data) {
-      setShowForm(true);
-    } else {
-      setShowSetup(true);
-      setDismissed(false);
+  // The parent can ask for the form to open; handled as a prop-change during
+  // render (React's "adjust state when a prop changes" pattern), not an effect.
+  const [prevExternalShowForm, setPrevExternalShowForm] = useState(externalShowForm);
+  if (externalShowForm !== prevExternalShowForm) {
+    setPrevExternalShowForm(externalShowForm);
+    if (externalShowForm) {
+      if (data) {
+        setShowForm(true);
+      } else {
+        setShowSetup(true);
+        setDismissed(false);
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [externalShowForm]);
+  }
 
   const persist = useCallback(async (next: BankrollData) => {
     setData(next);

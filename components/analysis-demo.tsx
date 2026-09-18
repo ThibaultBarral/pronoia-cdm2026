@@ -26,11 +26,11 @@ const SCENARIOS: Scenario[] = [
 function useCountUp(run: boolean, from: number, to: number): number {
   const [v, setV] = useState(from);
   useEffect(() => {
-    if (!run) {
-      setV(from);
-      return;
-    }
     let raf = 0;
+    if (!run) {
+      raf = requestAnimationFrame(() => setV(from));
+      return () => cancelAnimationFrame(raf);
+    }
     let startTs: number | null = null;
     const dur = 1100;
     const step = (t: number) => {
