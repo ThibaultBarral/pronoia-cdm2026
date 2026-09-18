@@ -34,6 +34,7 @@ function H3({ icon, children }: { icon: React.ReactNode; children: React.ReactNo
   return (
     <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
       <span className="text-[var(--accent)]">{icon}</span> {children}
+      <span className="gold-tag ml-auto">Gold</span>
     </h3>
   );
 }
@@ -136,7 +137,7 @@ export default function AnalysisResult({
 
       {/* Hero — big headline numbers (favorite win % + AI confidence) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-2xl glass p-5 text-center">
+        <div className="rounded-2xl gold-card p-5 text-center">
           {fav.logo ? (
             <div className="flex justify-center mb-1.5"><TeamCrest logo={fav.logo} name={fav.label} size={36} /></div>
           ) : (
@@ -151,7 +152,7 @@ export default function AnalysisResult({
           </div>
           <div className="text-[10px] text-[var(--text-muted)] mt-2.5">Scénario le plus probable</div>
         </div>
-        <div className="rounded-2xl glass p-5 text-center">
+        <div className="rounded-2xl gold-card p-5 text-center">
           <div className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
             <Gauge size={12} /> Confiance IA
           </div>
@@ -165,8 +166,8 @@ export default function AnalysisResult({
 
       {/* Probabilities */}
       <div>
-        <h3 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
-          Probabilités exactes
+        <h3 className="flex items-center text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
+          Probabilités exactes<span className="gold-tag ml-auto">Gold</span>
         </h3>
         <div className="space-y-2.5">
           <ProbRow label={`${h.flag} Victoire ${h.name}`} pct={data.probabilities.home} accent />
@@ -177,8 +178,8 @@ export default function AnalysisResult({
 
       {/* Scenario */}
       <div>
-        <h3 className="text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">
-          Scénario probable
+        <h3 className="flex items-center text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">
+          Scénario probable<span className="gold-tag ml-auto">Gold</span>
         </h3>
         <p className="text-sm text-[#d0d0d0] leading-relaxed">{data.scenario}</p>
       </div>
@@ -201,7 +202,7 @@ export default function AnalysisResult({
               const list = (data.absences ?? []).filter((x) => x.team === side);
               const impact = data.absenceImpact?.find((x) => x.team === side)?.text;
               return (
-                <div key={side} className="rounded-xl glass p-3.5">
+                <div key={side} className="rounded-xl gold-card p-3.5">
                   <div className={`text-xs font-black mb-1.5 ${side === "home" ? "text-[var(--accent)]" : "text-[#ef4444]"}`}>
                     {t.flag} {t.name}
                   </div>
@@ -236,7 +237,7 @@ export default function AnalysisResult({
             {data.probableLineups.map((l, i) => {
               const t = l.team === "home" ? h : a;
               return (
-                <div key={i} className="rounded-xl glass p-3.5">
+                <div key={i} className="rounded-xl gold-card p-3.5">
                   <div className={`text-xs font-black mb-1 ${l.team === "home" ? "text-[var(--accent)]" : "text-[#ef4444]"}`}>
                     {t.flag} {t.name}
                   </div>
@@ -254,7 +255,7 @@ export default function AnalysisResult({
           <H3 icon={<Swords size={13} />}>Les duels qui décident</H3>
           <div className="space-y-2">
             {data.keyDuels.map((d, i) => (
-              <div key={i} className="rounded-xl glass p-3.5">
+              <div key={i} className="rounded-xl gold-card p-3.5">
                 <div className="text-sm font-bold text-[#f0f0f0]">{d.title}</div>
                 <p className="text-xs text-[#999] mt-1 leading-relaxed">{d.detail}</p>
               </div>
@@ -267,7 +268,7 @@ export default function AnalysisResult({
       {data.secondaryScenarios.length > 0 && (
         <div className="space-y-2">
           {data.secondaryScenarios.map((s, i) => (
-            <div key={i} className="rounded-xl glass p-3.5">
+            <div key={i} className="rounded-xl gold-card p-3.5">
               <div className="text-sm font-bold text-[#f0f0f0]">{s.title}</div>
               <p className="text-xs text-[#999] mt-1 leading-relaxed">{s.detail}</p>
             </div>
@@ -279,7 +280,7 @@ export default function AnalysisResult({
       {data.keyStrengths.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {data.keyStrengths.map((ks, i) => (
-            <div key={i} className="rounded-xl glass p-3.5">
+            <div key={i} className="rounded-xl gold-card p-3.5">
               <div className="text-xs font-black text-[var(--accent)] mb-1.5">
                 {ks.team === "home" ? `${h.flag} ${h.name}` : `${a.flag} ${a.name}`}
               </div>
@@ -324,7 +325,7 @@ export default function AnalysisResult({
             {data.signals.map((sg, i) => {
               const v = VERDICT_STYLE[sg.verdict] ?? VERDICT_STYLE.neutre;
               return (
-                <div key={i} className="flex items-start gap-3 rounded-xl glass p-3.5">
+                <div key={i} className="flex items-start gap-3 rounded-xl gold-card p-3.5">
                   <span
                     className="mt-0.5 shrink-0 text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full border"
                     style={{ color: v.color, borderColor: v.color, opacity: 0.9 }}
@@ -383,7 +384,7 @@ export default function AnalysisResult({
                   href={it.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-start gap-3 rounded-xl glass p-3.5 hover:bg-white/[0.05] transition-colors"
+                  className="group flex items-start gap-3 rounded-xl gold-card p-3.5 hover:bg-white/[0.05] transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
@@ -416,6 +417,7 @@ export default function AnalysisResult({
         <div>
           <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
             <Goal size={13} className="text-[var(--accent)]" /> Buteurs probables
+            <span className="gold-tag ml-auto">Gold</span>
           </h3>
           {data.firstScorer && (
             <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/[0.06] px-3.5 py-2.5">
@@ -428,7 +430,7 @@ export default function AnalysisResult({
           )}
           <div className="space-y-2">
             {data.probableScorers.map((s, i) => (
-              <div key={i} className="flex items-start gap-3 rounded-xl glass p-3.5">
+              <div key={i} className="flex items-start gap-3 rounded-xl gold-card p-3.5">
                 <span className="mt-0.5 inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--accent)]/12 shrink-0">
                   <Goal size={12} className="text-[var(--accent)]" />
                 </span>
@@ -452,10 +454,11 @@ export default function AnalysisResult({
         <div>
           <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">
             <Users size={13} className="text-[var(--accent)]" /> Joueurs clés à suivre
+            <span className="gold-tag ml-auto">Gold</span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {data.keyPlayers.map((p, i) => (
-              <div key={i} className="rounded-xl glass p-3.5">
+              <div key={i} className="rounded-xl gold-card p-3.5">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-[#f0f0f0]">{p.name}</span>
                   <span className="ml-auto text-[10px] font-semibold text-[var(--text-muted)]">
@@ -501,21 +504,21 @@ export default function AnalysisResult({
 
         {/* Expected goals & markets — big headline numbers */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div className="rounded-xl glass p-4 text-center">
+          <div className="rounded-xl gold-card p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">{data.expectedGoals.home}</div>
             <div className="text-[10px] text-[var(--text-muted)] truncate mt-2">Buts {h.flag} {h.shortName}</div>
           </div>
-          <div className="rounded-xl glass p-4 text-center">
+          <div className="rounded-xl gold-card p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">{data.expectedGoals.away}</div>
             <div className="text-[10px] text-[var(--text-muted)] truncate mt-2">Buts {a.flag} {a.shortName}</div>
           </div>
-          <div className="rounded-xl glass p-4 text-center">
+          <div className="rounded-xl gold-card p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">
               {data.markets.over25}<span className="text-xl align-top">%</span>
             </div>
             <div className="text-[10px] text-[var(--text-muted)] mt-2">+2.5 buts</div>
           </div>
-          <div className="rounded-xl glass p-4 text-center">
+          <div className="rounded-xl gold-card p-4 text-center">
             <div className="text-4xl font-black text-[var(--text)] tabular-nums leading-none">
               {data.markets.bttsYes}<span className="text-xl align-top">%</span>
             </div>

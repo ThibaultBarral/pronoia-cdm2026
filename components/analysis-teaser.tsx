@@ -176,7 +176,7 @@ export default function AnalysisTeaser({
       >
         <div className="space-y-5">
           {mode !== "paywall" && (
-            <Section title="La lecture courte" icon={<Target size={13} />}>
+            <Section title="La lecture courte" icon={<Target size={13} />} free>
               <Blur>
                 <div className="rounded-xl glass p-4">
                   <p className="text-base text-[#c3cbe3] leading-relaxed">
@@ -214,7 +214,7 @@ export default function AnalysisTeaser({
             <Blur>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[h, a].map((t) => (
-                  <div key={t.name} className="rounded-xl glass p-3.5">
+                  <div key={t.name} className="rounded-xl gold-card p-3.5">
                     <div className="text-xs font-black text-[var(--accent)] mb-1.5">{t.name}</div>
                     <ul className="space-y-1 text-[13px] text-[#c3cbe3]">
                       <li>Milieu titulaire · blessé</li>
@@ -235,11 +235,11 @@ export default function AnalysisTeaser({
                 contre rapide. Score le plus probable : {preview.likelyScore.home} - {preview.likelyScore.away}.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                <div className="rounded-xl glass p-3.5">
+                <div className="rounded-xl gold-card p-3.5">
                   <div className="text-sm font-bold text-[#f0f0f0]">Plus de 2,5 buts · {over} %</div>
                   <p className="text-xs text-[#999] mt-1 leading-relaxed">Deux attaques en rythme, des défenses qui concèdent des occasions à chaque match.</p>
                 </div>
-                <div className="rounded-xl glass p-3.5">
+                <div className="rounded-xl gold-card p-3.5">
                   <div className="text-sm font-bold text-[#f0f0f0]">Les deux équipes marquent · {btts} %</div>
                   <p className="text-xs text-[#999] mt-1 leading-relaxed">{other.name} a trouvé le chemin des filets dans la majorité de ses derniers matchs.</p>
                 </div>
@@ -251,7 +251,7 @@ export default function AnalysisTeaser({
             <Blur>
               <div className="space-y-2">
                 {["Le pressing haut contre la relance courte", "Les ailiers face aux latéraux fatigués"].map((t) => (
-                  <div key={t} className="rounded-xl glass p-3.5">
+                  <div key={t} className="rounded-xl gold-card p-3.5">
                     <div className="text-sm font-bold text-[#f0f0f0]">{t}</div>
                     <p className="text-xs text-[#999] mt-1">Le camp qui gagne ce duel dicte le tempo de la première période.</p>
                   </div>
@@ -264,7 +264,7 @@ export default function AnalysisTeaser({
             <Blur>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[h, a].map((t) => (
-                  <div key={t.name} className="rounded-xl glass p-3.5">
+                  <div key={t.name} className="rounded-xl gold-card p-3.5">
                     <div className="text-xs font-black text-[var(--accent)] mb-1.5">{t.name}</div>
                     <ul className="space-y-1 text-[13px] text-[#c3cbe3]">
                       <li>Pressing haut efficace dans les 30 premières minutes</li>
@@ -281,7 +281,7 @@ export default function AnalysisTeaser({
             <Blur>
               <div className="space-y-2">
                 {(watch.length ? watch : [{ name: "Joueur clé", team: h }, { name: "Joueur clé", team: a }, { name: "Joueur clé", team: h }]).map((p, i) => (
-                  <div key={`${p.name}-${i}`} className="flex items-center gap-3 rounded-xl glass p-3">
+                  <div key={`${p.name}-${i}`} className="flex items-center gap-3 rounded-xl gold-card p-3">
                     <span className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
                       <Goal size={14} className="text-[var(--accent)]" />
                     </span>
@@ -303,7 +303,7 @@ export default function AnalysisTeaser({
                   ["Second avis", "converge"],
                   ["Presse", "diverge"],
                 ].map(([l, v]) => (
-                  <div key={l} className="flex items-start gap-3 rounded-xl glass p-3.5">
+                  <div key={l} className="flex items-start gap-3 rounded-xl gold-card p-3.5">
                     <span className="mt-0.5 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-[var(--accent)] text-[var(--accent)]">{v}</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-bold text-[#f0f0f0]">{l}</div>
@@ -329,7 +329,7 @@ export default function AnalysisTeaser({
             <Blur>
               <div className="space-y-2">
                 {["Compo probable : deux changements attendus", "Le coach relativise la pression avant le choc"].map((t) => (
-                  <div key={t} className="rounded-xl glass p-3.5">
+                  <div key={t} className="rounded-xl gold-card p-3.5">
                     <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Média · hier</div>
                     <div className="text-sm font-bold text-[#f0f0f0] mt-0.5">{t}</div>
                   </div>
@@ -362,7 +362,7 @@ export default function AnalysisTeaser({
                   { v: `${over}%`, l: "+2.5 buts" },
                   { v: `${btts}%`, l: "Les 2 marquent" },
                 ].map((k) => (
-                  <div key={k.l} className="rounded-xl glass p-4 text-center">
+                  <div key={k.l} className="rounded-xl gold-card p-4 text-center">
                     <div className="text-3xl font-black text-[var(--text)] tabular-nums leading-none">{k.v}</div>
                     <div className="text-[10px] text-[var(--text-muted)] mt-2 truncate">{k.l}</div>
                   </div>
@@ -409,12 +409,15 @@ function GoogleMark() {
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, icon, free, children }: { title: string; icon: React.ReactNode; free?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[var(--text-muted)] mb-2">
         <span className="text-[var(--accent-soft)]">{icon}</span> {title}
-        <Lock size={10} className="ml-auto text-[var(--text-muted)]/60" />
+        <span className="ml-auto flex items-center gap-1.5">
+          {!free && <span className="gold-tag">Gold</span>}
+          <Lock size={10} className="text-[var(--text-muted)]/60" />
+        </span>
       </h3>
       {children}
     </div>
