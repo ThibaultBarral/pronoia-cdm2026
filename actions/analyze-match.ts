@@ -108,6 +108,32 @@ function buildPrompt(match: Match, pred: MatchPrediction): string {
     return sorted.slice(0, 16).map((p) => `${p.name} (${p.position})`).join(", ");
   };
 
+  // Real absences for THIS fixture (API-Football /injuries). "Aucune connue"
+  // is honest: the provider lists none, it doesn't mean everyone is fit.
+  const absStr = (team: typeof h): string => {
+    const abs = team.absences ?? [];
+    if (!abs.length) return "aucune absence connue";
+    const K = { injury: "blessé", suspension: "suspendu", doubt: "incertain", other: "absent" } as const;
+    return abs.slice(0, 8).map((x) => `${x.name} (${K[x.kind]}${x.reason ? `, ${x.reason}` : ""})`).join(", ");
+  };
+
+  // Home/away splits of the league season — the home side's home numbers, the
+  // visitor's away numbers, which is what matters for this fixture.
+  const splitStr = (team: typeof h, side: "home" | "away"): string => {
+    const st = team.seasonStats;
+    if (!st || !st.played[side]) return "";
+    const where = side === "home" ? "à domicile" : "à l'extérieur";
+    return `${team.name} ${where} cette saison : ${st.played[side]} matchs, ${st.goalsForAvg[side].toFixed(2)} buts marqués/match, ${st.goalsAgainstAvg[side].toFixed(2)} encaissés/match, ${st.cleanSheets[side]} clean sheets, ${st.failedToScore[side]} matchs sans marquer${st.formation ? `, système habituel ${st.formation}` : ""}`;
+  };
+  const splits = [splitStr(h, "home"), splitStr(a, "away")].filter(Boolean).join("\n");
+
+  // Independent second opinion (API-Football's own model) — agreement or
+  // disagreement with our numbers is itself information for the narrative.
+  const ap = match.apiPrediction;
+  const secondOpinion = ap
+    ? `SECOND AVIS (modèle indépendant du fournisseur de données) : ${h.name} ${ap.percent.home}% · Nul ${ap.percent.draw}% · ${a.name} ${ap.percent.away}%${ap.winner ? ` · favori ${ap.winner === "home" ? h.name : ap.winner === "away" ? a.name : "nul"}` : ""}${ap.underOver ? ` · total de buts ${ap.underOver}` : ""}. Si ce second avis diverge de nos chiffres, dis-le en une phrase dans le résumé (sans jamais parler de cotes).`
+    : "";
+
   const comp = match.competition?.name ?? "Coupe du Monde 2026";
   const rankOf = (t: typeof h) =>
     t.leagueRank ? `${t.leagueRank}e au classement` : t.fifaRanking ? `#${t.fifaRanking} FIFA` : "classement inconnu";
@@ -121,6 +147,10 @@ ${a.flag} ${a.name}: ${formStr(a)}
 
 H2H : ${h2hStr}
 
+ABSENCES POUR CE MATCH (réelles, à intégrer dans le scénario et les forces/faiblesses ; un absent ne peut PAS être buteur ni joueur clé) :
+${h.flag} ${h.name}: ${absStr(h)}
+${a.flag} ${a.name}: ${absStr(a)}
+${splits ? `\nDOMICILE / EXTÉRIEUR :\n${splits}\n` : ""}
 EFFECTIFS (choisis buteurs & joueurs clés UNIQUEMENT ici, noms exacts, privilégie ceux qui jouent et marquent vraiment, jamais un remplaçant inutilisé) :
 ${h.flag} ${h.name}: ${squadStr(h)}
 ${a.flag} ${a.name}: ${squadStr(a)}
@@ -130,7 +160,7 @@ CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
 - Buts attendus : ${h.name} ${pred.expectedGoals.home} · ${a.name} ${pred.expectedGoals.away}
 - Plus de 2,5 buts : ${pred.markets.over25}% · Moins de 2,5 buts : ${pred.markets.under25}% · Les deux équipes marquent : ${pred.markets.bttsYes}%
 - Comparaison (home/away) : ${cmp}
-- Niveau de confiance global : ${pred.confidence}`;
+- Niveau de confiance global : ${pred.confidence}${secondOpinion ? `\n\n${secondOpinion}` : ""}`;
 }
 
 async function generate(match: Match, userId: string, locale: Locale): Promise<MatchAnalysisData> {
@@ -192,7 +222,7 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
   // each language gets its own cached analysis, shared across all users.
   const day = new Date().toISOString().slice(0, 10);
   const finished = match.competition ? 0 : await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:v3:${locale}`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:v4:${locale}`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));

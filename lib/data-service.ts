@@ -12,6 +12,9 @@ import type {
   ApiFixtureResponse,
   ApiSquadResponse,
   ApiCoach,
+  ApiTeamStatistics,
+  ApiInjury,
+  ApiPredictionResponse,
 } from "./api-football";
 import {
   fetchSquad,
@@ -22,6 +25,8 @@ import {
   fetchFixtures,
   fetchOdds,
   fetchOddsAll,
+  fetchInjuries,
+  fetchPrediction,
   extractOdds,
   extractOverUnder,
   extractBtts,
@@ -38,6 +43,9 @@ import type {
   H2HMatch,
   Player,
   Lineup,
+  TeamSeasonStats,
+  Absence,
+  ApiPredictionSummary,
   TeamMomentum,
   RecentContributor,
 } from "./types";
@@ -274,6 +282,98 @@ export function mapSquad(squadData: ApiSquadResponse | null): Lineup {
     .sort((a, b) => ORDER.indexOf(a.position) - ORDER.indexOf(b.position));
 
   return { formation: "4-3-3", players };
+}
+
+// ─── Season splits, absences, provider prediction ────────────────────────────
+
+export function mapSeasonStats(st: ApiTeamStatistics | null): TeamSeasonStats | undefined {
+  if (!st || !st.fixtures?.played?.total) return undefined;
+  const num = (v: string | number | null | undefined) => {
+    const n = typeof v === "number" ? v : parseFloat(v ?? "");
+    return Number.isFinite(n) ? n : 0;
+  };
+  const formation = [...(st.lineups ?? [])].sort((x, y) => y.played - x.played)[0]?.formation ?? null;
+  return {
+    played: { home: st.fixtures.played.home, away: st.fixtures.played.away },
+    goalsForAvg: { home: num(st.goals.for.average.home), away: num(st.goals.for.average.away) },
+    goalsAgainstAvg: { home: num(st.goals.against.average.home), away: num(st.goals.against.average.away) },
+    cleanSheets: { home: st.clean_sheet?.home ?? 0, away: st.clean_sheet?.away ?? 0 },
+    failedToScore: { home: st.failed_to_score?.home ?? 0, away: st.failed_to_score?.away ?? 0 },
+    formation,
+  };
+}
+
+/** Absences of ONE team from a fixture's /injuries rows (which cover both teams). */
+export function mapAbsences(rows: ApiInjury[], teamId: number): Absence[] {
+  const seen = new Set<string>();
+  const out: Absence[] = [];
+  for (const r of rows) {
+    if (r.team.id !== teamId || seen.has(r.player.name)) continue;
+    seen.add(r.player.name);
+    const reason = r.player.reason ?? "";
+    const kind: Absence["kind"] = /suspend|red card|yellow card/i.test(reason)
+      ? "suspension"
+      : /questionable|doubt/i.test(r.player.type ?? "")
+        ? "doubt"
+        : /injur|knock|illness|ill\b|fracture|strain|tear|surgery|problem/i.test(reason)
+          ? "injury"
+          : "other";
+    out.push({ name: r.player.name, kind, reason });
+  }
+  return out;
+}
+
+/** Provider reasons → short French labels for display (raw reason kept in `absences`). */
+const REASON_FR: Record<string, string> = {
+  injury: "blessé",
+  "thigh injury": "cuisse",
+  "knee injury": "genou",
+  "ankle injury": "cheville",
+  "hamstring injury": "ischio",
+  "calf injury": "mollet",
+  "groin injury": "aine",
+  "muscle injury": "musculaire",
+  "back injury": "dos",
+  "shoulder injury": "épaule",
+  "foot injury": "pied",
+  "hip injury": "hanche",
+  illness: "malade",
+  suspended: "suspendu",
+  "red card": "carton rouge",
+  "yellow cards": "cartons jaunes",
+  "coach's decision": "choix du coach",
+  inactive: "non retenu",
+  "national selection": "en sélection",
+  "not registered": "non qualifié",
+};
+export function absenceReasonFr(reason: string): string {
+  return REASON_FR[reason.trim().toLowerCase()] ?? reason;
+}
+
+/** Fill the legacy string arrays from the structured absences. */
+export function absencesToLegacy(abs: Absence[]): Pick<Team, "injuries" | "suspensions"> {
+  const label = (a: Absence) => {
+    const r = a.reason ? absenceReasonFr(a.reason) : "";
+    const tag = a.kind === "doubt" ? (r ? `incertain, ${r}` : "incertain") : r;
+    return tag ? `${a.name} (${tag})` : a.name;
+  };
+  return {
+    injuries: abs.filter((a) => a.kind === "injury" || a.kind === "doubt").map(label),
+    suspensions: abs.filter((a) => a.kind === "suspension").map(label),
+  };
+}
+
+export function mapPrediction(p: ApiPredictionResponse | null, homeApiId: number): ApiPredictionSummary | undefined {
+  if (!p?.predictions) return undefined;
+  const pct = (v: string) => parseInt(v, 10) || 0;
+  const w = p.predictions.winner;
+  const winner: ApiPredictionSummary["winner"] = !w?.id ? (w?.name ? "draw" : null) : w.id === homeApiId ? "home" : "away";
+  return {
+    winner,
+    percent: { home: pct(p.predictions.percent.home), draw: pct(p.predictions.percent.draw), away: pct(p.predictions.percent.away) },
+    advice: p.predictions.advice,
+    underOver: p.predictions.under_over,
+  };
 }
 
 // ─── Form mapping (API-Football last-5) ──────────────────────────────────────
@@ -861,6 +961,7 @@ export async function getMatchData(id: string): Promise<Match | null> {
   let apiFixtureId: number | undefined = preLive?.apiFixtureId;
   let liveStatus: Match["status"] | undefined = preLive?.status;
   let liveScore: Match["score"] | undefined = preLive?.score;
+  let apiPrediction: Match["apiPrediction"];
 
   if (hasApiKey() && meta1.apiId && meta2.apiId) {
     // Resolve this match's API-Football fixture → unlocks odds + live score.
@@ -876,12 +977,18 @@ export async function getMatchData(id: string): Promise<Match | null> {
       }
     }
 
-    const [h2hRes, oddsRes] = await Promise.allSettled([
+    const [h2hRes, oddsRes, injuriesRes, predictionRes] = await Promise.allSettled([
       getCachedOrFetch(`h2h:${meta1.apiId}-${meta2.apiId}`, 43200, () =>
         fetchH2H(meta1.apiId!, meta2.apiId!, 5)
       ),
       apiFixtureId
         ? getCachedOrFetch(`odds:${apiFixtureId}`, 2700, () => fetchOdds(apiFixtureId!))
+        : Promise.resolve(null),
+      apiFixtureId
+        ? getCachedOrFetch(`injuries:${apiFixtureId}`, 10800, () => fetchInjuries(apiFixtureId!))
+        : Promise.resolve([] as ApiInjury[]),
+      apiFixtureId
+        ? getCachedOrFetch(`prediction:${apiFixtureId}`, 21600, () => fetchPrediction(apiFixtureId!))
         : Promise.resolve(null),
     ]);
 
@@ -891,6 +998,16 @@ export async function getMatchData(id: string): Promise<Match | null> {
     if (oddsRes.status === "fulfilled" && oddsRes.value) {
       const extracted = extractOdds(oddsRes.value);
       if (extracted.length) odds = extracted;
+    }
+    if (injuriesRes.status === "fulfilled" && injuriesRes.value.length) {
+      for (const t of [homeTeam, awayTeam]) {
+        if (!t.apiTeamId) continue;
+        const absences = mapAbsences(injuriesRes.value, t.apiTeamId);
+        Object.assign(t, { absences }, absencesToLegacy(absences));
+      }
+    }
+    if (predictionRes.status === "fulfilled" && predictionRes.value) {
+      apiPrediction = mapPrediction(predictionRes.value, meta1.apiId);
     }
   }
 
@@ -910,6 +1027,7 @@ export async function getMatchData(id: string): Promise<Match | null> {
     h2h,
     odds,
     apiFixtureId,
+    apiPrediction,
     status: liveStatus ?? (fixture.score ? "FT" : "NS"),
     score:
       liveScore ??

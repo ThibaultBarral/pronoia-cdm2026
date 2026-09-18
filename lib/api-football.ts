@@ -175,9 +175,16 @@ export interface ApiCoach {
 
 // ─── Core fetch helper ───────────────────────────────────────────────────────
 
+/**
+ * Every fetcher is wrapped in the Supabase cache (lib/api-cache) by its caller,
+ * so the Next.js data cache is bypassed on purpose: API-Football answers rate
+ * limit / quota errors with HTTP 200 + `errors`, and the Next cache would pin
+ * that error body for the whole `revalidate` window. `_revalidate` is kept on
+ * the signature as documentation of each endpoint's intended freshness.
+ */
 async function apiFetch<T>(
   path: string,
-  revalidate: number
+  _revalidate: number
 ): Promise<T[]> {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) throw new Error("API_FOOTBALL_KEY not set");
@@ -189,7 +196,7 @@ async function apiFetch<T>(
       "x-apisports-key": apiKey,
       "Accept": "application/json",
     },
-    next: { revalidate },
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -257,7 +264,9 @@ interface ApiPlayerStatsRow {
  * page) — we walk every page. Cached upstream by the caller.
  */
 export async function fetchPlayerInvolvement(
-  teamId: number
+  teamId: number,
+  leagueId: number = WC_LEAGUE,
+  season: number = WC_SEASON
 ): Promise<RecentContributor[]> {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) throw new Error("API_FOOTBALL_KEY not set");
@@ -267,8 +276,8 @@ export async function fetchPlayerInvolvement(
   let totalPages = 1;
   do {
     const res = await fetch(
-      `${BASE}/players?team=${teamId}&league=${WC_LEAGUE}&season=${WC_SEASON}&page=${page}`,
-      { headers: { "x-apisports-key": apiKey, Accept: "application/json" }, next: { revalidate: 3600 } }
+      `${BASE}/players?team=${teamId}&league=${leagueId}&season=${season}&page=${page}`,
+      { headers: { "x-apisports-key": apiKey, Accept: "application/json" }, cache: "no-store" }
     );
     if (!res.ok) throw new Error(`API-Football HTTP ${res.status} for /players`);
     const json = await res.json();
@@ -382,14 +391,55 @@ export async function fetchOdds(fixtureId: number): Promise<ApiOddsResponse | nu
   return results[0] ?? null;
 }
 
-/** Team statistics for WC 2026 — cached 2h */
+/** Team statistics for a league season (home/away splits) — cached 2h */
 export async function fetchTeamStats(
-  teamId: number
+  teamId: number,
+  leagueId: number = WC_LEAGUE,
+  season: number = WC_SEASON
 ): Promise<ApiTeamStatistics | null> {
+  // This endpoint answers with a single object, not an array.
   const results = await apiFetch<ApiTeamStatistics>(
-    `/teams/statistics?league=${WC_LEAGUE}&season=${WC_SEASON}&team=${teamId}`,
+    `/teams/statistics?league=${leagueId}&season=${season}&team=${teamId}`,
     7200
   );
+  const st = (Array.isArray(results) ? results[0] : results) as ApiTeamStatistics | undefined;
+  return st?.fixtures ? st : null;
+}
+
+// ─── Injuries / suspensions ───────────────────────────────────────────────────
+
+export interface ApiInjury {
+  player: { id: number; name: string; photo: string; type: string; reason: string };
+  team: ApiTeam;
+  fixture: { id: number; date: string };
+}
+
+/**
+ * Players expected to miss a fixture (injured, suspended, questionable) for
+ * BOTH teams — cached 3h. `type` is "Missing Fixture" or "Questionable",
+ * `reason` the cause ("Knee Injury", "Suspended", "Red Card"…).
+ */
+export async function fetchInjuries(fixtureId: number): Promise<ApiInjury[]> {
+  return apiFetch<ApiInjury>(`/injuries?fixture=${fixtureId}`, 10800);
+}
+
+// ─── API-Football's own prediction (second opinion for the model) ─────────────
+
+export interface ApiPredictionResponse {
+  predictions: {
+    winner: { id: number | null; name: string | null; comment: string | null };
+    win_or_draw: boolean;
+    under_over: string | null;
+    goals: { home: string | null; away: string | null };
+    advice: string | null;
+    percent: { home: string; draw: string; away: string };
+  };
+  teams: { home: ApiTeam; away: ApiTeam };
+}
+
+/** API-Football's prediction for a fixture — cached 6h. */
+export async function fetchPrediction(fixtureId: number): Promise<ApiPredictionResponse | null> {
+  const results = await apiFetch<ApiPredictionResponse>(`/predictions?fixture=${fixtureId}`, 21600);
   return results[0] ?? null;
 }
 

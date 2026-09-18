@@ -14,6 +14,7 @@
  */
 import "server-only";
 
+import { cache } from "react";
 import {
   fetchFixtureById,
   fetchTeamSeasonFixtures,
@@ -21,14 +22,31 @@ import {
   fetchSquad,
   fetchCoach,
   fetchH2H,
+  fetchInjuries,
+  fetchOdds,
+  fetchPlayerInvolvement,
+  fetchPrediction,
+  fetchTeamStats,
+  extractOdds,
   FINISHED_STATUSES,
   type ApiFixtureResponse,
+  type ApiInjury,
   type ApiTeam,
 } from "./api-football";
 import { getCachedOrFetch } from "./api-cache";
 import { COMPETITIONS, getCompetition, type Competition } from "./competitions";
 import { getCompetitionClubs, type CompetitionClub } from "./competition-data";
-import { mapSquad, mapForm, computeMomentum, mapH2H, mapStatus } from "./data-service";
+import {
+  mapSquad,
+  mapForm,
+  computeMomentum,
+  mapH2H,
+  mapStatus,
+  mapSeasonStats,
+  mapAbsences,
+  absencesToLegacy,
+  mapPrediction,
+} from "./data-service";
 import type { Match, Team, Lineup } from "./types";
 
 /** Season key API-Football uses for 2026/27. */
@@ -274,17 +292,42 @@ async function buildClubTeam(apiTeam: ApiTeam, comp: Competition | undefined): P
   const teamId = apiTeam.id;
   const club = await getClubById(teamId).catch(() => null);
 
-  const [squadRes, coachRes, fixturesRes] = await Promise.allSettled([
+  // Season stats and player stats come from the club's DOMESTIC league (the
+  // deepest sample), even when the fixture is a European night.
+  const statsLeague = club?.competition.leagueId ?? comp?.leagueId;
+
+  const [squadRes, coachRes, fixturesRes, involvementRes, statsRes] = await Promise.allSettled([
     getCachedOrFetch(`squad:${teamId}`, 86400, () => fetchSquad(teamId)),
     getCachedOrFetch(`coach:${teamId}`, 604800, () => fetchCoach(teamId)),
     getCachedOrFetch(`club-fixtures:${teamId}:${CLUB_SEASON}`, 3600, () =>
       fetchTeamSeasonFixtures(teamId, CLUB_SEASON),
     ),
+    statsLeague
+      ? getCachedOrFetch(`involvement:${teamId}:${statsLeague}:${CLUB_SEASON}`, 21600, () =>
+          fetchPlayerInvolvement(teamId, statsLeague, CLUB_SEASON),
+        )
+      : Promise.resolve([]),
+    statsLeague
+      ? getCachedOrFetch(`team-stats:v2:${teamId}:${statsLeague}:${CLUB_SEASON}`, 21600, () =>
+          fetchTeamStats(teamId, statsLeague, CLUB_SEASON),
+        )
+      : Promise.resolve(null),
   ]);
+
+  // Every source is optional, but a silent miss hides quota / plan problems.
+  for (const [name, r] of Object.entries({ squadRes, coachRes, fixturesRes, involvementRes, statsRes })) {
+    if (r.status === "rejected") console.warn(`[club-data] ${name} failed for team ${teamId}:`, r.reason);
+  }
 
   const squad = squadRes.status === "fulfilled" ? squadRes.value : null;
   const coach = coachRes.status === "fulfilled" ? coachRes.value : null;
   const fixtures = fixturesRes.status === "fulfilled" ? fixturesRes.value : [];
+  // Who actually plays and scores this season, ranked goals → minutes (the pool
+  // the AI picks scorers / key players from, never the raw registered squad).
+  const recentContributors = (involvementRes.status === "fulfilled" ? involvementRes.value : [])
+    .filter((p) => p.apps > 0)
+    .sort((x, y) => y.goals - x.goals || y.minutes - x.minutes);
+  const seasonStats = mapSeasonStats(statsRes.status === "fulfilled" ? statsRes.value : null);
 
   // Real recent form: finished matches of the season, newest first (all comps).
   const finished = fixtures
@@ -322,12 +365,24 @@ async function buildClubTeam(apiTeam: ApiTeam, comp: Competition | undefined): P
     keyPlayers: [],
     injuries: [],
     suspensions: [],
+    recentContributors,
+    seasonStats,
     dataSource: recentForm.length ? "live" : "static",
   };
 }
 
-/** Full Match for a club fixture id — null when unknown / API unavailable. */
-export async function getClubMatch(fixtureId: number): Promise<Match | null> {
+/** Attach this fixture's absences to a built team (mutates and returns it). */
+function withAbsences(team: Team, rows: ApiInjury[]): Team {
+  const absences = mapAbsences(rows, team.apiTeamId ?? Number(team.id));
+  return { ...team, absences, ...absencesToLegacy(absences) };
+}
+
+/**
+ * Full Match for a club fixture id — null when unknown / API unavailable.
+ * Wrapped in React `cache` so generateMetadata and the page body share ONE
+ * build per request instead of firing every upstream call twice.
+ */
+export const getClubMatch = cache(async function getClubMatch(fixtureId: number): Promise<Match | null> {
   if (!hasApiKey()) return null;
   const f = await getCachedOrFetch(`fixture:${fixtureId}`, 900, () => fetchFixtureById(fixtureId)).catch(
     () => null,
@@ -335,13 +390,22 @@ export async function getClubMatch(fixtureId: number): Promise<Match | null> {
   if (!f) return null;
 
   const comp = competitionForLeague(f.league.id);
-  const [homeTeam, awayTeam, h2hRes] = await Promise.all([
+  const [home, away, h2hRes, injuriesRes, oddsRes, predictionRes] = await Promise.all([
     buildClubTeam(f.teams.home, comp),
     buildClubTeam(f.teams.away, comp),
     getCachedOrFetch(`h2h:${f.teams.home.id}-${f.teams.away.id}`, 43200, () =>
       fetchH2H(f.teams.home.id, f.teams.away.id, 5),
     ).catch(() => [] as ApiFixtureResponse[]),
+    getCachedOrFetch(`injuries:${fixtureId}`, 10800, () => fetchInjuries(fixtureId)).catch(
+      () => [] as ApiInjury[],
+    ),
+    getCachedOrFetch(`odds:${fixtureId}`, 2700, () => fetchOdds(fixtureId)).catch(() => null),
+    getCachedOrFetch(`prediction:${fixtureId}`, 21600, () => fetchPrediction(fixtureId)).catch(
+      () => null,
+    ),
   ]);
+  const homeTeam = withAbsences(home, injuriesRes);
+  const awayTeam = withAbsences(away, injuriesRes);
 
   const { date, time } = parisDateTime(f.fixture.date);
   return {
@@ -361,11 +425,12 @@ export async function getClubMatch(fixtureId: number): Promise<Match | null> {
       ? { slug: comp.slug, name: comp.name, shortName: comp.shortName, flag: comp.flag, leagueId: comp.leagueId }
       : { slug: "", name: f.league.name, shortName: f.league.name, flag: "⚽", leagueId: f.league.id },
     h2h: mapH2H(h2hRes),
-    odds: [],
+    odds: extractOdds(oddsRes),
+    apiPrediction: mapPrediction(predictionRes, f.teams.home.id),
     status: mapStatus(f.fixture.status.short),
     score: { home: f.goals.home, away: f.goals.away },
   };
-}
+});
 
 /** Kickoff instant of a Match — for the 7-day rule. */
 export function matchKickoffMs(match: Match): number {

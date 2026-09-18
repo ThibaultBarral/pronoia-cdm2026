@@ -38,6 +38,29 @@ export interface TeamStats {
   cleanSheets: number;
 }
 
+/** Home/away splits of a club's league season (from /teams/statistics). */
+export interface TeamSeasonStats {
+  played: { home: number; away: number };
+  goalsForAvg: { home: number; away: number };
+  goalsAgainstAvg: { home: number; away: number };
+  cleanSheets: { home: number; away: number };
+  failedToScore: { home: number; away: number };
+  /** Most used formation this season, when known. */
+  formation: string | null;
+}
+
+/** A player expected to miss the match (from /injuries). */
+export interface Absence {
+  name: string;
+  /**
+   * "injury" (physical), "suspension" (cards), "doubt" (questionable) or
+   * "other" (coach's decision, inactive, not registered…).
+   */
+  kind: "injury" | "suspension" | "doubt" | "other";
+  /** Raw reason from the provider ("Knee Injury", "Suspended"…). */
+  reason: string;
+}
+
 export interface Player {
   name: string;
   position: string;
@@ -86,8 +109,13 @@ export interface Team {
   stats: TeamStats;
   lineup: Lineup;
   keyPlayers: string[];
+  /** Absence names (legacy string form, kept in sync with `absences`). */
   injuries: string[];
   suspensions: string[];
+  /** Structured absences for this fixture (injured, suspended, doubtful). */
+  absences?: Absence[];
+  /** Club league season home/away splits (clubs only). */
+  seasonStats?: TeamSeasonStats;
   strengths?: string[];
   weaknesses?: string[];
   /** "live" when recentForm/stats come from API-Football, "static" when from team-data.ts */
@@ -138,4 +166,15 @@ export interface Match {
   odds: Odds[];
   status?: "NS" | "1H" | "HT" | "2H" | "FT" | "AET" | "PEN";
   score?: { home: number | null; away: number | null };
+  /** API-Football's own prediction — an independent second opinion for the model. */
+  apiPrediction?: ApiPredictionSummary;
+}
+
+export interface ApiPredictionSummary {
+  winner: "home" | "away" | "draw" | null;
+  percent: { home: number; draw: number; away: number };
+  /** Provider advice, e.g. "Double chance : draw or Marseille". */
+  advice: string | null;
+  /** e.g. "+2.5" / "-3.5" */
+  underOver: string | null;
 }

@@ -2,8 +2,9 @@
  * Deterministic quantitative match model (SERVER ONLY).
  *
  * Produces the *numbers* shown in a match analysis (1X2 probabilities, expected
- * goals, over/under & BTTS, stat-comparison bars) from real data — FIFA ranking,
- * live momentum and bookmaker odds — so Claude never has to invent figures. The
+ * goals, over/under & BTTS, stat-comparison bars) from real data — Elo rating,
+ * live momentum, the club's home/away season splits and the market's implied
+ * probabilities — so Claude never has to invent figures. The
  * LLM only writes the qualitative narrative around these grounded numbers.
  */
 import "server-only";
@@ -54,6 +55,28 @@ function expectedGoals(rA: number, rB: number): { la: number; lb: number } {
   };
 }
 
+// Minimum home (resp. away) matches this season before the splits are trusted.
+const MIN_SPLIT_SAMPLE = 4;
+
+/**
+ * Clubs: refine the Elo estimate with the real home/away splits of the league
+ * season — the home side's scoring rate at home crossed with the visitor's
+ * conceding rate away, and vice versa. Blended 50/50 with the Elo figure so a
+ * hot start over 4 matches never overrides the strength gap. Nations (no
+ * splits) keep the pure Elo estimate.
+ */
+function refineWithSplits(home: Team, away: Team, elo: { la: number; lb: number }): { la: number; lb: number } {
+  const hs = home.seasonStats;
+  const as = away.seasonStats;
+  if (!hs || !as || hs.played.home < MIN_SPLIT_SAMPLE || as.played.away < MIN_SPLIT_SAMPLE) return elo;
+  const la = (hs.goalsForAvg.home + as.goalsAgainstAvg.away) / 2;
+  const lb = (as.goalsForAvg.away + hs.goalsAgainstAvg.home) / 2;
+  return {
+    la: Math.max(0.15, 0.5 * elo.la + 0.5 * la),
+    lb: Math.max(0.15, 0.5 * elo.lb + 0.5 * lb),
+  };
+}
+
 export interface MatchPrediction {
   probabilities: { home: number; draw: number; away: number };
   expectedGoals: { home: number; away: number };
@@ -95,7 +118,7 @@ export function predictMatch(match: Match): MatchPrediction {
   const a = match.awayTeam;
   const rH = ratingOf(h);
   const rA = ratingOf(a);
-  const { la, lb } = expectedGoals(rH, rA);
+  const { la, lb } = refineWithSplits(h, a, expectedGoals(rH, rA));
 
   // Poisson grid for 1X2 + markets.
   const MAX = 8;

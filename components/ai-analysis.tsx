@@ -14,7 +14,7 @@ import AnalysisLoader from "@/components/analysis-loader";
 import AnalysisLocked from "@/components/analysis-locked";
 import AnalysisScan from "@/components/analysis-scan";
 import AnalysisTeaser, { type TeaserMode } from "@/components/analysis-teaser";
-import AnalysisResult, { ProbRow } from "@/components/analysis-result";
+import AnalysisResult from "@/components/analysis-result";
 import ShareAnalysisButton from "@/components/share-analysis-button";
 import { useLocale } from "@/lib/i18n/locale-provider";
 import { useLocalizedHref } from "@/lib/i18n/navigation";
@@ -22,8 +22,8 @@ import { type MatchAnalysisData } from "@/lib/analysis-schema";
 
 /**
  * Free, model-only short read shown to non-members (zero Claude cost): the
- * favourite, the probabilities, the likely score and what the model looked at.
- * The full analysis (scenario, strengths, players, chat) is paid.
+ * favourite, its probability and the likely score. Deliberately minimal —
+ * everything else is the paid analysis right below.
  */
 function ModelPreview({
   preview,
@@ -43,60 +43,36 @@ function ModelPreview({
       ? `${homeFlag} ${homeName}`.trim()
       : preview.favorite === "away"
         ? `${awayFlag} ${awayName}`.trim()
-        : "Match nul";
+        : null;
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl glass p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--accent-soft)]">
-            <Target size={13} /> La lecture courte
-          </span>
-          <span className="text-[10px] text-[var(--text-muted)] border border-white/10 px-2 py-0.5 rounded-full">
-            Gratuit
-          </span>
-        </div>
-        <p className="text-sm text-[#c3cbe3] leading-relaxed mb-3">
-          {preview.favorite === "draw" ? (
-            <>Match très serré&nbsp;: le modèle penche pour le <span className="font-bold text-[var(--accent-soft)]">nul</span>.</>
-          ) : (
-            <>Le modèle voit <span className="font-bold text-[var(--accent-soft)]">{favLabel}</span> favori de ce match.</>
-          )}{" "}
-          Confiance&nbsp;: <span className="font-bold text-[var(--text)]">{preview.confidence}</span>.
-        </p>
-        <div className="space-y-2.5">
-          <ProbRow label={`${homeFlag} ${homeName}`.trim()} pct={preview.probabilities.home} accent={preview.favorite === "home"} />
-          <ProbRow label="Match nul" pct={preview.probabilities.draw} accent={preview.favorite === "draw"} />
-          <ProbRow label={`${awayFlag} ${awayName}`.trim()} pct={preview.probabilities.away} accent={preview.favorite === "away"} />
-        </div>
-        <div className="grid grid-cols-2 gap-2.5 mt-4">
-          <div className="rounded-xl glass p-3 text-center">
-            <div className="text-2xl font-black text-[var(--text)] tabular-nums">
-              {preview.likelyScore.home} - {preview.likelyScore.away}
-            </div>
-            <div className="text-[10px] text-[var(--text-muted)]">Score le plus probable</div>
-          </div>
-          <div className="rounded-xl glass p-3 text-center">
-            <div className="text-2xl font-black text-[var(--text)] tabular-nums">
-              {preview.expectedGoals.home} · {preview.expectedGoals.away}
-            </div>
-            <div className="text-[10px] text-[var(--text-muted)]">Buts attendus</div>
-          </div>
-        </div>
+    <div className="rounded-xl glass p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-[var(--accent-soft)]">
+          <Target size={13} /> La lecture courte
+        </span>
+        <span className="text-[10px] text-[var(--text-muted)] border border-white/10 px-2 py-0.5 rounded-full">
+          Gratuit
+        </span>
       </div>
-
-      <div className="rounded-xl glass p-4">
-        <div className="text-xs font-black uppercase tracking-wide text-[var(--text-muted)] mb-2.5">
-          Ce que le modèle a regardé
-        </div>
-        <ul className="space-y-1.5">
-          {preview.looked.map((l) => (
-            <li key={l} className="flex items-start gap-2 text-[13px] text-[#c3cbe3] leading-relaxed">
-              <span className="mt-2 w-1 h-1 rounded-full bg-[var(--accent)] shrink-0" />
-              {l}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <p className="text-base text-[#c3cbe3] leading-relaxed">
+        {favLabel ? (
+          <>
+            <span className="font-black text-[var(--text)]">{favLabel}</span> favori à{" "}
+            <span className="font-black text-[var(--accent-soft)] tabular-nums">{preview.probability}&nbsp;%</span>.
+          </>
+        ) : (
+          <>
+            Match très serré&nbsp;: <span className="font-black text-[var(--text)]">nul</span> à{" "}
+            <span className="font-black text-[var(--accent-soft)] tabular-nums">{preview.probability}&nbsp;%</span>.
+          </>
+        )}
+      </p>
+      <p className="text-sm text-[var(--text-muted)] mt-1.5">
+        Score probable&nbsp;:{" "}
+        <span className="font-black text-[var(--text)] tabular-nums">
+          {preview.likelyScore.home} - {preview.likelyScore.away}
+        </span>
+      </p>
     </div>
   );
 }

@@ -11,12 +11,8 @@ import { createClient } from "@/lib/supabase/client";
 /** Neutral placeholder numbers when the visitor has no right to the real read. */
 const PLACEHOLDER: MatchPreview = {
   favorite: "home",
-  probabilities: { home: 42, draw: 27, away: 31 },
-  expectedGoals: { home: 1.4, away: 1.1 },
+  probability: 42,
   likelyScore: { home: 2, away: 1 },
-  over25: 54,
-  confidence: "Moyen",
-  looked: [],
 };
 
 /**
@@ -70,10 +66,23 @@ export default function AnalysisTeaser({
   }
   const fav = preview.favorite === "away" ? a : h;
   const other = preview.favorite === "away" ? h : a;
-  const favPct = preview.favorite === "away" ? preview.probabilities.away : preview.probabilities.home;
-  // Comparison bars derived from the public probabilities — believable, not
-  // invented from thin air, and consistent with the favourite shown above.
-  const edge = Math.max(40, Math.min(66, 50 + Math.round((preview.probabilities.home - preview.probabilities.away) / 2)));
+  const favPct = preview.probability;
+  // Placeholder figures behind the blur, consistent with the public favourite
+  // (the real ones are paid): a 1X2 split built around the favourite's
+  // probability, and comparison bars leaning the same way.
+  const rest = 100 - favPct;
+  const draw = Math.round(rest * 0.45);
+  const probabilities =
+    preview.favorite === "home"
+      ? { home: favPct, draw, away: rest - draw }
+      : preview.favorite === "away"
+        ? { home: rest - draw, draw, away: favPct }
+        : { home: Math.round(rest / 2), draw: favPct, away: rest - Math.round(rest / 2) };
+  const expectedGoals = {
+    home: Math.max(0.6, preview.likelyScore.home - 0.4),
+    away: Math.max(0.6, preview.likelyScore.away - 0.3),
+  };
+  const edge = Math.max(40, Math.min(66, 50 + Math.round((probabilities.home - probabilities.away) / 2)));
   const comparison = [
     { label: "Attaque", home: edge, away: 100 - edge },
     { label: "Défense", home: 100 - edge + 4, away: edge - 4 },
@@ -89,7 +98,7 @@ export default function AnalysisTeaser({
     ...playersOf(h, 2).map((name) => ({ name, team: h })),
     ...playersOf(a, 1).map((name) => ({ name, team: a })),
   ];
-  const over = preview.over25;
+  const over = Math.max(38, Math.min(68, Math.round((preview.likelyScore.home + preview.likelyScore.away) * 12 + 22)));
   const btts = Math.max(30, Math.min(75, Math.round((over + 50) / 2)));
 
   function go() {
@@ -170,24 +179,13 @@ export default function AnalysisTeaser({
             <Section title="La lecture courte" icon={<Target size={13} />}>
               <Blur>
                 <div className="rounded-xl glass p-4">
-                  <p className="text-sm text-[#c3cbe3] leading-relaxed mb-3">
-                    Le modèle voit <span className="font-bold text-[var(--accent-soft)]">{fav.name}</span> favori de ce match.
-                    Confiance : <span className="font-bold text-[var(--text)]">{preview.confidence}</span>.
+                  <p className="text-base text-[#c3cbe3] leading-relaxed">
+                    <span className="font-black text-[var(--text)]">{fav.name}</span> favori à{" "}
+                    <span className="font-black text-[var(--accent-soft)] tabular-nums">{favPct} %</span>.
                   </p>
-                  {[
-                    { l: h.name, p: preview.probabilities.home },
-                    { l: "Match nul", p: preview.probabilities.draw },
-                    { l: a.name, p: preview.probabilities.away },
-                  ].map((r) => (
-                    <div key={r.l} className="mb-2">
-                      <div className="flex justify-between text-xs mb-1"><span className="text-[#c0c0c0]">{r.l}</span><span className="font-black text-[#c0c0c0]">{r.p}%</span></div>
-                      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden"><div className="h-full rounded-full bg-[#6b7280]" style={{ width: `${r.p}%` }} /></div>
-                    </div>
-                  ))}
-                  <div className="grid grid-cols-2 gap-2.5 mt-3">
-                    <div className="rounded-xl glass p-3 text-center"><div className="text-2xl font-black text-[var(--text)]">{preview.likelyScore.home} - {preview.likelyScore.away}</div><div className="text-[10px] text-[var(--text-muted)]">Score le plus probable</div></div>
-                    <div className="rounded-xl glass p-3 text-center"><div className="text-2xl font-black text-[var(--text)]">{preview.expectedGoals.home} · {preview.expectedGoals.away}</div><div className="text-[10px] text-[var(--text-muted)]">Buts attendus</div></div>
-                  </div>
+                  <p className="text-sm text-[var(--text-muted)] mt-1.5">
+                    Score probable : <span className="font-black text-[var(--text)] tabular-nums">{preview.likelyScore.home} - {preview.likelyScore.away}</span>
+                  </p>
                 </div>
               </Blur>
             </Section>
@@ -277,8 +275,8 @@ export default function AnalysisTeaser({
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
                 {[
-                  { v: preview.expectedGoals.home.toFixed(2), l: `Buts ${h.shortName}` },
-                  { v: preview.expectedGoals.away.toFixed(2), l: `Buts ${a.shortName}` },
+                  { v: expectedGoals.home.toFixed(2), l: `Buts ${h.shortName}` },
+                  { v: expectedGoals.away.toFixed(2), l: `Buts ${a.shortName}` },
                   { v: `${over}%`, l: "+2.5 buts" },
                   { v: `${btts}%`, l: "Les 2 marquent" },
                 ].map((k) => (
