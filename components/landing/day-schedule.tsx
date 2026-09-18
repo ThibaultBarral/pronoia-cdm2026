@@ -33,18 +33,31 @@ function dayLabel(date: string, today: string): string {
  * clubs, score when played), day navigation ±7 days. Server-rendered for
  * today, then the arrows fetch other days through a server action.
  */
-export default function DaySchedule({ initial, today }: { initial: Schedule; today: string }) {
-  const [schedule, setSchedule] = useState<Schedule>(initial);
-  const [date, setDate] = useState(initial.date);
+export default function DaySchedule({
+  initial,
+  today,
+  title = "Les matchs du jour",
+  className = "px-4 pb-14 -mt-6 sm:-mt-10",
+  innerClassName = "max-w-2xl mx-auto",
+}: {
+  /** Server-rendered schedule for `today`; omitted on client-only pages (fetched on mount). */
+  initial?: Schedule;
+  today: string;
+  title?: string;
+  className?: string;
+  innerClassName?: string;
+}) {
+  const [schedule, setSchedule] = useState<Schedule | null>(initial ?? null);
+  const [date, setDate] = useState(initial?.date ?? today);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (date === schedule.date) return;
+    if (schedule?.date === date) return;
     startTransition(async () => {
       const next = await getDayScheduleAction(date).catch(() => ({ date, groups: [] }));
       setSchedule(next);
     });
-  }, [date, schedule.date]);
+  }, [date, schedule?.date]);
 
   const delta = Math.round((Date.parse(date) - Date.parse(today)) / 86_400_000);
   function go(days: number) {
@@ -53,14 +66,15 @@ export default function DaySchedule({ initial, today }: { initial: Schedule; tod
     setDate(next);
   }
 
-  const total = schedule.groups.reduce((n, g) => n + g.fixtures.length, 0);
+  const groups = schedule?.groups ?? [];
+  const total = groups.reduce((n, g) => n + g.fixtures.length, 0);
 
   return (
-    <section className="px-4 pb-14 -mt-6 sm:-mt-10">
-      <div className="max-w-2xl mx-auto">
+    <section className={className}>
+      <div className={innerClassName}>
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="text-sm font-black uppercase tracking-wider text-[var(--text-muted)]">
-            Les matchs du jour
+            {title}
           </h2>
           <div className="inline-flex items-center rounded-xl glass overflow-hidden">
             <button
@@ -90,11 +104,11 @@ export default function DaySchedule({ initial, today }: { initial: Schedule; tod
 
         {total === 0 ? (
           <div className="rounded-2xl glass p-6 text-center text-sm text-[var(--text-muted)]">
-            {pending ? "On cherche les matchs…" : "Aucun match dans les 7 compétitions ce jour-là."}
+            {pending || !schedule ? "On cherche les matchs…" : "Aucun match dans les 7 compétitions ce jour-là."}
           </div>
         ) : (
           <div className={`space-y-3 transition-opacity ${pending ? "opacity-50" : ""}`}>
-            {schedule.groups.map(({ competition, fixtures }) => (
+            {groups.map(({ competition, fixtures }) => (
               <div key={competition.slug} className="rounded-2xl glass overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
                   <span className="text-base leading-none">{competition.flag}</span>

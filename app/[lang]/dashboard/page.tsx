@@ -8,6 +8,7 @@ import AppSidebar from "@/components/dashboard/app-sidebar";
 import TeamSearch from "@/components/clubs/team-search";
 import TeamCrest from "@/components/clubs/team-crest";
 import ClubFixtureRow from "@/components/clubs/club-fixture-row";
+import DaySchedule from "@/components/landing/day-schedule";
 import { getClubFixturesAction, saveFavoriteClubAction } from "@/actions/clubs";
 import { createClient } from "@/lib/supabase/client";
 import type { ClubSummary, ClubFixture } from "@/lib/club-data";
@@ -23,8 +24,14 @@ interface FavoriteClub {
  * Home = "Analyser un match". The supporter's club (from onboarding) comes
  * first with its next fixtures; the search lets them pick any other club.
  */
+/** Today in Paris, YYYY-MM-DD — the day list keys off it. */
+function parisTodayClient(): string {
+  return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
 export default function DashboardPage() {
   const router = useRouter();
+  const [parisToday] = useState(parisTodayClient);
   const [favorite, setFavorite] = useState<FavoriteClub | null | undefined>(undefined);
   const [picked, setPicked] = useState<ClubSummary | null>(null);
   // Fixtures keyed by club id: a club switch shows the loader without a sync reset.
@@ -168,6 +175,10 @@ export default function DashboardPage() {
               pour trouver une équipe.
             </p>
           )}
+
+          {/* Every match of the day across the 7 competitions, Flashscore-style,
+              same block as the public landing (fetched on mount here). */}
+          <DaySchedule today={parisToday} title="Les matchs à venir" className="mt-10" innerClassName="" />
         </main>
       </div>
     </>
