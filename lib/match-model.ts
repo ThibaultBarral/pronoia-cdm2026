@@ -85,7 +85,24 @@ export interface MatchPrediction {
   confidence: Confidence;
 }
 
-/** Implied 1X2 probabilities from the best available odds (margin removed). */
+/**
+ * Market view of the match: the consensus of every operator when we have it
+ * (lib/market), else the first operator's prices with the margin removed.
+ * Returns the probabilities and how much weight the blend should give them —
+ * a consensus of many operators deserves more than a single price.
+ */
+function marketView(match: Match): { probs: { home: number; draw: number; away: number }; weight: number } | null {
+  const m = match.market;
+  if (m && m.operators > 0) {
+    const probs = { home: m.implied.home / 100, draw: m.implied.draw / 100, away: m.implied.away / 100 };
+    const weight = m.operators >= 5 ? 0.6 : 0.45;
+    return { probs, weight };
+  }
+  const single = impliedFromOdds(match);
+  return single ? { probs: single, weight: 0.5 } : null;
+}
+
+/** Implied 1X2 probabilities from the first available prices (margin removed). */
 function impliedFromOdds(match: Match): { home: number; draw: number; away: number } | null {
   const o = match.odds[0];
   if (!o || !o.home || !o.draw || !o.away) return null;
@@ -139,14 +156,15 @@ export function predictMatch(match: Match): MatchPrediction {
     }
   }
 
-  // Blend the model with the market (odds) when available (60% market / 40% model).
+  // Blend the model with the market when available. Weight follows the depth
+  // of the market view: 60% for a consensus of 5+ operators, less otherwise.
   const modelProbs = { home: pWin, draw: pDraw, away: pLoss };
-  const implied = impliedFromOdds(match);
-  const probabilities = implied
+  const market = marketView(match);
+  const probabilities = market
     ? {
-        home: 0.6 * implied.home + 0.4 * modelProbs.home,
-        draw: 0.6 * implied.draw + 0.4 * modelProbs.draw,
-        away: 0.6 * implied.away + 0.4 * modelProbs.away,
+        home: market.weight * market.probs.home + (1 - market.weight) * modelProbs.home,
+        draw: market.weight * market.probs.draw + (1 - market.weight) * modelProbs.draw,
+        away: market.weight * market.probs.away + (1 - market.weight) * modelProbs.away,
       }
     : modelProbs;
 

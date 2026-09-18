@@ -134,6 +134,17 @@ function buildPrompt(match: Match, pred: MatchPrediction): string {
     ? `SECOND AVIS (modèle indépendant du fournisseur de données) : ${h.name} ${ap.percent.home}% · Nul ${ap.percent.draw}% · ${a.name} ${ap.percent.away}%${ap.winner ? ` · favori ${ap.winner === "home" ? h.name : ap.winner === "away" ? a.name : "nul"}` : ""}${ap.underOver ? ` · total de buts ${ap.underOver}` : ""}. Si ce second avis diverge de nos chiffres, dis-le en une phrase dans le résumé (sans jamais parler de cotes).`
     : "";
 
+  // Market consensus: what every operator, averaged, expects — plus how far
+  // the line moved during the week (the closest thing to "smart money").
+  const mk = match.market;
+  const marketStr = mk
+    ? `CONSENSUS DU MARCHÉ (${mk.operators} opérateur${mk.operators > 1 ? "s" : ""}, accord ${mk.agreement}) : ${h.name} ${Math.round(mk.implied.home)}% · Nul ${Math.round(mk.implied.draw)}% · ${a.name} ${Math.round(mk.implied.away)}%${mk.over25 != null ? ` · plus de 2,5 buts ${Math.round(mk.over25)}%` : ""}${mk.btts != null ? ` · les deux marquent ${Math.round(mk.btts)}%` : ""}${
+        mk.movement
+          ? `\nMOUVEMENT DU MARCHÉ sur ${mk.movement.days} jour${mk.movement.days > 1 ? "s" : ""} : ${h.name} ${mk.movement.home >= 0 ? "+" : ""}${mk.movement.home} pt · Nul ${mk.movement.draw >= 0 ? "+" : ""}${mk.movement.draw} pt · ${a.name} ${mk.movement.away >= 0 ? "+" : ""}${mk.movement.away} pt (un mouvement de 3 pts ou plus vers une équipe est un signal : dis-le et explique ce qui a pu le provoquer, absences ou forme).`
+          : ""
+      }\nSi le marché et nos chiffres divergent nettement (5 pts ou plus sur le favori), dis-le en une phrase. Parle de « marché » et d'« opérateurs », jamais de cotes ni de bookmakers.`
+    : "";
+
   const comp = match.competition?.name ?? "Coupe du Monde 2026";
   const rankOf = (t: typeof h) =>
     t.leagueRank ? `${t.leagueRank}e au classement` : t.fifaRanking ? `#${t.fifaRanking} FIFA` : "classement inconnu";
@@ -160,7 +171,7 @@ CHIFFRES DE NOTRE MODÈLE (à utiliser tels quels) :
 - Buts attendus : ${h.name} ${pred.expectedGoals.home} · ${a.name} ${pred.expectedGoals.away}
 - Plus de 2,5 buts : ${pred.markets.over25}% · Moins de 2,5 buts : ${pred.markets.under25}% · Les deux équipes marquent : ${pred.markets.bttsYes}%
 - Comparaison (home/away) : ${cmp}
-- Niveau de confiance global : ${pred.confidence}${secondOpinion ? `\n\n${secondOpinion}` : ""}`;
+- Niveau de confiance global : ${pred.confidence}${marketStr ? `\n\n${marketStr}` : ""}${secondOpinion ? `\n\n${secondOpinion}` : ""}`;
 }
 
 async function generate(match: Match, userId: string, locale: Locale): Promise<MatchAnalysisData> {
@@ -222,7 +233,7 @@ export async function analyzeMatch(match: Match, locale: Locale = defaultLocale)
   // each language gets its own cached analysis, shared across all users.
   const day = new Date().toISOString().slice(0, 10);
   const finished = match.competition ? 0 : await getWcFinishedCount().catch(() => 0);
-  const key = `analysis:match:${match.id}:${day}:wc${finished}:v4:${locale}`;
+  const key = `analysis:match:${match.id}:${day}:wc${finished}:v5:${locale}`;
 
   try {
     const data = await getCachedOrFetch(key, 86400, () => generate(match, access.userId, locale));

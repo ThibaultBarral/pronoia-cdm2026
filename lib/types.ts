@@ -168,6 +168,34 @@ export interface Match {
   score?: { home: number | null; away: number | null };
   /** API-Football's own prediction — an independent second opinion for the model. */
   apiPrediction?: ApiPredictionSummary;
+  /** Market consensus across every operator (+ line movement). */
+  market?: MarketConsensus;
+}
+
+/** Consensus of every operator quoting the fixture (see lib/market.ts). */
+export interface MarketConsensus {
+  /** Number of operators averaged. */
+  operators: number;
+  /** Margin-free implied probabilities, % with one decimal. */
+  implied: { home: number; draw: number; away: number };
+  /** Max − min across operators on the favourite, in points. */
+  spread: number;
+  agreement: "fort" | "moyen" | "faible";
+  /** Consensus probability of more than 2.5 goals (%), when quoted. */
+  over25?: number;
+  /** Consensus probability that both teams score (%), when quoted. */
+  btts?: number;
+  /** Line movement since our first daily reading, when we have ≥ 2 days. */
+  movement?: MarketMovement;
+}
+
+/** Change of the consensus since the first snapshot, in probability points. */
+export interface MarketMovement {
+  days: number;
+  since: string; // YYYY-MM-DD of the first reading
+  home: number;
+  draw: number;
+  away: number;
 }
 
 export interface ApiPredictionSummary {

@@ -23,7 +23,7 @@ import {
   fetchCoach,
   fetchH2H,
   fetchInjuries,
-  fetchOdds,
+  fetchOddsAll,
   fetchPlayerInvolvement,
   fetchPrediction,
   fetchTeamStats,
@@ -34,6 +34,8 @@ import {
   type ApiTeam,
 } from "./api-football";
 import { getCachedOrFetch } from "./api-cache";
+import { computeConsensus } from "./market";
+import { trackMovement } from "./market-snapshots";
 import { COMPETITIONS, getCompetition, type Competition } from "./competitions";
 import { getCompetitionClubs, type CompetitionClub } from "./competition-data";
 import {
@@ -399,13 +401,18 @@ export const getClubMatch = cache(async function getClubMatch(fixtureId: number)
     getCachedOrFetch(`injuries:${fixtureId}`, 10800, () => fetchInjuries(fixtureId)).catch(
       () => [] as ApiInjury[],
     ),
-    getCachedOrFetch(`odds:${fixtureId}`, 2700, () => fetchOdds(fixtureId)).catch(() => null),
+    // Every operator + every market in one call: feeds the odds list, the
+    // consensus and the daily snapshot (same key as the paywall ticket).
+    getCachedOrFetch(`odds-all:${fixtureId}`, 1800, () => fetchOddsAll(fixtureId)).catch(() => null),
     getCachedOrFetch(`prediction:${fixtureId}`, 21600, () => fetchPrediction(fixtureId)).catch(
       () => null,
     ),
   ]);
   const homeTeam = withAbsences(home, injuriesRes);
   const awayTeam = withAbsences(away, injuriesRes);
+
+  const consensus = computeConsensus(oddsRes);
+  const market = consensus ? { ...consensus, movement: await trackMovement(fixtureId, consensus) } : undefined;
 
   const { date, time } = parisDateTime(f.fixture.date);
   return {
@@ -426,6 +433,7 @@ export const getClubMatch = cache(async function getClubMatch(fixtureId: number)
       : { slug: "", name: f.league.name, shortName: f.league.name, flag: "⚽", leagueId: f.league.id },
     h2h: mapH2H(h2hRes),
     odds: extractOdds(oddsRes),
+    market,
     apiPrediction: mapPrediction(predictionRes, f.teams.home.id),
     status: mapStatus(f.fixture.status.short),
     score: { home: f.goals.home, away: f.goals.away },

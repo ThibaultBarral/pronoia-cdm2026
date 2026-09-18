@@ -23,7 +23,6 @@ import {
   fetchRecentMatches,
   fetchH2H,
   fetchFixtures,
-  fetchOdds,
   fetchOddsAll,
   fetchInjuries,
   fetchPrediction,
@@ -34,6 +33,8 @@ import {
   WC_SEASON,
 } from "./api-football";
 import { getCachedOrFetch } from "./api-cache";
+import { computeConsensus } from "./market";
+import { trackMovement } from "./market-snapshots";
 import { getTeamMeta, TEAM_META } from "./team-ids";
 import { getTeamProfile } from "./team-data";
 import type {
@@ -962,6 +963,7 @@ export async function getMatchData(id: string): Promise<Match | null> {
   let liveStatus: Match["status"] | undefined = preLive?.status;
   let liveScore: Match["score"] | undefined = preLive?.score;
   let apiPrediction: Match["apiPrediction"];
+  let market: Match["market"];
 
   if (hasApiKey() && meta1.apiId && meta2.apiId) {
     // Resolve this match's API-Football fixture → unlocks odds + live score.
@@ -982,7 +984,7 @@ export async function getMatchData(id: string): Promise<Match | null> {
         fetchH2H(meta1.apiId!, meta2.apiId!, 5)
       ),
       apiFixtureId
-        ? getCachedOrFetch(`odds:${apiFixtureId}`, 2700, () => fetchOdds(apiFixtureId!))
+        ? getCachedOrFetch(`odds-all:${apiFixtureId}`, 1800, () => fetchOddsAll(apiFixtureId!))
         : Promise.resolve(null),
       apiFixtureId
         ? getCachedOrFetch(`injuries:${apiFixtureId}`, 10800, () => fetchInjuries(apiFixtureId!))
@@ -998,6 +1000,10 @@ export async function getMatchData(id: string): Promise<Match | null> {
     if (oddsRes.status === "fulfilled" && oddsRes.value) {
       const extracted = extractOdds(oddsRes.value);
       if (extracted.length) odds = extracted;
+      const consensus = computeConsensus(oddsRes.value);
+      if (consensus && apiFixtureId) {
+        market = { ...consensus, movement: await trackMovement(apiFixtureId, consensus) };
+      }
     }
     if (injuriesRes.status === "fulfilled" && injuriesRes.value.length) {
       for (const t of [homeTeam, awayTeam]) {
@@ -1028,6 +1034,7 @@ export async function getMatchData(id: string): Promise<Match | null> {
     odds,
     apiFixtureId,
     apiPrediction,
+    market,
     status: liveStatus ?? (fixture.score ? "FT" : "NS"),
     score:
       liveScore ??
