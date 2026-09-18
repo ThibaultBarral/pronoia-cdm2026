@@ -24,13 +24,13 @@ export default function TeamSearch({
   const [resolved, setResolved] = useState<{ query: string; results: ClubSummary[] }>({ query: "", results: [] });
   const seq = useRef(0);
   const query = q.trim();
-  const active = query.length >= 2;
+  const active = query.length >= 1;
   const loading = active && resolved.query !== query;
   const results = active && resolved.query === query ? resolved.results : [];
   const searched = active && resolved.query === query;
 
   useEffect(() => {
-    if (query.length < 2) return;
+    if (query.length < 1) return;
     const id = ++seq.current;
     const t = setTimeout(() => {
       searchClubsAction(query)

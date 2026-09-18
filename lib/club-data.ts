@@ -109,7 +109,7 @@ const norm = (s: string) =>
 /** Name search across all covered clubs (accent-insensitive, prefix-first). */
 export async function searchClubs(query: string, limit = 8): Promise<ClubSummary[]> {
   const q = norm(query);
-  if (q.length < 2) return [];
+  if (q.length < 1) return [];
   const clubs = await getAllClubs();
   const scored = clubs
     .map((c) => {
