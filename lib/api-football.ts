@@ -331,6 +331,14 @@ export async function fetchLeagueUpcoming(
   );
 }
 
+/**
+ * Every fixture of one calendar day (Paris time), all leagues — the caller
+ * keeps only the covered competitions. One call for the whole day list.
+ */
+export async function fetchFixturesByDate(date: string): Promise<ApiFixtureResponse[]> {
+  return apiFetch<ApiFixtureResponse>(`/fixtures?date=${date}&timezone=Europe/Paris`, 600);
+}
+
 export async function fetchTeamSeasonFixtures(
   teamId: number,
   season: number

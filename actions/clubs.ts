@@ -5,8 +5,11 @@ import {
   getClubById,
   getClubFixtures,
   getCompetitionUpcoming,
+  getDaySchedule,
+  parisToday,
   type ClubSummary,
   type ClubFixture,
+  type DaySchedule,
 } from "@/lib/club-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,6 +51,14 @@ export async function saveFavoriteClubAction(club: {
     },
   });
   return { ok: !error };
+}
+
+/** The landing day list for another date (±7 days around today). */
+export async function getDayScheduleAction(date: string): Promise<DaySchedule> {
+  const today = parisToday();
+  const delta = Math.round((Date.parse(date) - Date.parse(today)) / 86_400_000);
+  if (!Number.isFinite(delta) || Math.abs(delta) > 7) return { date, groups: [] };
+  return getDaySchedule(date);
 }
 
 /** Next fixtures of a competition — the landing page chips. */

@@ -5,10 +5,13 @@ import FaqSection from "@/components/faq-section";
 import SiteFooter from "@/components/site-footer";
 import { getFaq } from "@/lib/faq";
 import { TOTAL_SEASON_MATCHES } from "@/lib/competitions";
+import { getDaySchedule, parisToday } from "@/lib/club-data";
+import DaySchedule from "@/components/landing/day-schedule";
 import { defaultLocale, isLocale } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 
-export const revalidate = 3600;
+// The day list must roll over at midnight and follow live scores: 2 minutes, not an hour.
+export const revalidate = 120;
 
 /**
  * Landing page, stripped down on 2026-09-16 at Thibault's request: the search
@@ -28,6 +31,8 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   const locale: Locale = isLocale(lang) ? lang : defaultLocale;
 
   const FAQ = getFaq(locale);
+  const today = parisToday();
+  const schedule = await getDaySchedule(today);
   const description =
     "Copafever analyse chaque match de football à partir de millions de données réelles : forme, effectifs, confrontations, statistiques joueurs. Une lecture claire du match.";
   const jsonLd = [
@@ -64,6 +69,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       />
       <Navbar />
       <HeroSearch matches={TOTAL_SEASON_MATCHES} />
+      <DaySchedule initial={schedule} today={today} />
 
       <section id="how-it-works" className="border-t border-white/5 px-4 py-12">
         <ol className="max-w-3xl mx-auto grid gap-4 sm:grid-cols-3">

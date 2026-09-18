@@ -17,6 +17,7 @@ import "server-only";
 import { cache } from "react";
 import {
   fetchFixtureById,
+  fetchFixturesByDate,
   fetchTeamSeasonFixtures,
   fetchLeagueUpcoming,
   fetchSquad,
@@ -239,6 +240,49 @@ export async function getClubFixtures(
     .filter((r) => !FINISHED_STATUSES.has(r.status ?? ""))
     .sort((a, b) => Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso));
   return { past, upcoming };
+}
+
+// ─── One day, every covered competition (the landing schedule) ───────────────
+
+export interface DaySchedule {
+  /** YYYY-MM-DD (Paris). */
+  date: string;
+  groups: { competition: Competition; fixtures: ClubFixture[] }[];
+}
+
+/** Today's date in Paris, YYYY-MM-DD. */
+export function parisToday(now = new Date()): string {
+  return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+
+/** Shift a YYYY-MM-DD by n days. */
+export function shiftDate(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The Flashscore-style day list: every fixture of the 7 covered competitions
+ * on one Paris day, grouped by competition (in COMPETITIONS order), kick-off
+ * ascending. Today is cached 2 minutes so live scores move; other days 30.
+ */
+export async function getDaySchedule(date: string): Promise<DaySchedule> {
+  if (!hasApiKey() || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { date, groups: [] };
+  const ttl = date === parisToday() ? 120 : 1800;
+  const fixtures = await getCachedOrFetch(`day-fixtures:${date}`, ttl, () => fetchFixturesByDate(date)).catch(
+    () => [] as ApiFixtureResponse[],
+  );
+  const now = Date.now();
+  const rows = fixtures
+    .filter((f) => LEAGUE_IDS.has(f.league.id))
+    .map((f) => toClubFixture(f, now))
+    .sort((a, b) => Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso));
+  const groups = COMPETITIONS.map((competition) => ({
+    competition,
+    fixtures: rows.filter((r) => r.competition?.slug === competition.slug),
+  })).filter((g) => g.fixtures.length > 0);
+  return { date, groups };
 }
 
 /** Next fixtures of a competition (landing chips) — lean rows, soonest first. */
