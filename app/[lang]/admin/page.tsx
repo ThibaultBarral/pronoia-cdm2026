@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Image as ImageIcon } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminDashboard from "@/components/admin/admin-dashboard";
 import EmailCampaigns from "@/components/admin/email-campaigns";
@@ -31,11 +33,19 @@ export default async function AdminPage() {
       <AppSidebar />
       <div className="flex-1 min-w-0 overflow-y-auto">
         <main className="px-4 md:px-8 py-8 max-w-6xl mx-auto">
-          <header className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-black text-[#f0f0f0]">Tableau de bord</h1>
-            <p className="text-sm text-[var(--text-muted)] mt-1.5">
-              Acquisition, activation, rétention et rentabilité de Copafever.
-            </p>
+          <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-[#f0f0f0]">Tableau de bord</h1>
+              <p className="text-sm text-[var(--text-muted)] mt-1.5">
+                Acquisition, activation, rétention et rentabilité de Copafever.
+              </p>
+            </div>
+            <Link
+              href="/admin/cards"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)]/12 border border-[var(--accent)]/25 text-[var(--accent-soft)] hover:bg-[var(--accent)]/20 text-sm font-bold px-4 py-2 transition-colors"
+            >
+              <ImageIcon size={15} /> Cards TikTok
+            </Link>
           </header>
 
           {/* Analytics dashboard */}
