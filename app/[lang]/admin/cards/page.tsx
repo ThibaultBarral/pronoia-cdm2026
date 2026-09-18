@@ -6,7 +6,7 @@ import AppSidebar from "@/components/dashboard/app-sidebar";
 import CardsStudio from "@/components/admin/cards-studio";
 import { isAdmin } from "@/lib/admin";
 import { COMPETITIONS } from "@/lib/competitions";
-import { getCompetitionUpcoming, type ClubFixture } from "@/lib/club-data";
+import { getCompetitionUpcoming, parisToday, type ClubFixture } from "@/lib/club-data";
 
 export const metadata: Metadata = { title: "Cards TikTok — Admin Copafever", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -36,10 +36,10 @@ export default async function AdminCardsPage() {
           <header className="mb-6">
             <h1 className="text-2xl md:text-3xl font-black text-[var(--text)]">Cards TikTok</h1>
             <p className="text-sm text-[var(--text-muted)] mt-1.5">
-              Un match, un clic, une image 1080 × 1920 prête à poster. Les matchs à moins de 7 jours, 7 compétitions.
+              Une image 1080 × 1920 par match, prête à poster. Par match, par compétition, ou toutes celles du jour d&apos;un clic.
             </p>
           </header>
-          <CardsStudio fixtures={fixtures} />
+          <CardsStudio fixtures={fixtures} today={parisToday()} />
         </main>
       </div>
     </div>
