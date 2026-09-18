@@ -198,8 +198,8 @@ export default function AIAnalysis({
           <div className="flex items-center gap-2">
             <span className="font-semibold text-[var(--text)] text-sm truncate">Analyse du match</span>
             {data && (
-              <span className="shrink-0 whitespace-nowrap text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-2 py-0.5 rounded-full">
-                Analyse complète
+              <span className="shrink-0 inline-flex items-center gap-1 whitespace-nowrap text-[10px] font-black uppercase tracking-wide text-[#ffd700] border border-[#ffd700]/30 bg-[#ffd700]/[0.08] px-2 py-0.5 rounded-full">
+                <Sparkles size={10} /> Prédiction Gold
               </span>
             )}
           </div>

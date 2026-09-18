@@ -472,13 +472,14 @@ export default function AnalysisResult({
         </div>
       )}
 
-      {/* Prédiction Gold — xG, buts, comparaison des forces */}
-      <div className="rounded-2xl p-4 space-y-5 border border-[#ffd700]/25 bg-gradient-to-b from-[#ffd700]/[0.06] to-transparent">
+      {/* Model figures — xG, goals, strength comparison. The whole analysis is
+          the Gold prediction (badge in the header); this block is just its numbers. */}
+      <div className="rounded-2xl p-4 space-y-5 glass">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[#ffd700]/15 shrink-0">
-            <Sparkles size={13} className="text-[#ffd700]" />
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--accent)]/12 shrink-0">
+            <TrendingUp size={13} className="text-[var(--accent)]" />
           </span>
-          <span className="text-xs font-black uppercase tracking-wide text-[#ffd700]">Prédiction Gold</span>
+          <span className="text-xs font-black uppercase tracking-wide text-[var(--text-muted)]">Les chiffres du modèle</span>
           <span className="ml-auto text-[10px] text-[var(--text-muted)]">xG · buts · forces</span>
         </div>
 
