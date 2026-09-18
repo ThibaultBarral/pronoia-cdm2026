@@ -36,7 +36,7 @@ export const fr = {
     redirecting: "Redirection…",
     unlock: "⚡ Débloquer le combiné — 9,99 €/mois",
     unlimited: "Analyses illimitées · résiliable à tout moment",
-    legal: "Sélection IA sur cotes réelles · simulation, aucune garantie de gain · 18+ · jouer comporte des risques · joueurs-info-service.fr",
+    legal: "Sélection IA sur cotes réelles · simulation, aucune garantie de gain",
   },
   socialProof: {
     stat1: "analyses générées",

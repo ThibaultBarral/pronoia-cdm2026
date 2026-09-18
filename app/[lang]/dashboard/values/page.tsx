@@ -73,7 +73,7 @@ export default async function ValuesPage() {
           )}
 
           <p className="text-[11px] text-[var(--text-muted)] text-center pt-2">
-            Fourni à titre informatif · 18+ · Jouer comporte des risques
+            Fourni à titre informatif
           </p>
         </main>
       </div>

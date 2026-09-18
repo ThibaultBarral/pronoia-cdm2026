@@ -129,7 +129,6 @@ export default function CelebrationModal({ wins }: { wins: WinItem[] }) {
 
             <p className="text-[10px] text-[#5a6472] text-center mt-3 leading-relaxed">
               Basé sur les prédictions réelles et vérifiées de l&apos;IA Copafever — simulation de mise.
-              18+ · Jouer comporte des risques · joueurs-info-service.fr
             </p>
           </motion.div>
         </motion.div>

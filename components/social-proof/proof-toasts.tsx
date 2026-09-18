@@ -74,7 +74,7 @@ export default function ProofToasts({ items }: { items: WinItem[] }) {
               </div>
             </div>
             <div className="text-[9px] text-[#5a6472] mt-2">
-              Prédiction vérifiée · 18+ · jouer comporte des risques
+              Prédiction vérifiée
             </div>
           </motion.button>
         )}
