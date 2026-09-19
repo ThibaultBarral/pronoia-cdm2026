@@ -4,29 +4,18 @@ import Link from "next/link";
 import { Image as ImageIcon } from "lucide-react";
 import AppSidebar from "@/components/dashboard/app-sidebar";
 import AdminDashboard from "@/components/admin/admin-dashboard";
-import EmailCampaigns from "@/components/admin/email-campaigns";
 import UsersTable from "@/components/admin/users-table";
 import { isAdmin, getAdminData, computeAdminStats } from "@/lib/admin";
-import { getCampaignStats } from "@/lib/campaign-actions";
-import { CAMPAIGNS } from "@/lib/email-campaigns";
 
 export const metadata: Metadata = { title: "Admin — Copafever", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
+/** Admin home: usage / money / plan stats, then the users table. */
 export default async function AdminPage() {
   if (!(await isAdmin())) notFound();
 
-  const [{ users, totalRevenue }, campaignStats] = await Promise.all([
-    getAdminData(),
-    getCampaignStats(),
-  ]);
+  const { users, totalRevenue } = await getAdminData();
   const stats = computeAdminStats(users, totalRevenue);
-  const campaignMeta = CAMPAIGNS.map((c) => ({
-    key: c.key,
-    label: c.label,
-    description: c.description,
-    subjects: c.subjects,
-  }));
 
   return (
     <div className="flex min-h-screen bg-[#0a0a0a]">
@@ -37,7 +26,7 @@ export default async function AdminPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-black text-[#f0f0f0]">Tableau de bord</h1>
               <p className="text-sm text-[var(--text-muted)] mt-1.5">
-                Acquisition, activation, rétention et rentabilité de Copafever.
+                Utilisation, argent et abonnements de Copafever.
               </p>
             </div>
             <Link
@@ -48,15 +37,8 @@ export default async function AdminPage() {
             </Link>
           </header>
 
-          {/* Analytics dashboard */}
+          {/* Stats : utilisateurs, CA, conversion, analyses, offres */}
           <AdminDashboard stats={stats} />
-
-          {/* Campagnes e-mail : conversion des gratuits + churned (envoi manuel) */}
-          <EmailCampaigns
-            campaigns={campaignMeta}
-            audience={campaignStats.audience}
-            sentByCampaign={campaignStats.sentByCampaign}
-          />
 
           {/* Users table — sortable + filterable (toggles admin/VIP par ligne) */}
           <UsersTable users={users} />
